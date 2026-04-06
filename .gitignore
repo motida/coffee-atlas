@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.next/
+.turbo/
+
+# DuckDB
+*.duckdb
+*.duckdb.wal
+
+# Data (downloaded/generated)
+data/raw/
+data/processed/
+data/parquet/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store

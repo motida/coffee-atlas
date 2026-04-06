@@ -1,0 +1,169 @@
+// --- Common ---
+export interface Timestamped {
+  id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Varieties ---
+export interface Variety extends Timestamped {
+  name: string;
+  species: string | null;
+  genetic_group: string | null;
+  description: string | null;
+  yield_potential: string | null;
+  optimal_altitude_min: number | null;
+  optimal_altitude_max: number | null;
+  bean_size: string | null;
+  cherry_color: string | null;
+  stature: string | null;
+  disease_resistance: string | null;
+}
+
+// --- Origins ---
+export interface Country extends Timestamped {
+  name: string;
+  iso_code: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  production_volume: number | null;
+}
+
+export interface Region extends Timestamped {
+  name: string;
+  country_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  altitude_min: number | null;
+  altitude_max: number | null;
+}
+
+export interface Farm extends Timestamped {
+  name: string;
+  region_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  altitude: number | null;
+  soil_type: string | null;
+  owner: string | null;
+}
+
+// --- Processing ---
+export interface ProcessingMethod extends Timestamped {
+  name: string;
+  category: string | null;
+  description: string | null;
+  fermentation_duration: number | null;
+  drying_duration: number | null;
+}
+
+// --- Roasting ---
+export interface RoastProfile extends Timestamped {
+  name: string;
+  roast_level: string | null;
+  first_crack_temp: number | null;
+  development_time_ratio: number | null;
+  charge_temp: number | null;
+  total_roast_time: number | null;
+  description: string | null;
+}
+
+export interface Roaster extends Timestamped {
+  name: string;
+  location: string | null;
+  website: string | null;
+}
+
+// --- Flavor ---
+export interface FlavorAttribute extends Timestamped {
+  name: string;
+  category: string | null;
+  subcategory: string | null;
+  description: string | null;
+  intensity_reference: string | null;
+  sensory_reference: string | null;
+  parent_id: string | null;
+}
+
+// --- Distribution ---
+export interface Importer extends Timestamped {
+  name: string;
+  country_id: string | null;
+  website: string | null;
+}
+
+export interface TradeRoute extends Timestamped {
+  exporter_country_id: string | null;
+  importer_country_id: string | null;
+  annual_volume: number | null;
+  year: number | null;
+}
+
+export interface Certification extends Timestamped {
+  name: string;
+  description: string | null;
+}
+
+// --- Shops ---
+export interface Shop extends Timestamped {
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  website: string | null;
+  rating: number | null;
+  roasts_in_house: boolean | null;
+  description: string | null;
+}
+
+// --- GeoJSON ---
+export interface GeoJSONFeature<P = Record<string, unknown>> {
+  type: "Feature";
+  geometry: {
+    type: string;
+    coordinates: number[];
+  };
+  properties: P;
+}
+
+export interface GeoJSONFeatureCollection<P = Record<string, unknown>> {
+  type: "FeatureCollection";
+  features: GeoJSONFeature<P>[];
+}
+
+// --- Graph ---
+export interface GraphNode {
+  id: string;
+  entity_type: string;
+  label: string;
+  properties?: Record<string, unknown>;
+}
+
+export interface GraphEdge {
+  source_id: string;
+  target_id: string;
+  edge_type: string;
+  properties?: Record<string, unknown>;
+}
+
+export interface TraversalResult {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export interface PathResult {
+  path: GraphNode[];
+  edges: GraphEdge[];
+  total_weight: number | null;
+}
+
+// --- Search ---
+export interface SearchResult {
+  id: string;
+  entity_type: string;
+  label: string;
+  description: string | null;
+  similarity: number | null;
+}

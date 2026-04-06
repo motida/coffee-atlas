@@ -1,0 +1,44 @@
+@prefix : <http://coffeeatlas.org/ontology/distribution#> .
+@prefix ca: <http://coffeeatlas.org/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://coffeeatlas.org/ontology/distribution> a owl:Ontology ;
+    rdfs:label "Coffee Distribution Module" ;
+    rdfs:comment "Defines importers, exporters, trade routes, grades, and certifications." .
+
+:Importer a owl:Class ;
+    rdfs:label "Importer" .
+
+:Exporter a owl:Class ;
+    rdfs:label "Exporter" .
+
+:TradeRoute a owl:Class ;
+    rdfs:label "Trade Route" .
+
+:CoffeeGrade a owl:Class ;
+    rdfs:label "Coffee Grade" .
+
+:Certification a owl:Class ;
+    rdfs:label "Certification" .
+
+:exportsTo a owl:ObjectProperty ;
+    rdfs:label "exports to" ;
+    rdfs:domain :Exporter ;
+    rdfs:range <http://coffeeatlas.org/ontology/origins#Country> .
+
+:importsFrom a owl:ObjectProperty ;
+    rdfs:label "imports from" ;
+    rdfs:domain :Importer ;
+    rdfs:range <http://coffeeatlas.org/ontology/origins#Country> .
+
+:annualVolume a owl:DatatypeProperty ;
+    rdfs:label "annual volume (tonnes)" ;
+    rdfs:domain :TradeRoute ;
+    rdfs:range xsd:float .
+
+:certifiedBy a owl:ObjectProperty ;
+    rdfs:label "certified by" ;
+    rdfs:range :Certification .

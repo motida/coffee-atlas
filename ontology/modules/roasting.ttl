@@ -1,0 +1,58 @@
+@prefix : <http://coffeeatlas.org/ontology/roasting#> .
+@prefix ca: <http://coffeeatlas.org/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://coffeeatlas.org/ontology/roasting> a owl:Ontology ;
+    rdfs:label "Coffee Roasting Module" ;
+    rdfs:comment "Defines roast profiles, roast levels, roasting methods, and roasters." .
+
+:RoastProfile a owl:Class ;
+    rdfs:label "Roast Profile" .
+
+:RoastLevel a owl:Class ;
+    rdfs:label "Roast Level" .
+
+:RoastingMethod a owl:Class ;
+    rdfs:label "Roasting Method" .
+
+:Roaster a owl:Class ;
+    rdfs:label "Roaster" ;
+    rdfs:comment "A company or person that roasts coffee." .
+
+:firstCrackTemp a owl:DatatypeProperty ;
+    rdfs:label "first crack temperature (°C)" ;
+    rdfs:domain :RoastProfile ;
+    rdfs:range xsd:float .
+
+:developmentTimeRatio a owl:DatatypeProperty ;
+    rdfs:label "development time ratio" ;
+    rdfs:domain :RoastProfile ;
+    rdfs:range xsd:float .
+
+:roastDegree a owl:ObjectProperty ;
+    rdfs:label "roast degree" ;
+    rdfs:domain :RoastProfile ;
+    rdfs:range :RoastLevel .
+
+:chargeTemp a owl:DatatypeProperty ;
+    rdfs:label "charge temperature (°C)" ;
+    rdfs:domain :RoastProfile ;
+    rdfs:range xsd:float .
+
+:totalRoastTime a owl:DatatypeProperty ;
+    rdfs:label "total roast time (seconds)" ;
+    rdfs:domain :RoastProfile ;
+    rdfs:range xsd:integer .
+
+:enhancesFlavor a owl:ObjectProperty ;
+    rdfs:label "enhances flavor" ;
+    rdfs:domain :RoastProfile ;
+    rdfs:range <http://coffeeatlas.org/ontology/flavor#FlavorAttribute> .
+
+:diminishesFlavor a owl:ObjectProperty ;
+    rdfs:label "diminishes flavor" ;
+    rdfs:domain :RoastProfile ;
+    rdfs:range <http://coffeeatlas.org/ontology/flavor#FlavorAttribute> .

@@ -1,0 +1,71 @@
+@prefix : <http://coffeeatlas.org/ontology/varieties#> .
+@prefix ca: <http://coffeeatlas.org/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://coffeeatlas.org/ontology/varieties> a owl:Ontology ;
+    rdfs:label "Coffee Varieties Module" ;
+    rdfs:comment "Defines coffee species, varieties, genetic lineages, and breeding programs." .
+
+:CoffeeSpecies a owl:Class ;
+    rdfs:label "Coffee Species" ;
+    rdfs:comment "A biological species of coffee (e.g., Arabica, Robusta, Liberica)." .
+
+:CoffeeVariety a owl:Class ;
+    rdfs:label "Coffee Variety" ;
+    rdfs:comment "A cultivar or variety within a coffee species." .
+
+:GeneticLineage a owl:Class ;
+    rdfs:label "Genetic Lineage" ;
+    rdfs:comment "The genetic heritage and parentage of a coffee variety." .
+
+:BreedingProgram a owl:Class ;
+    rdfs:label "Breeding Program" ;
+    rdfs:comment "An organized effort to develop new coffee varieties." .
+
+:hasParentVariety a owl:ObjectProperty ;
+    rdfs:label "has parent variety" ;
+    rdfs:domain :CoffeeVariety ;
+    rdfs:range :CoffeeVariety .
+
+:belongsToSpecies a owl:ObjectProperty ;
+    rdfs:label "belongs to species" ;
+    rdfs:domain :CoffeeVariety ;
+    rdfs:range :CoffeeSpecies .
+
+:resistantTo a owl:DatatypeProperty ;
+    rdfs:label "resistant to" ;
+    rdfs:domain :CoffeeVariety ;
+    rdfs:range xsd:string .
+
+:yieldPotential a owl:DatatypeProperty ;
+    rdfs:label "yield potential" ;
+    rdfs:domain :CoffeeVariety ;
+    rdfs:range xsd:string .
+
+:optimalAltitudeMin a owl:DatatypeProperty ;
+    rdfs:label "optimal altitude minimum (masl)" ;
+    rdfs:domain :CoffeeVariety ;
+    rdfs:range xsd:integer .
+
+:optimalAltitudeMax a owl:DatatypeProperty ;
+    rdfs:label "optimal altitude maximum (masl)" ;
+    rdfs:domain :CoffeeVariety ;
+    rdfs:range xsd:integer .
+
+:beanSize a owl:DatatypeProperty ;
+    rdfs:label "bean size" ;
+    rdfs:domain :CoffeeVariety ;
+    rdfs:range xsd:string .
+
+:cherryColor a owl:DatatypeProperty ;
+    rdfs:label "cherry color" ;
+    rdfs:domain :CoffeeVariety ;
+    rdfs:range xsd:string .
+
+:stature a owl:DatatypeProperty ;
+    rdfs:label "stature" ;
+    rdfs:domain :CoffeeVariety ;
+    rdfs:range xsd:string .

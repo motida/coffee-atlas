@@ -1,0 +1,57 @@
+@prefix : <http://coffeeatlas.org/ontology/origins#> .
+@prefix ca: <http://coffeeatlas.org/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://coffeeatlas.org/ontology/origins> a owl:Ontology ;
+    rdfs:label "Coffee Origins Module" ;
+    rdfs:comment "Defines countries, regions, farms, cooperatives, mills, and growing conditions." .
+
+:Country a owl:Class ;
+    rdfs:label "Country" .
+
+:Region a owl:Class ;
+    rdfs:label "Region" .
+
+:Farm a owl:Class ;
+    rdfs:label "Farm" .
+
+:Cooperative a owl:Class ;
+    rdfs:label "Cooperative" .
+
+:Mill a owl:Class ;
+    rdfs:label "Mill" .
+
+:GrowingConditions a owl:Class ;
+    rdfs:label "Growing Conditions" .
+
+:locatedIn a owl:ObjectProperty ;
+    rdfs:label "located in" ;
+    rdfs:comment "Links an entity to its geographic container." .
+
+:altitudeRange a owl:DatatypeProperty ;
+    rdfs:label "altitude range" ;
+    rdfs:domain :Region ;
+    rdfs:range xsd:string .
+
+:soilType a owl:DatatypeProperty ;
+    rdfs:label "soil type" ;
+    rdfs:domain :Farm ;
+    rdfs:range xsd:string .
+
+:annualRainfall a owl:DatatypeProperty ;
+    rdfs:label "annual rainfall (mm)" ;
+    rdfs:domain :Region ;
+    rdfs:range xsd:float .
+
+:harvestSeason a owl:DatatypeProperty ;
+    rdfs:label "harvest season" ;
+    rdfs:domain :Region ;
+    rdfs:range xsd:string .
+
+:producesVariety a owl:ObjectProperty ;
+    rdfs:label "produces variety" ;
+    rdfs:domain :Farm ;
+    rdfs:range <http://coffeeatlas.org/ontology/varieties#CoffeeVariety> .
