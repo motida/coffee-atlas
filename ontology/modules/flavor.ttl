@@ -1,0 +1,49 @@
+@prefix : <http://coffeeatlas.org/ontology/flavor#> .
+@prefix ca: <http://coffeeatlas.org/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://coffeeatlas.org/ontology/flavor> a owl:Ontology ;
+    rdfs:label "Coffee Flavor Module" ;
+    rdfs:comment "Defines flavor attributes, categories, and the sensory taxonomy based on WCR Sensory Lexicon." .
+
+:FlavorAttribute a owl:Class ;
+    rdfs:label "Flavor Attribute" .
+
+:FlavorCategory a owl:Class ;
+    rdfs:label "Flavor Category" .
+
+:AromaAttribute a owl:Class ;
+    rdfs:subClassOf :FlavorAttribute ;
+    rdfs:label "Aroma Attribute" .
+
+:TextureAttribute a owl:Class ;
+    rdfs:subClassOf :FlavorAttribute ;
+    rdfs:label "Texture Attribute" .
+
+:TasteAttribute a owl:Class ;
+    rdfs:subClassOf :FlavorAttribute ;
+    rdfs:label "Taste Attribute" .
+
+:belongsToCategory a owl:ObjectProperty ;
+    rdfs:label "belongs to category" ;
+    rdfs:domain :FlavorAttribute ;
+    rdfs:range :FlavorCategory .
+
+:intensityReference a owl:DatatypeProperty ;
+    rdfs:label "intensity reference" ;
+    rdfs:domain :FlavorAttribute ;
+    rdfs:range xsd:string .
+
+:sensoryReference a owl:DatatypeProperty ;
+    rdfs:label "sensory reference" ;
+    rdfs:domain :FlavorAttribute ;
+    rdfs:range xsd:string .
+
+:adjacentTo a owl:ObjectProperty ;
+    rdfs:label "adjacent to" ;
+    rdfs:comment "Flavor wheel proximity relationship." ;
+    rdfs:domain :FlavorAttribute ;
+    rdfs:range :FlavorAttribute .

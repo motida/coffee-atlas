@@ -1,0 +1,46 @@
+@prefix : <http://coffeeatlas.org/ontology/processing#> .
+@prefix ca: <http://coffeeatlas.org/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://coffeeatlas.org/ontology/processing> a owl:Ontology ;
+    rdfs:label "Coffee Processing Module" ;
+    rdfs:comment "Defines processing methods, drying methods, and fermentation types." .
+
+:ProcessingMethod a owl:Class ;
+    rdfs:label "Processing Method" .
+
+:DryingMethod a owl:Class ;
+    rdfs:label "Drying Method" .
+
+:FermentationType a owl:Class ;
+    rdfs:label "Fermentation Type" .
+
+# Named individuals
+:Washed a :ProcessingMethod ; rdfs:label "Washed" .
+:Natural a :ProcessingMethod ; rdfs:label "Natural" .
+:Honey a :ProcessingMethod ; rdfs:label "Honey" .
+:SemiWashed a :ProcessingMethod ; rdfs:label "Semi-Washed" .
+:WetHulled a :ProcessingMethod ; rdfs:label "Wet Hulled" .
+:Anaerobic a :ProcessingMethod ; rdfs:label "Anaerobic" .
+:CarbonMaceration a :ProcessingMethod ; rdfs:label "Carbon Maceration" .
+
+:usesMethod a owl:ObjectProperty ;
+    rdfs:label "uses method" .
+
+:fermentationDuration a owl:DatatypeProperty ;
+    rdfs:label "fermentation duration (hours)" ;
+    rdfs:domain :ProcessingMethod ;
+    rdfs:range xsd:float .
+
+:dryingDuration a owl:DatatypeProperty ;
+    rdfs:label "drying duration (days)" ;
+    rdfs:domain :ProcessingMethod ;
+    rdfs:range xsd:float .
+
+:impactOnFlavor a owl:ObjectProperty ;
+    rdfs:label "impact on flavor" ;
+    rdfs:domain :ProcessingMethod ;
+    rdfs:range <http://coffeeatlas.org/ontology/flavor#FlavorAttribute> .

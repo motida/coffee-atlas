@@ -1,0 +1,53 @@
+@prefix : <http://coffeeatlas.org/ontology/shops#> .
+@prefix ca: <http://coffeeatlas.org/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://coffeeatlas.org/ontology/shops> a owl:Ontology ;
+    rdfs:label "Coffee Shops Module" ;
+    rdfs:comment "Defines coffee shops, roasteries, cafe chains, and brew methods." .
+
+:CoffeeShop a owl:Class ;
+    rdfs:label "Coffee Shop" .
+
+:Roastery a owl:Class ;
+    rdfs:subClassOf :CoffeeShop ;
+    rdfs:label "Roastery" .
+
+:CafeChain a owl:Class ;
+    rdfs:subClassOf :CoffeeShop ;
+    rdfs:label "Cafe Chain" .
+
+:BrewMethod a owl:Class ;
+    rdfs:label "Brew Method" .
+
+:locatedAt a owl:DatatypeProperty ;
+    rdfs:label "located at (coordinates)" ;
+    rdfs:domain :CoffeeShop ;
+    rdfs:range xsd:string .
+
+:servesVariety a owl:ObjectProperty ;
+    rdfs:label "serves variety" ;
+    rdfs:domain :CoffeeShop ;
+    rdfs:range <http://coffeeatlas.org/ontology/varieties#CoffeeVariety> .
+
+:roastsInHouse a owl:DatatypeProperty ;
+    rdfs:label "roasts in house" ;
+    rdfs:domain :CoffeeShop ;
+    rdfs:range xsd:boolean .
+
+:offersBrewMethod a owl:ObjectProperty ;
+    rdfs:label "offers brew method" ;
+    rdfs:domain :CoffeeShop ;
+    rdfs:range :BrewMethod .
+
+:sourcesFrom a owl:ObjectProperty ;
+    rdfs:label "sources from" ;
+    rdfs:domain :CoffeeShop .
+
+:rating a owl:DatatypeProperty ;
+    rdfs:label "rating" ;
+    rdfs:domain :CoffeeShop ;
+    rdfs:range xsd:float .
