@@ -9,9 +9,7 @@ def test_loads_all_110_attributes(db):
 
 def test_hierarchy_shape(db):
     load_wcr_lexicon(conn=db)
-    tier1 = db.execute(
-        "SELECT COUNT(*) FROM flav_attributes WHERE parent_id IS NULL"
-    ).fetchone()[0]
+    tier1 = db.execute("SELECT COUNT(*) FROM flav_attributes WHERE parent_id IS NULL").fetchone()[0]
     assert tier1 == 9
 
     orphans = db.execute(
