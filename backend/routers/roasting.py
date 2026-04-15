@@ -13,9 +13,7 @@ def list_profiles(
     offset: int = Query(0, ge=0),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
-    rows = db.execute(
-        "SELECT * FROM roast_profiles LIMIT ? OFFSET ?", [limit, offset]
-    ).fetchdf()
+    rows = db.execute("SELECT * FROM roast_profiles LIMIT ? OFFSET ?", [limit, offset]).fetchdf()
     return rows.to_dict(orient="records")
 
 
@@ -24,6 +22,7 @@ def get_profile(profile_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
     row = db.execute("SELECT * FROM roast_profiles WHERE id = ?", [profile_id]).fetchone()
     if not row:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Roast profile not found")
     columns = [desc[0] for desc in db.description]
     return dict(zip(columns, row))

@@ -18,7 +18,7 @@ TABLES: list[str] = [
         cherry_color TEXT,
         stature TEXT,
         disease_resistance TEXT,
-        name_embedding FLOAT[1536],
+        name_embedding FLOAT[768],
         created_at TIMESTAMP DEFAULT current_timestamp,
         updated_at TIMESTAMP DEFAULT current_timestamp
     )
@@ -72,7 +72,7 @@ TABLES: list[str] = [
         description TEXT,
         fermentation_duration DOUBLE,
         drying_duration DOUBLE,
-        description_embedding FLOAT[1536],
+        description_embedding FLOAT[768],
         created_at TIMESTAMP DEFAULT current_timestamp,
         updated_at TIMESTAMP DEFAULT current_timestamp
     )
@@ -88,7 +88,7 @@ TABLES: list[str] = [
         charge_temp DOUBLE,
         total_roast_time INTEGER,
         description TEXT,
-        description_embedding FLOAT[1536],
+        description_embedding FLOAT[768],
         created_at TIMESTAMP DEFAULT current_timestamp,
         updated_at TIMESTAMP DEFAULT current_timestamp
     )
@@ -114,7 +114,7 @@ TABLES: list[str] = [
         intensity_reference TEXT,
         sensory_reference TEXT,
         parent_id TEXT,
-        name_embedding FLOAT[1536],
+        name_embedding FLOAT[768],
         created_at TIMESTAMP DEFAULT current_timestamp,
         updated_at TIMESTAMP DEFAULT current_timestamp
     )
@@ -164,7 +164,7 @@ TABLES: list[str] = [
         rating DOUBLE,
         roasts_in_house BOOLEAN,
         description TEXT,
-        description_embedding FLOAT[1536],
+        description_embedding FLOAT[768],
         created_at TIMESTAMP DEFAULT current_timestamp,
         updated_at TIMESTAMP DEFAULT current_timestamp
     )

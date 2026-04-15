@@ -13,24 +13,22 @@ def list_origins(
     offset: int = Query(0, ge=0),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
-    rows = db.execute(
-        "SELECT * FROM org_countries LIMIT ? OFFSET ?", [limit, offset]
-    ).fetchdf()
+    rows = db.execute("SELECT * FROM org_countries LIMIT ? OFFSET ?", [limit, offset]).fetchdf()
     return rows.to_dict(orient="records")
 
 
 @router.get("/geo")
 def get_origins_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)):
-    rows = db.execute(
-        "SELECT * FROM org_countries WHERE latitude IS NOT NULL"
-    ).fetchdf()
+    rows = db.execute("SELECT * FROM org_countries WHERE latitude IS NOT NULL").fetchdf()
     features = []
     for _, row in rows.iterrows():
-        features.append({
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
-            "properties": row.to_dict(),
-        })
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
+                "properties": row.to_dict(),
+            }
+        )
     return {"type": "FeatureCollection", "features": features}
 
 
@@ -39,6 +37,7 @@ def get_origin(origin_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)):
     row = db.execute("SELECT * FROM org_countries WHERE id = ?", [origin_id]).fetchone()
     if not row:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Origin not found")
     columns = [desc[0] for desc in db.description]
     return dict(zip(columns, row))

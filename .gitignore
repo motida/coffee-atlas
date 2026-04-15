@@ -21,13 +21,16 @@ node_modules/
 *.duckdb.wal
 
 # Data (downloaded/generated)
-data/raw/
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/scaa_2016_flavor_wheel.json
 data/processed/
 data/parquet/
 
 # Environment
 .env
 .env.local
+.direnv/
 
 # IDE
 .vscode/

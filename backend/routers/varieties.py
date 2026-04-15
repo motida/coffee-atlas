@@ -13,9 +13,7 @@ def list_varieties(
     offset: int = Query(0, ge=0),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ):
-    rows = db.execute(
-        "SELECT * FROM var_varieties LIMIT ? OFFSET ?", [limit, offset]
-    ).fetchdf()
+    rows = db.execute("SELECT * FROM var_varieties LIMIT ? OFFSET ?", [limit, offset]).fetchdf()
     return rows.to_dict(orient="records")
 
 
@@ -24,6 +22,7 @@ def get_variety(variety_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
     row = db.execute("SELECT * FROM var_varieties WHERE id = ?", [variety_id]).fetchone()
     if not row:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Variety not found")
     columns = [desc[0] for desc in db.description]
     return dict(zip(columns, row))

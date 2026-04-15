@@ -13,7 +13,7 @@ Built as a knowledge-graph-backed application where every entity (bean variety, 
 | Database | DuckDB with Parquet storage (Hive-partitioned) |
 | Graph | DuckPGQ extension for graph traversal |
 | Vector Search | DuckDB VSS with HNSW indexing (OpenAI `text-embedding-3-small`) |
-| Maps | Mapbox GL JS (react-map-gl) |
+| Maps | MapLibre GL JS (react-map-gl) with OpenFreeMap tiles |
 | Ontology | OWL 2 via Owlready2, validated with HermiT reasoner |
 
 ## Prerequisites
@@ -44,8 +44,7 @@ cd frontend && npm install
 ```bash
 cp .env.example .env
 # Edit .env with your API keys:
-#   OPENAI_API_KEY    — for embeddings and semantic search
-#   MAPBOX_ACCESS_TOKEN — for map rendering
+#   GEMINI_API_KEY — for embeddings and semantic search
 ```
 
 ### 3. Initialize the database
