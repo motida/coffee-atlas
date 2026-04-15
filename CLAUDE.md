@@ -15,7 +15,7 @@ Coffee Atlas is a full-stack geospatial application that maps the global coffee 
 - **Database:** DuckDB with Parquet storage (Hive-partitioned by domain)
 - **Graph Layer:** DuckPGQ extension for graph traversal queries
 - **Vector Search:** DuckDB VSS extension with HNSW indexing (OpenAI `text-embedding-3-small`)
-- **Maps:** Mapbox GL JS (react-map-gl wrapper)
+- **Maps:** MapLibre GL JS (react-map-gl wrapper) with OpenFreeMap tiles
 - **Ontology (design-time):** OWL 2 via Owlready2, validated with HermiT reasoner
 
 ### Project Structure
@@ -56,7 +56,7 @@ coffee-atlas/
 │   ├── services/
 │   │   ├── embeddings.py               # OpenAI embedding generation
 │   │   ├── enrichment.py               # LLM-based entity extraction
-│   │   └── geocoding.py                # Mapbox geocoding service
+│   │   └── geocoding.py                # Geocoding service (provider TBD)
 │   └── ingest/
 │       ├── cqi_loader.py               # Coffee Quality Institute data
 │       ├── wcr_varieties_loader.py     # World Coffee Research catalog
@@ -75,7 +75,7 @@ coffee-atlas/
 │   │   └── api/                        # Next.js API routes (proxy to FastAPI)
 │   ├── components/
 │   │   ├── map/
-│   │   │   ├── CoffeeMap.tsx           # Main Mapbox map component
+│   │   │   ├── CoffeeMap.tsx           # Main MapLibre map component
 │   │   │   ├── layers/                 # Map layer configs per entity type
 │   │   │   └── popups/                 # Entity popup cards
 │   │   ├── graph/
@@ -118,7 +118,7 @@ Seed data: **WCR Varieties Catalog** — 55 Arabica + 47 Robusta varieties with 
 #### 2. Origins (`origins.ttl`)
 Classes: `Country`, `Region`, `Farm`, `Cooperative`, `Mill`, `GrowingConditions`
 Key properties: `locatedIn`, `altitudeRange`, `soilType`, `annualRainfall`, `harvestSeason`, `producesVariety`
-Seed data: **CQI Database** (Kaggle) — ~1,300 reviewed samples with country, region, altitude, farm name, mill, producer. Enrich coordinates via Mapbox geocoding.
+Seed data: **CQI Database** (Kaggle) — ~1,300 reviewed samples with country, region, altitude, farm name, mill, producer. Enrich coordinates via a geocoding service (provider TBD — candidates: Nominatim/OSM, Pelias, or a paid API).
 
 #### 3. Processing (`processing.ttl`)
 Classes: `ProcessingMethod`, `DryingMethod`, `FermentationType`
@@ -172,7 +172,7 @@ Seed data: Google Places API, Yelp Fusion API, or Overture Maps Foundation open 
 1. **WCR Sensory Lexicon** → parse PDF, populate `flavor_attributes` table (T-Box stable)
 2. **WCR Varieties Catalog** → scrape web catalog, populate `varieties` table
 3. **CQI Database** → download CSV from Kaggle, clean + normalize, populate `coffee_samples`, `origins`, `processing_methods`
-4. **Geocoding** → batch geocode origins (country + region + altitude) via Mapbox, store coordinates
+4. **Geocoding** → batch geocode origins (country + region + altitude) via chosen provider, store coordinates
 5. **Shops** → POI data load, filter specialty coffee, geocode, populate `shops`
 6. **Embeddings** → generate OpenAI embeddings for variety descriptions, flavor profiles, shop descriptions → store in DuckDB VSS index
 7. **Graph edges** → compute and store edges for DuckPGQ property graph
@@ -246,7 +246,7 @@ GET  /api/v1/search/text                 # Full-text search
 ## Frontend Features
 
 ### 1. Global Map View (Landing Page)
-- Mapbox GL map with multiple toggleable layers:
+- MapLibre GL map (OpenFreeMap tiles) with multiple toggleable layers:
   - **Origins layer:** coffee-producing countries/regions colored by production volume
   - **Shops layer:** clustered markers for specialty coffee shops worldwide
   - **Trade routes layer:** animated arcs showing green coffee trade flows
@@ -298,8 +298,7 @@ GET  /api/v1/search/text                 # Full-text search
 DUCKDB_PATH=./data/coffee_atlas.duckdb
 
 # APIs
-OPENAI_API_KEY=sk-...
-MAPBOX_ACCESS_TOKEN=pk-...
+GEMINI_API_KEY=...
 GOOGLE_PLACES_API_KEY=...          # Optional, for shop data
 
 # Server

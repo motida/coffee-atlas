@@ -4,12 +4,11 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
     DUCKDB_PATH: str = "./data/coffee_atlas.duckdb"
 
-    OPENAI_API_KEY: str = ""
-    MAPBOX_ACCESS_TOKEN: str = ""
+    GEMINI_API_KEY: str = ""
     GOOGLE_PLACES_API_KEY: str = ""
 
     BACKEND_PORT: int = 8000

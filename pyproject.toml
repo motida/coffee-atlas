@@ -10,7 +10,7 @@ dependencies = [
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
     "httpx>=0.26.0",
-    "openai>=1.10.0",
+    "google-generativeai>=0.8.0",
     "owlready2>=0.45",
     "python-dotenv>=1.0.0",
 ]
