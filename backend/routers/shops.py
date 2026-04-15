@@ -19,16 +19,16 @@ def list_shops(
 
 @router.get("/geo")
 def get_shops_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)):
-    rows = db.execute(
-        "SELECT * FROM shop_shops WHERE latitude IS NOT NULL"
-    ).fetchdf()
+    rows = db.execute("SELECT * FROM shop_shops WHERE latitude IS NOT NULL").fetchdf()
     features = []
     for _, row in rows.iterrows():
-        features.append({
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
-            "properties": row.to_dict(),
-        })
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
+                "properties": row.to_dict(),
+            }
+        )
     return {"type": "FeatureCollection", "features": features}
 
 
@@ -66,6 +66,7 @@ def get_shop(shop_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)):
     row = db.execute("SELECT * FROM shop_shops WHERE id = ?", [shop_id]).fetchone()
     if not row:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Shop not found")
     columns = [desc[0] for desc in db.description]
     return dict(zip(columns, row))

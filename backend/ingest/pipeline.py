@@ -11,16 +11,19 @@ STAGES = ["lexicon", "varieties", "cqi", "geocode", "shops", "embeddings", "grap
 def run_stage(stage: str) -> None:
     if stage == "lexicon":
         from backend.ingest.wcr_lexicon_loader import load_wcr_lexicon
+
         count = load_wcr_lexicon(settings.DUCKDB_PATH)
         print(f"Loaded {count} flavor attributes")
 
     elif stage == "varieties":
         from backend.ingest.wcr_varieties_loader import load_wcr_varieties
+
         count = load_wcr_varieties(settings.DUCKDB_PATH)
         print(f"Loaded {count} varieties")
 
     elif stage == "cqi":
         from backend.ingest.cqi_loader import load_cqi_data
+
         count = load_cqi_data(settings.DUCKDB_PATH)
         print(f"Loaded {count} CQI samples")
 
