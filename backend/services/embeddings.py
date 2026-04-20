@@ -1,28 +1,60 @@
-"""Google Gemini embedding generation service."""
+"""Google Gemini embedding service using the google-genai SDK."""
+
+import time
+
+from google import genai
+from google.genai import errors as genai_errors
 
 from backend.config import settings
 
+MODEL = "gemini-embedding-001"
+DIMENSIONS = 3072
+BATCH_LIMIT = 50  # Conservative to stay under free-tier 100 req/min
+RATE_LIMIT_PAUSE = 60  # Seconds to wait on 429 before retrying
+MAX_RETRIES = 3
+
 
 class EmbeddingService:
-    def __init__(self):
-        self.model = "models/text-embedding-004"
-        self.dimensions = 768
+    """Synchronous embedding service backed by Gemini gemini-embedding-001."""
 
-    async def embed(self, text: str) -> list[float]:
-        """Generate an embedding vector for the given text."""
-        import google.generativeai as genai
+    def __init__(self, api_key: str | None = None):
+        self.client = genai.Client(api_key=api_key or settings.GEMINI_API_KEY)
 
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        result = genai.embed_content(model=self.model, content=text)
-        return result["embedding"]
+    def embed(self, text: str) -> list[float]:
+        """Embed a single text string. Returns a 768-dim float vector."""
+        result = self._call([text])
+        return result.embeddings[0].values
 
-    async def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        """Generate embeddings for a batch of texts."""
-        import google.generativeai as genai
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        """Embed a list of texts, chunking to stay within API limits.
 
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        results = []
-        for text in texts:
-            result = genai.embed_content(model=self.model, content=text)
-            results.append(result["embedding"])
-        return results
+        Returns vectors in the same order as the input texts.
+        Pauses between chunks to avoid rate limits.
+        """
+        all_vectors: list[list[float]] = []
+        for i in range(0, len(texts), BATCH_LIMIT):
+            if i > 0:
+                time.sleep(2)  # Brief pause between chunks
+            chunk = texts[i : i + BATCH_LIMIT]
+            result = self._call(chunk)
+            all_vectors.extend(emb.values for emb in result.embeddings)
+        return all_vectors
+
+    def _call(self, contents: list[str]):
+        """Call embed_content with retry on rate-limit errors."""
+        for attempt in range(MAX_RETRIES):
+            try:
+                return self.client.models.embed_content(
+                    model=MODEL,
+                    contents=contents,
+                    config={"output_dimensionality": DIMENSIONS},
+                )
+            except genai_errors.ClientError as e:
+                if "429" in str(e) and attempt < MAX_RETRIES - 1:
+                    wait = RATE_LIMIT_PAUSE * (attempt + 1)
+                    print(
+                        f"  Rate limited, waiting {wait}s (attempt {attempt + 1}/{MAX_RETRIES})..."
+                    )
+                    time.sleep(wait)
+                else:
+                    raise

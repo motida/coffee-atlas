@@ -24,6 +24,7 @@ node_modules/
 data/raw/*
 !data/raw/.gitkeep
 !data/raw/scaa_2016_flavor_wheel.json
+!data/raw/wcr_varieties.json
 data/processed/
 data/parquet/
 
