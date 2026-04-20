@@ -1,6 +1,7 @@
 """Google Gemini embedding service using the google-genai SDK."""
 
 import time
+from typing import Protocol
 
 from google import genai
 from google.genai import errors as genai_errors
@@ -12,6 +13,11 @@ DIMENSIONS = 3072
 BATCH_LIMIT = 50  # Conservative to stay under free-tier 100 req/min
 RATE_LIMIT_PAUSE = 60  # Seconds to wait on 429 before retrying
 MAX_RETRIES = 3
+
+
+class Embedder(Protocol):
+    def embed(self, text: str) -> list[float]: ...
+    def embed_batch(self, texts: list[str]) -> list[list[float]]: ...
 
 
 class EmbeddingService:

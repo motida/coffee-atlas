@@ -13,7 +13,7 @@ def traverse_graph(
     max_depth: int = Query(2, ge=1, le=5),
     edge_types: list[str] = Query(default=[]),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
-):
+) -> TraversalResult:
     # TODO: Implement DuckPGQ graph traversal
     return TraversalResult(nodes=[], edges=[])
 
@@ -23,6 +23,6 @@ def find_path(
     start_id: str = Query(...),
     end_id: str = Query(...),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
-):
+) -> PathResult:
     # TODO: Implement DuckPGQ shortest path
     return PathResult(path=[], edges=[])

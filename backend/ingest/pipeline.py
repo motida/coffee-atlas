@@ -56,7 +56,7 @@ def run_stage(stage: str) -> None:
         sys.exit(1)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Coffee Atlas data ingest pipeline")
     parser.add_argument("--stage", choices=STAGES, help="Run a specific ingest stage")
     parser.add_argument("--all", action="store_true", help="Run all stages in order")

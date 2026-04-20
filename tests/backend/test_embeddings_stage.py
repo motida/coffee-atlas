@@ -8,7 +8,7 @@ from backend.services.embeddings import DIMENSIONS
 class FakeEmbeddingService:
     """Returns deterministic vectors without hitting an API."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.call_count = 0
 
     def embed(self, text: str) -> list[float]:

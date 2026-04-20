@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, Depends, Query
 import duckdb
 
@@ -12,15 +14,15 @@ def list_origins(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
-):
+) -> list[dict[str, Any]]:
     rows = db.execute("SELECT * FROM org_countries LIMIT ? OFFSET ?", [limit, offset]).fetchdf()
     return rows.to_dict(orient="records")
 
 
 @router.get("/geo")
-def get_origins_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)):
+def get_origins_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
     rows = db.execute("SELECT * FROM org_countries WHERE latitude IS NOT NULL").fetchdf()
-    features = []
+    features: list[dict[str, Any]] = []
     for _, row in rows.iterrows():
         features.append(
             {
@@ -33,7 +35,7 @@ def get_origins_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)):
 
 
 @router.get("/{origin_id}", response_model=CountryRead)
-def get_origin(origin_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)):
+def get_origin(origin_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
     row = db.execute("SELECT * FROM org_countries WHERE id = ?", [origin_id]).fetchone()
     if not row:
         from fastapi import HTTPException

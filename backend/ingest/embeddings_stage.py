@@ -14,7 +14,7 @@ from dataclasses import dataclass
 import duckdb
 
 from backend.db.connection import get_connection
-from backend.services.embeddings import EmbeddingService
+from backend.services.embeddings import Embedder, EmbeddingService
 
 
 @dataclass(frozen=True)
@@ -55,7 +55,7 @@ TARGETS: list[EmbeddingTarget] = [
 
 def run_embeddings(
     conn: duckdb.DuckDBPyConnection | None = None,
-    service: EmbeddingService | None = None,
+    service: Embedder | None = None,
 ) -> dict[str, int]:
     """Embed all tables registered in TARGETS.
 
@@ -83,7 +83,7 @@ def run_embeddings(
 
 def _embed_table(
     conn: duckdb.DuckDBPyConnection,
-    service: EmbeddingService,
+    service: Embedder,
     target: EmbeddingTarget,
 ) -> int:
     """Embed un-embedded rows for a single table. Returns rows processed."""
