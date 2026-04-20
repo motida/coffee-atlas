@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, Depends, Query
 import duckdb
 
@@ -12,15 +14,15 @@ def list_shops(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
-):
+) -> list[dict[str, Any]]:
     rows = db.execute("SELECT * FROM shop_shops LIMIT ? OFFSET ?", [limit, offset]).fetchdf()
     return rows.to_dict(orient="records")
 
 
 @router.get("/geo")
-def get_shops_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)):
+def get_shops_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
     rows = db.execute("SELECT * FROM shop_shops WHERE latitude IS NOT NULL").fetchdf()
-    features = []
+    features: list[dict[str, Any]] = []
     for _, row in rows.iterrows():
         features.append(
             {
@@ -39,7 +41,7 @@ def get_nearby_shops(
     radius_km: float = Query(5.0),
     limit: int = Query(20, ge=1, le=100),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
-):
+) -> list[dict[str, Any]]:
     """Find shops within a given radius using Haversine approximation."""
     rows = db.execute(
         """
@@ -62,7 +64,7 @@ def get_nearby_shops(
 
 
 @router.get("/{shop_id}", response_model=ShopRead)
-def get_shop(shop_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)):
+def get_shop(shop_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
     row = db.execute("SELECT * FROM shop_shops WHERE id = ?", [shop_id]).fetchone()
     if not row:
         from fastapi import HTTPException

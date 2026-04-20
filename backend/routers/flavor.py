@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, Depends
 import duckdb
 
@@ -8,12 +10,12 @@ router = APIRouter(prefix="/api/v1/flavor", tags=["flavor"])
 
 
 @router.get("/wheel")
-def get_flavor_wheel(db: duckdb.DuckDBPyConnection = Depends(get_db)):
+def get_flavor_wheel(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
     """Return the full flavor wheel as a hierarchical JSON tree."""
     rows = db.execute(
         "SELECT * FROM flav_attributes ORDER BY category, subcategory, name"
     ).fetchdf()
-    tree: dict = {}
+    tree: dict[str, Any] = {}
     for _, row in rows.iterrows():
         cat = row.get("category", "Other")
         sub = row.get("subcategory", "Other")
@@ -22,7 +24,9 @@ def get_flavor_wheel(db: duckdb.DuckDBPyConnection = Depends(get_db)):
 
 
 @router.get("/attributes/{attribute_id}", response_model=FlavorAttributeRead)
-def get_flavor_attribute(attribute_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)):
+def get_flavor_attribute(
+    attribute_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
+) -> dict[str, Any]:
     row = db.execute("SELECT * FROM flav_attributes WHERE id = ?", [attribute_id]).fetchone()
     if not row:
         from fastapi import HTTPException

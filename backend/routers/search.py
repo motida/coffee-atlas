@@ -12,7 +12,7 @@ def semantic_search(
     query: str = Query(...),
     limit: int = Query(20, ge=1, le=100),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
-):
+) -> list[SearchResult]:
     # TODO: Generate embedding for query, run VSS similarity search
     return []
 
@@ -22,6 +22,6 @@ def text_search(
     query: str = Query(...),
     limit: int = Query(20, ge=1, le=100),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
-):
+) -> list[SearchResult]:
     # TODO: Implement full-text search across entity tables
     return []

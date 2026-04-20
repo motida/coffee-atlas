@@ -86,10 +86,15 @@ lint-backend-fix:
 lint-frontend:
     cd frontend && npm run lint
 
+# Type-check backend code with ty
+typecheck:
+    uv run ty check
+
 # Lint everything
 lint:
     just lint-backend
     just lint-frontend
+    just typecheck
 
 # --- Dependencies ---
 

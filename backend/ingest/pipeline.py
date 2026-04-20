@@ -34,7 +34,19 @@ def run_stage(stage: str) -> None:
         print("Shops ingest stage not yet implemented")
 
     elif stage == "embeddings":
-        print("Embeddings stage not yet implemented")
+        if not settings.ENABLE_EMBEDDINGS:
+            print("Embeddings disabled (ENABLE_EMBEDDINGS=false)")
+            return
+        if not settings.GEMINI_API_KEY:
+            print("Skipped: GEMINI_API_KEY not set")
+            return
+        from backend.ingest.embeddings_stage import run_embeddings
+
+        results = run_embeddings()
+        for table, count in results.items():
+            print(f"  {table}: {count} rows embedded")
+        total = sum(results.values())
+        print(f"Total: {total} rows embedded")
 
     elif stage == "graph":
         print("Graph edge computation stage not yet implemented")
@@ -44,7 +56,7 @@ def run_stage(stage: str) -> None:
         sys.exit(1)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Coffee Atlas data ingest pipeline")
     parser.add_argument("--stage", choices=STAGES, help="Run a specific ingest stage")
     parser.add_argument("--all", action="store_true", help="Run all stages in order")

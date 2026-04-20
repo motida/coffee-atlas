@@ -1,5 +1,6 @@
 """Coffee Atlas API — FastAPI application entry point."""
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -11,7 +12,7 @@ from backend.routers import varieties, origins, roasting, flavor, shops, graph, 
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     conn = get_connection()
     create_tables(conn)
     conn.close()
@@ -43,5 +44,5 @@ app.include_router(search.router)
 
 
 @app.get("/health")
-def health_check():
+def health_check() -> dict[str, str]:
     return {"status": "ok"}
