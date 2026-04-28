@@ -1,3 +1,5 @@
+import type { FlavorAttribute, FlavorWheelData } from "./types";
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -38,10 +40,10 @@ export const getRoastProfile = (id: string) =>
   fetchAPI(`/roasting/profiles/${id}`);
 
 // --- Flavor ---
-export const getFlavorWheel = () => fetchAPI(`/flavor/wheel`);
+export const getFlavorWheel = () => fetchAPI<FlavorWheelData>(`/flavor/wheel`);
 
 export const getFlavorAttribute = (id: string) =>
-  fetchAPI(`/flavor/attributes/${id}`);
+  fetchAPI<FlavorAttribute>(`/flavor/attributes/${id}`);
 
 // --- Shops ---
 export const getShops = (limit = 20, offset = 0) =>

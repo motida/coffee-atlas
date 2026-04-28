@@ -35,6 +35,12 @@ export default function RootLayout({
                 Explore
               </Link>
               <Link
+                href="/flavor"
+                className="text-sm font-medium text-gray-600 hover:text-coffee-700"
+              >
+                Flavor
+              </Link>
+              <Link
                 href="/graph"
                 className="text-sm font-medium text-gray-600 hover:text-coffee-700"
               >
