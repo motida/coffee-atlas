@@ -181,9 +181,27 @@ TABLES: list[str] = [
     )
     """,
     """
-    CREATE TABLE IF NOT EXISTS edges_origin_variety (
+    CREATE TABLE IF NOT EXISTS edges_country_variety (
         id TEXT PRIMARY KEY,
-        origin_id TEXT,
+        country_id TEXT REFERENCES org_countries(id),
+        variety_id TEXT REFERENCES var_varieties(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_region_variety (
+        id TEXT PRIMARY KEY,
+        region_id TEXT REFERENCES org_regions(id),
+        variety_id TEXT REFERENCES var_varieties(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_farm_variety (
+        id TEXT PRIMARY KEY,
+        farm_id TEXT REFERENCES org_farms(id),
         variety_id TEXT REFERENCES var_varieties(id),
         created_at TIMESTAMP DEFAULT current_timestamp,
         updated_at TIMESTAMP DEFAULT current_timestamp

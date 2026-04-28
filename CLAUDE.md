@@ -191,19 +191,25 @@ Define a property graph over the relational tables:
 CREATE PROPERTY GRAPH coffee_graph
 VERTEX TABLES (
     var_varieties,
-    org_origins,
+    org_countries,
+    org_regions,
+    org_farms,
     proc_methods,
     roast_profiles,
     flav_attributes,
     shop_shops
 )
 EDGE TABLES (
-    edges_variety_flavor (source KEY (variety_id) REFERENCES var_varieties (id),
-                          destination KEY (flavor_id) REFERENCES flav_attributes (id)),
-    edges_origin_variety (source KEY (origin_id) REFERENCES org_origins (id),
-                          destination KEY (variety_id) REFERENCES var_varieties (id)),
-    edges_shop_variety   (source KEY (shop_id) REFERENCES shop_shops (id),
-                          destination KEY (variety_id) REFERENCES var_varieties (id)),
+    edges_variety_flavor  (source KEY (variety_id) REFERENCES var_varieties (id),
+                           destination KEY (flavor_id) REFERENCES flav_attributes (id)),
+    edges_country_variety (source KEY (country_id) REFERENCES org_countries (id),
+                           destination KEY (variety_id) REFERENCES var_varieties (id)),
+    edges_region_variety  (source KEY (region_id) REFERENCES org_regions (id),
+                           destination KEY (variety_id) REFERENCES var_varieties (id)),
+    edges_farm_variety    (source KEY (farm_id) REFERENCES org_farms (id),
+                           destination KEY (variety_id) REFERENCES var_varieties (id)),
+    edges_shop_variety    (source KEY (shop_id) REFERENCES shop_shops (id),
+                           destination KEY (variety_id) REFERENCES var_varieties (id)),
     -- ... additional edge tables
 );
 ```
