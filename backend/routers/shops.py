@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query
 import duckdb
 
-from backend.db.connection import get_db
+from backend.db.connection import fetchall_dicts, get_db
 from backend.models.shops import ShopRead
 
 router = APIRouter(prefix="/api/v1/shops", tags=["shops"])
@@ -15,22 +15,20 @@ def list_shops(
     offset: int = Query(0, ge=0),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> list[dict[str, Any]]:
-    rows = db.execute("SELECT * FROM shop_shops LIMIT ? OFFSET ?", [limit, offset]).fetchdf()
-    return rows.to_dict(orient="records")
+    return fetchall_dicts(db.execute("SELECT * FROM shop_shops LIMIT ? OFFSET ?", [limit, offset]))
 
 
 @router.get("/geo")
 def get_shops_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    rows = db.execute("SELECT * FROM shop_shops WHERE latitude IS NOT NULL").fetchdf()
-    features: list[dict[str, Any]] = []
-    for _, row in rows.iterrows():
-        features.append(
-            {
-                "type": "Feature",
-                "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
-                "properties": row.to_dict(),
-            }
-        )
+    rows = fetchall_dicts(db.execute("SELECT * FROM shop_shops WHERE latitude IS NOT NULL"))
+    features = [
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
+            "properties": row,
+        }
+        for row in rows
+    ]
     return {"type": "FeatureCollection", "features": features}
 
 
@@ -43,24 +41,25 @@ def get_nearby_shops(
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> list[dict[str, Any]]:
     """Find shops within a given radius using Haversine approximation."""
-    rows = db.execute(
-        """
-        SELECT *, (
-            6371 * acos(
-                cos(radians(?)) * cos(radians(latitude))
-                * cos(radians(longitude) - radians(?))
-                + sin(radians(?)) * sin(radians(latitude))
-            )
-        ) AS distance_km
-        FROM shop_shops
-        WHERE latitude IS NOT NULL
-        HAVING distance_km <= ?
-        ORDER BY distance_km
-        LIMIT ?
-        """,
-        [lat, lng, lat, radius_km, limit],
-    ).fetchdf()
-    return rows.to_dict(orient="records")
+    return fetchall_dicts(
+        db.execute(
+            """
+            SELECT *, (
+                6371 * acos(
+                    cos(radians(?)) * cos(radians(latitude))
+                    * cos(radians(longitude) - radians(?))
+                    + sin(radians(?)) * sin(radians(latitude))
+                )
+            ) AS distance_km
+            FROM shop_shops
+            WHERE latitude IS NOT NULL
+            HAVING distance_km <= ?
+            ORDER BY distance_km
+            LIMIT ?
+            """,
+            [lat, lng, lat, radius_km, limit],
+        )
+    )
 
 
 @router.get("/{shop_id}", response_model=ShopRead)

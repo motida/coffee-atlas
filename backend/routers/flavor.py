@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Depends
 import duckdb
 
-from backend.db.connection import get_db
+from backend.db.connection import fetchall_dicts, get_db
 from backend.models.flavor import FlavorAttributeRead
 
 router = APIRouter(prefix="/api/v1/flavor", tags=["flavor"])
@@ -12,14 +12,18 @@ router = APIRouter(prefix="/api/v1/flavor", tags=["flavor"])
 @router.get("/wheel")
 def get_flavor_wheel(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
     """Return the full flavor wheel as a hierarchical JSON tree."""
-    rows = db.execute(
-        "SELECT * FROM flav_attributes ORDER BY category, subcategory, name"
-    ).fetchdf()
+    rows = fetchall_dicts(
+        db.execute(
+            "SELECT id, name, category, subcategory, description, "
+            "intensity_reference, sensory_reference, parent_id "
+            "FROM flav_attributes ORDER BY category, subcategory, name"
+        )
+    )
     tree: dict[str, Any] = {}
-    for _, row in rows.iterrows():
-        cat = row.get("category", "Other")
-        sub = row.get("subcategory", "Other")
-        tree.setdefault(cat, {}).setdefault(sub, []).append(row.to_dict())
+    for row in rows:
+        cat = row.get("category") or "Other"
+        sub = row.get("subcategory") or "Other"
+        tree.setdefault(cat, {}).setdefault(sub, []).append(row)
     return tree
 
 
