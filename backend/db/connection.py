@@ -2,6 +2,7 @@
 
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
 import duckdb
 
@@ -42,3 +43,9 @@ def get_db() -> Generator[duckdb.DuckDBPyConnection, None, None]:
         yield conn
     finally:
         conn.close()
+
+
+def fetchall_dicts(cursor: duckdb.DuckDBPyConnection) -> list[dict[str, Any]]:
+    """Materialize a SELECT result as a list of column→value dicts."""
+    columns = [desc[0] for desc in cursor.description]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]

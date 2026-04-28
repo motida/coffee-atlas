@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query
 import duckdb
 
-from backend.db.connection import get_db
+from backend.db.connection import fetchall_dicts, get_db
 from backend.models.origins import CountryRead
 
 router = APIRouter(prefix="/api/v1/origins", tags=["origins"])
@@ -15,22 +15,22 @@ def list_origins(
     offset: int = Query(0, ge=0),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> list[dict[str, Any]]:
-    rows = db.execute("SELECT * FROM org_countries LIMIT ? OFFSET ?", [limit, offset]).fetchdf()
-    return rows.to_dict(orient="records")
+    return fetchall_dicts(
+        db.execute("SELECT * FROM org_countries LIMIT ? OFFSET ?", [limit, offset])
+    )
 
 
 @router.get("/geo")
 def get_origins_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    rows = db.execute("SELECT * FROM org_countries WHERE latitude IS NOT NULL").fetchdf()
-    features: list[dict[str, Any]] = []
-    for _, row in rows.iterrows():
-        features.append(
-            {
-                "type": "Feature",
-                "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
-                "properties": row.to_dict(),
-            }
-        )
+    rows = fetchall_dicts(db.execute("SELECT * FROM org_countries WHERE latitude IS NOT NULL"))
+    features = [
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
+            "properties": row,
+        }
+        for row in rows
+    ]
     return {"type": "FeatureCollection", "features": features}
 
 

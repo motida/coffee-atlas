@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query
 import duckdb
 
-from backend.db.connection import get_db
+from backend.db.connection import fetchall_dicts, get_db
 from backend.models.roasting import RoastProfileRead
 
 router = APIRouter(prefix="/api/v1/roasting", tags=["roasting"])
@@ -15,8 +15,9 @@ def list_profiles(
     offset: int = Query(0, ge=0),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> list[dict[str, Any]]:
-    rows = db.execute("SELECT * FROM roast_profiles LIMIT ? OFFSET ?", [limit, offset]).fetchdf()
-    return rows.to_dict(orient="records")
+    return fetchall_dicts(
+        db.execute("SELECT * FROM roast_profiles LIMIT ? OFFSET ?", [limit, offset])
+    )
 
 
 @router.get("/profiles/{profile_id}", response_model=RoastProfileRead)

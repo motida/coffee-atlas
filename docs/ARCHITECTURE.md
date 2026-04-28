@@ -147,12 +147,14 @@ CoffeeShop ──servesVariety──▶ Variety    ▼
      └──usesRoastProfile──▶ RoastProfile ──enhances/diminishes──▶ FlavorAttribute
 ```
 
-Six edge tables materialize these relationships for graph traversal:
+Eight edge tables materialize these relationships for graph traversal. Origin → Variety is split per origin level so each edge gets a real foreign key (no polymorphic IDs):
 
 | Edge Table | From | To |
 |-----------|------|-----|
 | `edges_variety_flavor` | Variety | FlavorAttribute |
-| `edges_origin_variety` | Origin | Variety |
+| `edges_country_variety` | Country | Variety |
+| `edges_region_variety` | Region | Variety |
+| `edges_farm_variety` | Farm | Variety |
 | `edges_shop_variety` | Shop | Variety |
 | `edges_variety_processing` | Variety | ProcessingMethod |
 | `edges_roast_variety` | RoastProfile | Variety |
@@ -192,13 +194,17 @@ DuckDB's `pgq` extension overlays a property graph on relational tables. No data
 ```sql
 CREATE PROPERTY GRAPH coffee_graph
 VERTEX TABLES (
-    var_varieties, org_origins, proc_methods,
-    roast_profiles, flav_attributes, shop_shops
+    var_varieties, org_countries, org_regions, org_farms,
+    proc_methods, roast_profiles, flav_attributes, shop_shops
 )
 EDGE TABLES (
     edges_variety_flavor   (source REFERENCES var_varieties,
                             destination REFERENCES flav_attributes),
-    edges_origin_variety   (source REFERENCES org_origins,
+    edges_country_variety  (source REFERENCES org_countries,
+                            destination REFERENCES var_varieties),
+    edges_region_variety   (source REFERENCES org_regions,
+                            destination REFERENCES var_varieties),
+    edges_farm_variety     (source REFERENCES org_farms,
                             destination REFERENCES var_varieties),
     -- ... 4 more edge tables
 );
