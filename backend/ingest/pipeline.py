@@ -24,8 +24,11 @@ def run_stage(stage: str) -> None:
     elif stage == "cqi":
         from backend.ingest.cqi_loader import load_cqi_data
 
-        count = load_cqi_data(settings.DUCKDB_PATH)
-        print(f"Loaded {count} CQI samples")
+        counts = load_cqi_data(settings.DUCKDB_PATH)
+        print(
+            f"Loaded {counts.countries} countries, {counts.regions} regions, "
+            f"{counts.farms} farms, {counts.methods} processing methods"
+        )
 
     elif stage == "geocode":
         print("Geocoding stage not yet implemented")
