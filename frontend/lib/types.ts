@@ -133,6 +133,25 @@ export interface Shop extends Timestamped {
   description: string | null;
 }
 
+// --- Geo properties ---
+export interface CountryGeoProperties {
+  id: string;
+  name: string;
+  iso_code: string | null;
+  latitude: number;
+  longitude: number;
+  production_volume: number | null;
+}
+
+export interface RegionGeoProperties {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  country_name: string;
+  iso_code: string | null;
+}
+
 // --- GeoJSON ---
 export interface GeoJSONFeature<P = Record<string, unknown>> {
   type: "Feature";

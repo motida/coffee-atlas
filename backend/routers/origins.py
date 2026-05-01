@@ -22,7 +22,36 @@ def list_origins(
 
 @router.get("/geo")
 def get_origins_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    rows = fetchall_dicts(db.execute("SELECT * FROM org_countries WHERE latitude IS NOT NULL"))
+    rows = fetchall_dicts(
+        db.execute(
+            "SELECT id, name, iso_code, latitude, longitude, production_volume "
+            "FROM org_countries WHERE latitude IS NOT NULL"
+        )
+    )
+    features = [
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
+            "properties": row,
+        }
+        for row in rows
+    ]
+    return {"type": "FeatureCollection", "features": features}
+
+
+@router.get("/regions/geo")
+def get_regions_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
+    rows = fetchall_dicts(
+        db.execute(
+            """
+            SELECT r.id, r.name, r.latitude, r.longitude,
+                   c.name AS country_name, c.iso_code
+            FROM org_regions r
+            JOIN org_countries c ON r.country_id = c.id
+            WHERE r.latitude IS NOT NULL
+            """
+        )
+    )
     features = [
         {
             "type": "Feature",
