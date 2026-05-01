@@ -13,6 +13,7 @@ dependencies = [
     "google-genai>=1.0.0",
     "owlready2>=0.45",
     "python-dotenv>=1.0.0",
+    "polars>=1.0",
 ]
 
 [project.optional-dependencies]

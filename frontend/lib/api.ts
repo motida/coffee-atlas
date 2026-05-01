@@ -1,4 +1,10 @@
-import type { FlavorAttribute, FlavorWheelData } from "./types";
+import type {
+  FlavorAttribute,
+  FlavorWheelData,
+  GeoJSONFeatureCollection,
+  CountryGeoProperties,
+  RegionGeoProperties,
+} from "./types";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -30,7 +36,11 @@ export const getOrigins = (limit = 20, offset = 0) =>
 
 export const getOrigin = (id: string) => fetchAPI(`/origins/${id}`);
 
-export const getOriginsGeo = () => fetchAPI(`/origins/geo`);
+export const getOriginsGeo = () =>
+  fetchAPI<GeoJSONFeatureCollection<CountryGeoProperties>>(`/origins/geo`);
+
+export const getRegionsGeo = () =>
+  fetchAPI<GeoJSONFeatureCollection<RegionGeoProperties>>(`/origins/regions/geo`);
 
 // --- Roasting ---
 export const getRoastProfiles = (limit = 20, offset = 0) =>
