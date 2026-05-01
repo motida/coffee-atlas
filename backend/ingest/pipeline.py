@@ -31,7 +31,15 @@ def run_stage(stage: str) -> None:
         )
 
     elif stage == "geocode":
-        print("Geocoding stage not yet implemented")
+        from backend.ingest.geocode_stage import run_geocode
+
+        counts = run_geocode(settings.DUCKDB_PATH)
+        print(
+            f"Countries: {counts.countries_resolved} resolved, "
+            f"{counts.countries_unresolved} unresolved | "
+            f"Regions: {counts.regions_resolved} resolved, "
+            f"{counts.regions_unresolved} unresolved"
+        )
 
     elif stage == "shops":
         print("Shops ingest stage not yet implemented")

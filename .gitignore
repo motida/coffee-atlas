@@ -26,6 +26,7 @@ data/raw/*
 !data/raw/.gitkeep
 !data/raw/scaa_2016_flavor_wheel.json
 !data/raw/wcr_varieties.json
+!data/raw/country_centroids.json
 data/processed/
 data/parquet/
 
