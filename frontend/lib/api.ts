@@ -6,6 +6,7 @@ import type {
   CountryGeoProperties,
   Region,
   RegionGeoProperties,
+  SearchResult,
   Shop,
   ShopGeoProperties,
   TraversalResult,
@@ -95,8 +96,34 @@ export const graphPath = (startId: string, endId: string) =>
   fetchAPI(`/graph/path?start_id=${startId}&end_id=${endId}`);
 
 // --- Search ---
-export const searchSemantic = (query: string, limit = 20) =>
-  fetchAPI(`/search/semantic?query=${encodeURIComponent(query)}&limit=${limit}`);
+const buildSearchUrl = (
+  base: string,
+  query: string,
+  limit: number,
+  entityTypes?: string[],
+) => {
+  const params = new URLSearchParams({
+    query,
+    limit: String(limit),
+  });
+  for (const t of entityTypes ?? []) params.append("entity_types", t);
+  return `${base}?${params.toString()}`;
+};
 
-export const searchText = (query: string, limit = 20) =>
-  fetchAPI(`/search/text?query=${encodeURIComponent(query)}&limit=${limit}`);
+export const searchSemantic = (
+  query: string,
+  limit = 20,
+  entityTypes?: string[],
+) =>
+  fetchAPI<SearchResult[]>(
+    buildSearchUrl("/search/semantic", query, limit, entityTypes),
+  );
+
+export const searchText = (
+  query: string,
+  limit = 20,
+  entityTypes?: string[],
+) =>
+  fetchAPI<SearchResult[]>(
+    buildSearchUrl("/search/text", query, limit, entityTypes),
+  );

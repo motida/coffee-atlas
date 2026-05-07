@@ -1,0 +1,111 @@
+"""Tests for /search/text and /search/semantic.
+
+Semantic search hits the Gemini API in production, so the embedding
+service is monkeypatched to a deterministic stub.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Iterator
+
+import duckdb
+import pytest
+from fastapi.testclient import TestClient
+
+from backend.db.connection import get_db
+from backend.db.schema import create_tables
+from backend.main import app
+from backend.services.embeddings import DIMENSIONS
+
+
+@pytest.fixture
+def search_db() -> Iterator[duckdb.DuckDBPyConnection]:
+    """In-memory DB with a small mix of varieties, flavors, countries, shops."""
+    conn = duckdb.connect(":memory:")
+    create_tables(conn)
+    conn.execute(
+        "INSERT INTO var_varieties (id, name, description) VALUES "
+        "('v1', 'Geisha', 'Floral aromatic Ethiopian landrace'), "
+        "('v2', 'SL28', 'Bold Kenyan variety'), "
+        "('v3', 'Caturra', 'Compact Brazilian mutation')"
+    )
+    conn.execute(
+        "INSERT INTO flav_attributes (id, name, description) VALUES "
+        "('f1', 'Floral', 'Aromatic flowers'), "
+        "('f2', 'Citrus', 'Bright acidity')"
+    )
+    conn.execute("INSERT INTO org_countries (id, name) VALUES ('c1', 'Ethiopia'), ('c2', 'Kenya')")
+    conn.execute("INSERT INTO org_regions (id, name) VALUES ('r1', 'sidamo'), ('r2', 'nyeri')")
+    conn.execute(
+        "INSERT INTO shop_shops (id, name, description, latitude, longitude) VALUES "
+        "('s1', 'Floral Cafe', 'Specialty pour-over shop', 1.0, 2.0)"
+    )
+    yield conn
+    conn.close()
+
+
+@pytest.fixture
+def client(search_db) -> Iterator[TestClient]:
+    app.dependency_overrides[get_db] = lambda: search_db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+
+def test_text_search_matches_across_types(client):
+    r = client.get("/api/v1/search/text", params={"query": "floral", "limit": 50})
+    assert r.status_code == 200
+    results = r.json()
+    types = sorted({row["entity_type"] for row in results})
+    # "floral" hits Geisha (description), Floral (flavor), Floral Cafe (shop).
+    assert "variety" in types
+    assert "flavor" in types
+    assert "shop" in types
+
+
+def test_text_search_entity_type_filter(client):
+    r = client.get(
+        "/api/v1/search/text",
+        params=[("query", "floral"), ("limit", "50"), ("entity_types", "flavor")],
+    )
+    results = r.json()
+    assert results, "expected at least one match"
+    assert {row["entity_type"] for row in results} == {"flavor"}
+
+
+def test_text_search_empty_query_rejected(client):
+    r = client.get("/api/v1/search/text", params={"query": ""})
+    assert r.status_code == 422
+
+
+def test_text_search_no_match(client):
+    r = client.get("/api/v1/search/text", params={"query": "xyzzynonexistent"})
+    assert r.json() == []
+
+
+def test_semantic_search_uses_embedding(client, search_db, monkeypatch):
+    """Stub the embedder so the test stays offline."""
+
+    class FakeEmbedder:
+        def __init__(self, *_, **__):
+            pass
+
+        def embed(self, text: str) -> list[float]:
+            # Deterministic vector — values don't matter, ranking just needs
+            # SOME order.
+            return [0.01] * DIMENSIONS
+
+    monkeypatch.setattr("backend.routers.search.EmbeddingService", FakeEmbedder)
+
+    # Add a fake embedding to one variety + one flavor so the cosine call
+    # has something to compute against.
+    vec = [0.01] * DIMENSIONS
+    search_db.execute("UPDATE var_varieties SET name_embedding = ? WHERE id = 'v1'", [vec])
+    search_db.execute("UPDATE flav_attributes SET name_embedding = ? WHERE id = 'f1'", [vec])
+
+    r = client.get("/api/v1/search/semantic", params={"query": "floral", "limit": 10})
+    assert r.status_code == 200
+    results = r.json()
+    assert results, "expected results for entities with embeddings"
+    # Each result should carry a numeric similarity score.
+    for row in results:
+        assert isinstance(row["similarity"], float)
