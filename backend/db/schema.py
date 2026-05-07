@@ -244,6 +244,24 @@ TABLES: list[str] = [
         updated_at TIMESTAMP DEFAULT current_timestamp
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_country_region (
+        id TEXT PRIMARY KEY,
+        country_id TEXT REFERENCES org_countries(id),
+        region_id TEXT REFERENCES org_regions(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_region_farm (
+        id TEXT PRIMARY KEY,
+        region_id TEXT REFERENCES org_regions(id),
+        farm_id TEXT REFERENCES org_farms(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
 ]
 
 

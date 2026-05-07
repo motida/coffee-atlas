@@ -19,6 +19,8 @@ EXPECTED_TABLES = [
     "edges_variety_processing",
     "edges_roast_variety",
     "edges_processing_flavor",
+    "edges_country_region",
+    "edges_region_farm",
 ]
 
 
