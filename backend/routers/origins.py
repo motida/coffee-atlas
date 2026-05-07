@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 import duckdb
 
 from backend.db.connection import fetchall_dicts, get_db
-from backend.models.origins import CountryRead
+from backend.models.origins import CountryRead, RegionRead
 
 router = APIRouter(prefix="/api/v1/origins", tags=["origins"])
 
@@ -61,6 +61,17 @@ def get_regions_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str
         for row in rows
     ]
     return {"type": "FeatureCollection", "features": features}
+
+
+@router.get("/regions/{region_id}", response_model=RegionRead)
+def get_region(region_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
+    row = db.execute("SELECT * FROM org_regions WHERE id = ?", [region_id]).fetchone()
+    if not row:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Region not found")
+    columns = [desc[0] for desc in db.description]
+    return dict(zip(columns, row))
 
 
 @router.get("/{origin_id}", response_model=CountryRead)
