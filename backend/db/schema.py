@@ -262,6 +262,18 @@ TABLES: list[str] = [
         updated_at TIMESTAMP DEFAULT current_timestamp
     )
     """,
+    # --- Ontology triples (populated by ontology/scripts/export_triples.py) ---
+    """
+    CREATE TABLE IF NOT EXISTS ontology_triples (
+        subject TEXT NOT NULL,
+        predicate TEXT NOT NULL,
+        object_value TEXT NOT NULL,
+        object_kind TEXT NOT NULL,
+        object_datatype TEXT,
+        object_lang TEXT,
+        graph_iri TEXT
+    )
+    """,
 ]
 
 

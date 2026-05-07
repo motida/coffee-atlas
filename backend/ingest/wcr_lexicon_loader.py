@@ -104,6 +104,8 @@ def load_wcr_lexicon(
         conn = get_connection() if db_path is None else duckdb.connect(db_path)
 
     try:
+        for edge in ("edges_variety_flavor", "edges_processing_flavor"):
+            conn.execute(f"DELETE FROM {edge}")
         conn.execute("DELETE FROM flav_attributes")
         conn.executemany(
             """

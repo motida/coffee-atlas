@@ -14,7 +14,7 @@ Coffee Atlas is a full-stack geospatial application that maps the global coffee 
 - **Frontend:** Next.js 14+ (App Router, TypeScript, Tailwind CSS)
 - **Database:** DuckDB with Parquet storage (Hive-partitioned by domain)
 - **Graph Layer:** DuckPGQ extension for graph traversal queries
-- **Vector Search:** DuckDB VSS extension with HNSW indexing (OpenAI `text-embedding-3-small`)
+- **Vector Search:** DuckDB VSS extension with HNSW indexing (Gemini `gemini-embedding-001`, 3072 dims)
 - **Maps:** MapLibre GL JS (react-map-gl wrapper) with OpenFreeMap tiles
 - **Ontology (design-time):** OWL 2 via Owlready2, validated with HermiT reasoner
 
@@ -54,7 +54,7 @@ coffee-atlas/
 │   │   ├── graph.py                    # Graph traversal endpoints
 │   │   └── search.py                   # Semantic similarity search
 │   ├── services/
-│   │   ├── embeddings.py               # OpenAI embedding generation
+│   │   ├── embeddings.py               # Gemini embedding generation
 │   │   ├── enrichment.py               # LLM-based entity extraction
 │   │   └── geocoding.py                # Geocoding service (provider TBD)
 │   └── ingest/
@@ -174,13 +174,13 @@ Seed data: Google Places API, Yelp Fusion API, or Overture Maps Foundation open 
 3. **CQI Database** → download CSV from Kaggle, clean + normalize, populate `coffee_samples`, `origins`, `processing_methods`
 4. **Geocoding** → batch geocode origins (country + region + altitude) via chosen provider, store coordinates
 5. **Shops** → POI data load, filter specialty coffee, geocode, populate `shops`
-6. **Embeddings** → generate OpenAI embeddings for variety descriptions, flavor profiles, shop descriptions → store in DuckDB VSS index
+6. **Embeddings** → generate Gemini embeddings for variety descriptions, flavor profiles, shop descriptions → store in DuckDB VSS index
 7. **Graph edges** → compute and store edges for DuckPGQ property graph
 
 ### DuckDB Schema Conventions
 - All tables prefixed by domain: `var_`, `org_`, `proc_`, `roast_`, `flav_`, `dist_`, `shop_`
 - `_id` columns are UUIDs (text)
-- `_embedding` columns are `FLOAT[1536]` for OpenAI embeddings
+- `_embedding` columns are `FLOAT[3072]` for Gemini `gemini-embedding-001` embeddings
 - `created_at` and `updated_at` timestamps on all tables
 - Parquet export: Hive partitioned by domain under `data/parquet/domain=xxx/`
 

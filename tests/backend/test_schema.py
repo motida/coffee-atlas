@@ -21,6 +21,7 @@ EXPECTED_TABLES = [
     "edges_processing_flavor",
     "edges_country_region",
     "edges_region_farm",
+    "ontology_triples",
 ]
 
 

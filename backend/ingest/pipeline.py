@@ -42,7 +42,10 @@ def run_stage(stage: str) -> None:
         )
 
     elif stage == "shops":
-        print("Shops ingest stage not yet implemented")
+        from backend.ingest.overture_shops_loader import load_overture_shops
+
+        counts = load_overture_shops(settings.DUCKDB_PATH)
+        print(f"Inserted {counts.inserted} shops from {counts.fetched} Overture candidates")
 
     elif stage == "embeddings":
         if not settings.ENABLE_EMBEDDINGS:

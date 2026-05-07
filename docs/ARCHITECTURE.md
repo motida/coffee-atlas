@@ -49,7 +49,7 @@ The project demonstrates how formal ontology design, graph databases, and vector
 │  ┌─────────────┐  ┌─────┴──────┐  ┌─────────────────────┐   │
 │  │ Relational  │  │  DuckPGQ   │  │  DuckDB VSS         │   │
 │  │ Tables (18) │  │  Property  │  │  HNSW Vector Index  │   │
-│  │ 7 domains   │  │  Graph     │  │  1536-dim embeddings│   │
+│  │ 7 domains   │  │  Graph     │  │  3072-dim embeddings│   │
 │  └─────────────┘  └────────────┘  └─────────────────────┘   │
 │                           │                                   │
 │              Parquet (Hive-partitioned by domain)             │
@@ -185,7 +185,7 @@ Every table follows consistent conventions:
 - `id TEXT PRIMARY KEY` — UUIDs as text
 - `created_at TIMESTAMP DEFAULT current_timestamp`
 - `updated_at TIMESTAMP DEFAULT current_timestamp`
-- `*_embedding FLOAT[1536]` — OpenAI embedding vectors where applicable
+- `*_embedding FLOAT[3072]` — Gemini `gemini-embedding-001` vectors where applicable
 
 ### DuckPGQ Property Graph
 
@@ -217,9 +217,9 @@ Graph queries run inside DuckDB's SQL engine. No network roundtrips to a separat
 The `vss` extension builds HNSW (Hierarchical Navigable Small World) indexes on embedding columns:
 
 - **What's embedded**: variety descriptions, shop bios, flavor attribute names, processing method descriptions
-- **Model**: OpenAI `text-embedding-3-small` (1536 dimensions)
+- **Model**: Gemini `gemini-embedding-001` (3072 dimensions)
 - **Index**: HNSW for approximate k-NN search
-- **Query flow**: natural language → embed with OpenAI → k-NN search across all entity types → ranked results with similarity scores
+- **Query flow**: natural language → embed with Gemini → k-NN search across all entity types → ranked results with similarity scores
 
 This enables semantic search like *"fruity Ethiopian natural process light roast"* returning relevant varieties, shops, and flavor attributes ranked by semantic similarity.
 
@@ -397,7 +397,7 @@ uv run python -m backend.ingest.pipeline --stage cqi  # Run one stage
 | Graph | DuckPGQ (in-process) | Neo4j | No separate server, ACID, SQL joins with relational data |
 | Vector search | DuckDB VSS | Pinecone / Weaviate | Self-contained, no external service dependency |
 | Ontology | OWL 2 DL + HermiT | JSON Schema | Formal reasoning, inferred relationships, consistency proofs |
-| Embeddings | Gemini text-embedding-004 | OpenAI / open-source (e5, BGE) | Generous free tier, 768 dims, high-quality retrieval |
+| Embeddings | Gemini `gemini-embedding-001` | OpenAI / open-source (e5, BGE) | Generous free tier, 3072 dims, high-quality retrieval |
 | Package manager | uv | pip + setuptools | 10-100x faster installs, lockfile, built-in venv management |
 | Frontend | Next.js 14 App Router | Vite + React SPA | Server components, API proxy, ISR for static pages |
 | Maps | MapLibre GL JS + OpenFreeMap | Mapbox / Leaflet / deck.gl | Open-source, no API key, same vector-tile capabilities as Mapbox (forked from Mapbox GL v1) |

@@ -71,6 +71,16 @@ def load_wcr_varieties(
         conn = get_connection() if db_path is None else duckdb.connect(db_path)
 
     try:
+        for edge in (
+            "edges_variety_flavor",
+            "edges_country_variety",
+            "edges_region_variety",
+            "edges_farm_variety",
+            "edges_shop_variety",
+            "edges_variety_processing",
+            "edges_roast_variety",
+        ):
+            conn.execute(f"DELETE FROM {edge}")
         conn.execute("DELETE FROM var_varieties")
         conn.executemany(
             """

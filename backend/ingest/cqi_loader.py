@@ -158,6 +158,10 @@ def load_cqi_data(
             "edges_farm_variety",
             "edges_region_variety",
             "edges_country_variety",
+            "edges_region_farm",
+            "edges_country_region",
+            "edges_variety_processing",
+            "edges_processing_flavor",
         ):
             conn.execute(f"DELETE FROM {table}")
         conn.execute("DELETE FROM org_farms")
