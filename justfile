@@ -123,9 +123,10 @@ docker-down:
 
 # --- Bootstrap ---
 
-# Full bootstrap: install deps, validate ontology, create DB, run ingest
+# Full bootstrap: install deps, validate ontology, create DB, export ontology, run ingest
 bootstrap:
     just install
     just ontology-validate
     just db-create
+    just ontology-export
     just ingest-all

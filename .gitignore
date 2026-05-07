@@ -24,9 +24,12 @@ node_modules/
 # Data (downloaded/generated)
 data/raw/*
 !data/raw/.gitkeep
+!data/raw/README.md
 !data/raw/scaa_2016_flavor_wheel.json
 !data/raw/wcr_varieties.json
 !data/raw/country_centroids.json
+!data/raw/cqi_arabica.csv
+!data/raw/cqi_robusta.csv
 data/processed/
 data/parquet/
 

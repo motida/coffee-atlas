@@ -152,6 +152,18 @@ export interface RegionGeoProperties {
   iso_code: string | null;
 }
 
+export interface ShopGeoProperties {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  website: string | null;
+  rating: number | null;
+  roasts_in_house: boolean | null;
+  description: string | null;
+}
+
 // --- GeoJSON ---
 export interface GeoJSONFeature<P = Record<string, unknown>> {
   type: "Feature";

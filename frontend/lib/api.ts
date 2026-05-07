@@ -4,6 +4,7 @@ import type {
   GeoJSONFeatureCollection,
   CountryGeoProperties,
   RegionGeoProperties,
+  ShopGeoProperties,
 } from "./types";
 
 const API_BASE =
@@ -61,7 +62,16 @@ export const getShops = (limit = 20, offset = 0) =>
 
 export const getShop = (id: string) => fetchAPI(`/shops/${id}`);
 
-export const getShopsGeo = () => fetchAPI(`/shops/geo`);
+export const getShopsGeo = (
+  bbox?: [number, number, number, number],
+  limit = 5000,
+) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (bbox) params.set("bbox", bbox.join(","));
+  return fetchAPI<GeoJSONFeatureCollection<ShopGeoProperties>>(
+    `/shops/geo?${params.toString()}`,
+  );
+};
 
 export const getNearbyShops = (lat: number, lng: number, radiusKm = 5) =>
   fetchAPI(`/shops/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`);

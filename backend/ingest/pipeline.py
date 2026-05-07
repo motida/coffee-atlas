@@ -42,7 +42,10 @@ def run_stage(stage: str) -> None:
         )
 
     elif stage == "shops":
-        print("Shops ingest stage not yet implemented")
+        from backend.ingest.overture_shops_loader import load_overture_shops
+
+        counts = load_overture_shops(settings.DUCKDB_PATH)
+        print(f"Inserted {counts.inserted} shops from {counts.fetched} Overture candidates")
 
     elif stage == "embeddings":
         if not settings.ENABLE_EMBEDDINGS:
@@ -60,7 +63,15 @@ def run_stage(stage: str) -> None:
         print(f"Total: {total} rows embedded")
 
     elif stage == "graph":
-        print("Graph edge computation stage not yet implemented")
+        from backend.ingest.graph_stage import run_graph_stage
+
+        counts = run_graph_stage(settings.DUCKDB_PATH)
+        print(
+            f"country->region: {counts.country_region}, "
+            f"region->farm: {counts.region_farm}, "
+            f"variety<->flavor: {counts.variety_flavor}, "
+            f"property_graph: {'ok' if counts.property_graph_ok else 'skipped'}"
+        )
 
     else:
         print(f"Unknown stage: {stage}")
