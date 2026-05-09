@@ -20,6 +20,7 @@ from backend.db.connection import get_connection
 
 ORIGIN_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000003")
 PROC_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000004")
+EDGE_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000005")
 
 DEFAULT_ARABICA = Path("data/raw/cqi_arabica.csv")
 DEFAULT_ROBUSTA = Path("data/raw/cqi_robusta.csv")
@@ -30,7 +31,39 @@ SOURCE_COLUMNS = {
     "Farm.Name": "farm",
     "altitude_mean_meters": "altitude",
     "Processing.Method": "processing",
+    "Variety": "variety",
 }
+
+# Synonyms / typo fixes mapping CQI free-text values to WCR canonical names.
+# Lowercase keys, lowercase values; consulted before direct lookup.
+VARIETY_SYNONYMS: dict[str, str] = {
+    "gesha": "geisha (panama)",
+    "geisha": "geisha (panama)",
+    "marigojipe": "maragogipe",
+    "pache comun": "pache",
+    "yellow bourbon": "bourbon",
+    "catimor": "catimor 129",
+}
+
+# CQI rows that aren't varieties (regions, processing styles, bean shapes, or
+# umbrella terms with no clean WCR mapping). Skip silently.
+VARIETY_BLACKLIST: frozenset[str] = frozenset(
+    {
+        "",
+        "other",
+        "peaberry",
+        "moka peaberry",
+        "ethiopian heirlooms",
+        "ethiopian yirgacheffe",
+        "blue mountain",
+        "hawaiian kona",
+        "sumatra",
+        "sumatra lintong",
+        "mandheling",
+        "sulawesi",
+        "arusha",
+    }
+)
 
 # Maps the free-text "Processing.Method" values CQI uses into a coarse category.
 PROCESSING_CATEGORIES: dict[str, str] = {
@@ -48,6 +81,10 @@ class IngestCounts:
     regions: int
     farms: int
     methods: int
+    country_variety_edges: int = 0
+    region_variety_edges: int = 0
+    farm_variety_edges: int = 0
+    unmatched_varieties: int = 0
 
     def total(self) -> int:
         return self.countries + self.regions + self.farms + self.methods
@@ -59,6 +96,15 @@ def _slug(*parts: str) -> str:
 
 def _uid(namespace: uuid.UUID, *parts: str) -> str:
     return str(uuid.uuid5(namespace, _slug(*parts)))
+
+
+def _resolve_variety(raw: str, name_to_id: dict[str, str]) -> str | None:
+    """Map a CQI Variety string to a WCR variety_id, or None if unmatched."""
+    key = raw.strip().lower()
+    if key in VARIETY_BLACKLIST:
+        return None
+    canonical = VARIETY_SYNONYMS.get(key, key)
+    return name_to_id.get(canonical)
 
 
 def _clean(value: object) -> str | None:
@@ -87,13 +133,27 @@ def _read_cqi(arabica: Path, robusta: Path) -> pl.DataFrame:
     return pl.concat(frames, how="vertical_relaxed")
 
 
-def _build_rows(
-    df: pl.DataFrame,
-) -> tuple[list[tuple], list[tuple], list[tuple], list[tuple]]:
+@dataclass
+class _BuiltRows:
+    countries: list[tuple]
+    regions: list[tuple]
+    farms: list[tuple]
+    methods: list[tuple]
+    country_variety: list[tuple]
+    region_variety: list[tuple]
+    farm_variety: list[tuple]
+    unmatched_count: int
+
+
+def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
     countries: dict[str, tuple] = {}
     regions: dict[str, tuple] = {}
     farms: dict[str, tuple] = {}
     methods: dict[str, tuple] = {}
+    cv_edges: dict[str, tuple] = {}
+    rv_edges: dict[str, tuple] = {}
+    fv_edges: dict[str, tuple] = {}
+    unmatched = 0
 
     for row in df.iter_rows(named=True):
         country = _clean(row.get("country"))
@@ -109,6 +169,7 @@ def _build_rows(
             regions.setdefault(region_id, (region_id, region, country_id))
 
         farm = _clean(row.get("farm"))
+        farm_id: str | None = None
         if farm:
             altitude_raw = row.get("altitude")
             altitude = (
@@ -126,11 +187,31 @@ def _build_rows(
             category = PROCESSING_CATEGORIES.get(method.lower(), "other")
             methods.setdefault(method_id, (method_id, method, category))
 
-    return (
-        list(countries.values()),
-        list(regions.values()),
-        list(farms.values()),
-        list(methods.values()),
+        variety_raw = _clean(row.get("variety"))
+        if variety_raw:
+            variety_id = _resolve_variety(variety_raw, name_to_id)
+            if variety_id is None:
+                if variety_raw.strip().lower() not in VARIETY_BLACKLIST:
+                    unmatched += 1
+            else:
+                cv_id = _uid(EDGE_NAMESPACE, "cv", country_id, variety_id)
+                cv_edges.setdefault(cv_id, (cv_id, country_id, variety_id))
+                if region_id is not None:
+                    rv_id = _uid(EDGE_NAMESPACE, "rv", region_id, variety_id)
+                    rv_edges.setdefault(rv_id, (rv_id, region_id, variety_id))
+                if farm_id is not None:
+                    fv_id = _uid(EDGE_NAMESPACE, "fv", farm_id, variety_id)
+                    fv_edges.setdefault(fv_id, (fv_id, farm_id, variety_id))
+
+    return _BuiltRows(
+        countries=list(countries.values()),
+        regions=list(regions.values()),
+        farms=list(farms.values()),
+        methods=list(methods.values()),
+        country_variety=list(cv_edges.values()),
+        region_variety=list(rv_edges.values()),
+        farm_variety=list(fv_edges.values()),
+        unmatched_count=unmatched,
     )
 
 
@@ -147,13 +228,18 @@ def load_cqi_data(
     against `db_path` or the configured default.
     """
     df = _read_cqi(Path(arabica_path), Path(robusta_path))
-    countries, regions, farms, methods = _build_rows(df)
 
     owns_conn = conn is None
     if conn is None:
         conn = get_connection() if db_path is None else duckdb.connect(db_path)
 
     try:
+        name_to_id = {
+            name.lower(): vid
+            for vid, name in conn.execute("SELECT id, name FROM var_varieties").fetchall()
+        }
+        built = _build_rows(df, name_to_id)
+
         for table in (
             "edges_farm_variety",
             "edges_region_variety",
@@ -169,35 +255,54 @@ def load_cqi_data(
         conn.execute("DELETE FROM org_countries")
         conn.execute("DELETE FROM proc_methods")
 
-        if countries:
+        if built.countries:
             conn.executemany(
                 "INSERT INTO org_countries (id, name, iso_code) VALUES (?, ?, ?)",
-                countries,
+                built.countries,
             )
-        if regions:
+        if built.regions:
             conn.executemany(
                 "INSERT INTO org_regions (id, name, country_id) VALUES (?, ?, ?)",
-                regions,
+                built.regions,
             )
-        if farms:
+        if built.farms:
             conn.executemany(
                 "INSERT INTO org_farms (id, name, region_id, altitude) VALUES (?, ?, ?, ?)",
-                farms,
+                built.farms,
             )
-        if methods:
+        if built.methods:
             conn.executemany(
                 "INSERT INTO proc_methods (id, name, category) VALUES (?, ?, ?)",
-                methods,
+                built.methods,
+            )
+        if built.country_variety:
+            conn.executemany(
+                "INSERT INTO edges_country_variety (id, country_id, variety_id) VALUES (?, ?, ?)",
+                built.country_variety,
+            )
+        if built.region_variety:
+            conn.executemany(
+                "INSERT INTO edges_region_variety (id, region_id, variety_id) VALUES (?, ?, ?)",
+                built.region_variety,
+            )
+        if built.farm_variety:
+            conn.executemany(
+                "INSERT INTO edges_farm_variety (id, farm_id, variety_id) VALUES (?, ?, ?)",
+                built.farm_variety,
             )
     finally:
         if owns_conn:
             conn.close()
 
     return IngestCounts(
-        countries=len(countries),
-        regions=len(regions),
-        farms=len(farms),
-        methods=len(methods),
+        countries=len(built.countries),
+        regions=len(built.regions),
+        farms=len(built.farms),
+        methods=len(built.methods),
+        country_variety_edges=len(built.country_variety),
+        region_variety_edges=len(built.region_variety),
+        farm_variety_edges=len(built.farm_variety),
+        unmatched_varieties=built.unmatched_count,
     )
 
 
@@ -206,4 +311,9 @@ if __name__ == "__main__":
     print(
         f"Loaded {counts.countries} countries, {counts.regions} regions, "
         f"{counts.farms} farms, {counts.methods} processing methods"
+    )
+    print(
+        f"Variety edges → country: {counts.country_variety_edges}, "
+        f"region: {counts.region_variety_edges}, farm: {counts.farm_variety_edges} "
+        f"({counts.unmatched_varieties} unmatched)"
     )
