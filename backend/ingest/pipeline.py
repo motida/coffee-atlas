@@ -29,6 +29,11 @@ def run_stage(stage: str) -> None:
             f"Loaded {counts.countries} countries, {counts.regions} regions, "
             f"{counts.farms} farms, {counts.methods} processing methods"
         )
+        print(
+            f"Variety edges → country: {counts.country_variety_edges}, "
+            f"region: {counts.region_variety_edges}, farm: {counts.farm_variety_edges} "
+            f"({counts.unmatched_varieties} unmatched)"
+        )
 
     elif stage == "geocode":
         from backend.ingest.geocode_stage import run_geocode

@@ -1,10 +1,16 @@
 import type {
+  Country,
   FlavorAttribute,
   FlavorWheelData,
   GeoJSONFeatureCollection,
   CountryGeoProperties,
+  Region,
   RegionGeoProperties,
+  SearchResult,
+  Shop,
   ShopGeoProperties,
+  TraversalResult,
+  Variety,
 } from "./types";
 
 const API_BASE =
@@ -26,16 +32,18 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 export const getVarieties = (limit = 20, offset = 0) =>
   fetchAPI(`/varieties?limit=${limit}&offset=${offset}`);
 
-export const getVariety = (id: string) => fetchAPI(`/varieties/${id}`);
+export const getVariety = (id: string) => fetchAPI<Variety>(`/varieties/${id}`);
 
 export const getVarietyFlavor = (id: string) =>
-  fetchAPI(`/varieties/${id}/flavor`);
+  fetchAPI<FlavorAttribute[]>(`/varieties/${id}/flavor`);
 
 // --- Origins ---
 export const getOrigins = (limit = 20, offset = 0) =>
   fetchAPI(`/origins?limit=${limit}&offset=${offset}`);
 
-export const getOrigin = (id: string) => fetchAPI(`/origins/${id}`);
+export const getOrigin = (id: string) => fetchAPI<Country>(`/origins/${id}`);
+
+export const getRegion = (id: string) => fetchAPI<Region>(`/origins/regions/${id}`);
 
 export const getOriginsGeo = () =>
   fetchAPI<GeoJSONFeatureCollection<CountryGeoProperties>>(`/origins/geo`);
@@ -60,7 +68,7 @@ export const getFlavorAttribute = (id: string) =>
 export const getShops = (limit = 20, offset = 0) =>
   fetchAPI(`/shops?limit=${limit}&offset=${offset}`);
 
-export const getShop = (id: string) => fetchAPI(`/shops/${id}`);
+export const getShop = (id: string) => fetchAPI<Shop>(`/shops/${id}`);
 
 export const getShopsGeo = (
   bbox?: [number, number, number, number],
@@ -74,18 +82,53 @@ export const getShopsGeo = (
 };
 
 export const getNearbyShops = (lat: number, lng: number, radiusKm = 5) =>
-  fetchAPI(`/shops/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`);
+  fetchAPI<(Shop & { distance_km: number })[]>(
+    `/shops/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`,
+  );
 
 // --- Graph ---
-export const graphTraverse = (startId: string, maxDepth = 2) =>
-  fetchAPI(`/graph/traverse?start_id=${startId}&max_depth=${maxDepth}`);
+export const graphTraverse = (
+  startId: string,
+  maxDepth = 2,
+  signal?: AbortSignal,
+) =>
+  fetchAPI<TraversalResult>(
+    `/graph/traverse?start_id=${startId}&max_depth=${maxDepth}`,
+    { signal },
+  );
 
 export const graphPath = (startId: string, endId: string) =>
   fetchAPI(`/graph/path?start_id=${startId}&end_id=${endId}`);
 
 // --- Search ---
-export const searchSemantic = (query: string, limit = 20) =>
-  fetchAPI(`/search/semantic?query=${encodeURIComponent(query)}&limit=${limit}`);
+const buildSearchUrl = (
+  base: string,
+  query: string,
+  limit: number,
+  entityTypes?: string[],
+) => {
+  const params = new URLSearchParams({
+    query,
+    limit: String(limit),
+  });
+  for (const t of entityTypes ?? []) params.append("entity_types", t);
+  return `${base}?${params.toString()}`;
+};
 
-export const searchText = (query: string, limit = 20) =>
-  fetchAPI(`/search/text?query=${encodeURIComponent(query)}&limit=${limit}`);
+export const searchSemantic = (
+  query: string,
+  limit = 20,
+  entityTypes?: string[],
+) =>
+  fetchAPI<SearchResult[]>(
+    buildSearchUrl("/search/semantic", query, limit, entityTypes),
+  );
+
+export const searchText = (
+  query: string,
+  limit = 20,
+  entityTypes?: string[],
+) =>
+  fetchAPI<SearchResult[]>(
+    buildSearchUrl("/search/text", query, limit, entityTypes),
+  );

@@ -37,6 +37,7 @@ interface PopupState {
   title: string;
   subtitle?: string;
   link?: string;
+  detailHref?: string;
 }
 
 export default function CoffeeMap() {
@@ -124,6 +125,7 @@ export default function CoffeeMap() {
         title: props.name,
         subtitle: [props.city, props.country].filter(Boolean).join(", ") || undefined,
         link: props.website ?? undefined,
+        detailHref: `/explore/shops/${props.id}`,
       });
       return;
     }
@@ -135,6 +137,7 @@ export default function CoffeeMap() {
         latitude: lat,
         title: props.name,
         subtitle: props.iso_code ?? undefined,
+        detailHref: `/explore/countries/${props.id}`,
       });
       return;
     }
@@ -146,6 +149,7 @@ export default function CoffeeMap() {
         latitude: lat,
         title: props.name.replace(/\b\w/g, (c) => c.toUpperCase()),
         subtitle: props.country_name,
+        detailHref: `/explore/regions/${props.id}`,
       });
     }
   };
@@ -297,16 +301,23 @@ export default function CoffeeMap() {
             {popup.subtitle && (
               <div className="text-xs text-gray-600">{popup.subtitle}</div>
             )}
-            {popup.link && (
-              <a
-                href={popup.link}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-amber-700 underline"
-              >
-                website
-              </a>
-            )}
+            <div className="mt-1 flex gap-3 text-xs">
+              {popup.detailHref && (
+                <a href={popup.detailHref} className="text-coffee-700 underline">
+                  details →
+                </a>
+              )}
+              {popup.link && (
+                <a
+                  href={popup.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-amber-700 underline"
+                >
+                  website
+                </a>
+              )}
+            </div>
           </div>
         </Popup>
       )}
