@@ -87,9 +87,14 @@ export const getNearbyShops = (lat: number, lng: number, radiusKm = 5) =>
   );
 
 // --- Graph ---
-export const graphTraverse = (startId: string, maxDepth = 2) =>
+export const graphTraverse = (
+  startId: string,
+  maxDepth = 2,
+  signal?: AbortSignal,
+) =>
   fetchAPI<TraversalResult>(
     `/graph/traverse?start_id=${startId}&max_depth=${maxDepth}`,
+    { signal },
   );
 
 export const graphPath = (startId: string, endId: string) =>
