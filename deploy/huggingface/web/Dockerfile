@@ -10,7 +10,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY frontend/ ./
 
-ARG BACKEND_URL=http://localhost:8000
+ARG BACKEND_URL=https://motidav-coffee-atlas-api.hf.space
 ENV BACKEND_URL=$BACKEND_URL \
     NEXT_TELEMETRY_DISABLED=1
 
