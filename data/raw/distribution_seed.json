@@ -1,0 +1,168 @@
+{
+  "_meta": {
+    "description": "Hand-curated seed data for the distribution domain: certifications, green coffee importers, and major sourcing routes. Trade-route volumes are intentionally NULL — only the relationships are asserted, drawn from publicly known sourcing patterns. Expand from FAOSTAT/ICO datasets when fuller bilateral data is needed.",
+    "source": "Public knowledge: certification bodies' own materials; importer corporate websites; well-documented sourcing patterns from ICO statistics."
+  },
+  "import_countries": [
+    "Germany",
+    "Italy",
+    "Belgium",
+    "Spain",
+    "France",
+    "Netherlands",
+    "United Kingdom",
+    "Sweden",
+    "Norway",
+    "Switzerland",
+    "Australia",
+    "Canada",
+    "South Korea",
+    "Singapore",
+    "Saudi Arabia",
+    "Russia",
+    "Finland",
+    "Denmark"
+  ],
+  "certifications": [
+    {
+      "name": "Fairtrade International",
+      "description": "Global certification ensuring producers receive a Fairtrade Minimum Price and Premium for community investment. Administered by Fairtrade International (FLO) and audited by FLOCERT."
+    },
+    {
+      "name": "Fair Trade USA",
+      "description": "US-based certification (split from Fairtrade International in 2011) covering smallholder cooperatives and estate workers under its Trade Standard."
+    },
+    {
+      "name": "USDA Organic",
+      "description": "US Department of Agriculture certification prohibiting synthetic pesticides, fertilizers, and GMOs for at least three years on the production land."
+    },
+    {
+      "name": "EU Organic",
+      "description": "European Union organic farming label governed by Regulation (EU) 2018/848; requires audited compliance with EU organic production rules."
+    },
+    {
+      "name": "JAS Organic",
+      "description": "Japanese Agricultural Standard for organic products; required for coffee marketed as 'organic' in Japan."
+    },
+    {
+      "name": "Rainforest Alliance",
+      "description": "Sustainable agriculture certification covering biodiversity, worker welfare, and climate-smart practices. Merged with UTZ in 2018 under a unified 2020 standard."
+    },
+    {
+      "name": "Smithsonian Bird Friendly",
+      "description": "Certification by the Smithsonian Migratory Bird Center for shade-grown, organic coffee that preserves bird habitat. The most stringent shade-coffee standard."
+    },
+    {
+      "name": "4C Certified",
+      "description": "Baseline sustainability standard administered by the 4C Services GmbH (formerly Common Code for the Coffee Community); covers social, economic, and environmental criteria."
+    },
+    {
+      "name": "C.A.F.E. Practices",
+      "description": "Starbucks Coffee and Farmer Equity Practices — a buyer-specific sourcing standard verified by SCS Global Services covering product quality, economic accountability, social responsibility, and environmental leadership."
+    },
+    {
+      "name": "Demeter Biodynamic",
+      "description": "International certification for biodynamic agriculture, going beyond organic to require closed-loop farm ecosystems aligned with Rudolf Steiner's principles."
+    }
+  ],
+  "importers": [
+    {"name": "Olam Coffee", "country": "Singapore", "website": "https://www.olamfood.com/our-business/coffee.html"},
+    {"name": "Sucafina", "country": "Switzerland", "website": "https://sucafina.com"},
+    {"name": "ECOM Trading", "country": "Switzerland", "website": "https://www.ecomtrading.com"},
+    {"name": "Volcafe", "country": "Switzerland", "website": "https://www.volcafe.com"},
+    {"name": "Neumann Kaffee Gruppe", "country": "Germany", "website": "https://www.nkg.coffee"},
+    {"name": "InterAmerican Coffee", "country": "Germany", "website": "https://www.interamericancoffee.com"},
+    {"name": "Schluter", "country": "Germany", "website": "https://www.schluter.coffee"},
+    {"name": "Mercon Coffee Group", "country": "Netherlands", "website": "https://www.merconcoffeegroup.com"},
+    {"name": "Trabocca", "country": "Netherlands", "website": "https://trabocca.com"},
+    {"name": "Touton", "country": "France", "website": "https://www.touton.fr"},
+    {"name": "Falcon Coffees", "country": "United Kingdom", "website": "https://falconcoffees.com"},
+    {"name": "Mercanta", "country": "United Kingdom", "website": "https://www.mercanta.com"},
+    {"name": "Nordic Approach", "country": "Norway", "website": "https://www.nordicapproach.no"},
+    {"name": "Genuine Origin", "country": "United States", "website": "https://www.genuineorigin.com"},
+    {"name": "Royal Coffee", "country": "United States", "website": "https://royalcoffee.com"},
+    {"name": "Cafe Imports", "country": "United States", "website": "https://www.cafeimports.com"},
+    {"name": "Atlantic Specialty Coffee", "country": "United States", "website": "https://atlanticspecialtycoffee.com"},
+    {"name": "Ally Coffee", "country": "United States", "website": "https://www.allycoffee.com"},
+    {"name": "Bodhi Leaf Trading Co.", "country": "United States", "website": "https://www.bodhileafcoffee.com"},
+    {"name": "Red Fox Coffee Merchants", "country": "United States", "website": "https://redfoxcoffeemerchants.com"},
+    {"name": "Apex Coffee Imports", "country": "Canada", "website": "https://apexcoffeeimports.com"},
+    {"name": "Caravela Coffee", "country": "Colombia", "website": "https://www.caravela.coffee"},
+    {"name": "Cofinet", "country": "Colombia", "website": "https://cofinet.co"}
+  ],
+  "trade_routes": [
+    {"exporter": "Brazil", "importer": "United States"},
+    {"exporter": "Brazil", "importer": "Germany"},
+    {"exporter": "Brazil", "importer": "Italy"},
+    {"exporter": "Brazil", "importer": "Belgium"},
+    {"exporter": "Brazil", "importer": "Japan"},
+    {"exporter": "Brazil", "importer": "Spain"},
+    {"exporter": "Vietnam", "importer": "Germany"},
+    {"exporter": "Vietnam", "importer": "United States"},
+    {"exporter": "Vietnam", "importer": "Italy"},
+    {"exporter": "Vietnam", "importer": "Belgium"},
+    {"exporter": "Vietnam", "importer": "Japan"},
+    {"exporter": "Vietnam", "importer": "Spain"},
+    {"exporter": "Colombia", "importer": "United States"},
+    {"exporter": "Colombia", "importer": "Germany"},
+    {"exporter": "Colombia", "importer": "Japan"},
+    {"exporter": "Colombia", "importer": "Belgium"},
+    {"exporter": "Colombia", "importer": "Canada"},
+    {"exporter": "Colombia", "importer": "United Kingdom"},
+    {"exporter": "Ethiopia", "importer": "United States"},
+    {"exporter": "Ethiopia", "importer": "Germany"},
+    {"exporter": "Ethiopia", "importer": "Japan"},
+    {"exporter": "Ethiopia", "importer": "Sweden"},
+    {"exporter": "Ethiopia", "importer": "Saudi Arabia"},
+    {"exporter": "Honduras", "importer": "Germany"},
+    {"exporter": "Honduras", "importer": "United States"},
+    {"exporter": "Honduras", "importer": "Belgium"},
+    {"exporter": "Peru", "importer": "Germany"},
+    {"exporter": "Peru", "importer": "United States"},
+    {"exporter": "Peru", "importer": "Belgium"},
+    {"exporter": "Guatemala", "importer": "United States"},
+    {"exporter": "Guatemala", "importer": "Japan"},
+    {"exporter": "Guatemala", "importer": "Germany"},
+    {"exporter": "Indonesia", "importer": "United States"},
+    {"exporter": "Indonesia", "importer": "Germany"},
+    {"exporter": "Indonesia", "importer": "Japan"},
+    {"exporter": "Indonesia", "importer": "Italy"},
+    {"exporter": "India", "importer": "Italy"},
+    {"exporter": "India", "importer": "Germany"},
+    {"exporter": "India", "importer": "Belgium"},
+    {"exporter": "Uganda", "importer": "Italy"},
+    {"exporter": "Uganda", "importer": "Germany"},
+    {"exporter": "Uganda", "importer": "United States"},
+    {"exporter": "Mexico", "importer": "United States"},
+    {"exporter": "Mexico", "importer": "Germany"},
+    {"exporter": "Costa Rica", "importer": "United States"},
+    {"exporter": "Costa Rica", "importer": "Germany"},
+    {"exporter": "Nicaragua", "importer": "United States"},
+    {"exporter": "Nicaragua", "importer": "Germany"},
+    {"exporter": "Nicaragua", "importer": "Belgium"},
+    {"exporter": "El Salvador", "importer": "United States"},
+    {"exporter": "El Salvador", "importer": "Japan"},
+    {"exporter": "Rwanda", "importer": "United States"},
+    {"exporter": "Rwanda", "importer": "United Kingdom"},
+    {"exporter": "Rwanda", "importer": "Switzerland"},
+    {"exporter": "Burundi", "importer": "United States"},
+    {"exporter": "Burundi", "importer": "Switzerland"},
+    {"exporter": "Kenya", "importer": "United States"},
+    {"exporter": "Kenya", "importer": "Germany"},
+    {"exporter": "Kenya", "importer": "Sweden"},
+    {"exporter": "Kenya", "importer": "United Kingdom"},
+    {"exporter": "Tanzania, United Republic Of", "importer": "Italy"},
+    {"exporter": "Tanzania, United Republic Of", "importer": "Japan"},
+    {"exporter": "Tanzania, United Republic Of", "importer": "United States"},
+    {"exporter": "Tanzania, United Republic Of", "importer": "Germany"},
+    {"exporter": "Papua New Guinea", "importer": "Germany"},
+    {"exporter": "Papua New Guinea", "importer": "Australia"},
+    {"exporter": "Papua New Guinea", "importer": "Japan"},
+    {"exporter": "Panama", "importer": "United States"},
+    {"exporter": "Panama", "importer": "Japan"},
+    {"exporter": "Panama", "importer": "Taiwan"},
+    {"exporter": "Ecuador", "importer": "United States"},
+    {"exporter": "Ecuador", "importer": "Spain"},
+    {"exporter": "Ecuador", "importer": "Germany"}
+  ]
+}

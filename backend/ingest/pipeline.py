@@ -5,7 +5,7 @@ import sys
 
 from backend.config import settings
 
-STAGES = ["lexicon", "varieties", "cqi", "geocode", "shops", "embeddings", "graph"]
+STAGES = ["lexicon", "varieties", "cqi", "geocode", "shops", "distribution", "embeddings", "graph"]
 
 
 def run_stage(stage: str) -> None:
@@ -51,6 +51,18 @@ def run_stage(stage: str) -> None:
 
         counts = load_overture_shops(settings.DUCKDB_PATH)
         print(f"Inserted {counts.inserted} shops from {counts.fetched} Overture candidates")
+
+    elif stage == "distribution":
+        from backend.ingest.distribution_loader import load_distribution
+
+        counts = load_distribution(settings.DUCKDB_PATH)
+        print(
+            f"Loaded {counts.certifications} certifications, "
+            f"{counts.importers} importers, {counts.trade_routes} trade routes "
+            f"(+{counts.countries_added} new countries)"
+        )
+        if counts.unresolved:
+            print(f"  Unresolved: {len(counts.unresolved)} entries")
 
     elif stage == "embeddings":
         if not settings.ENABLE_EMBEDDINGS:
