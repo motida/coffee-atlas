@@ -2,7 +2,7 @@
 name = "coffee-atlas-backend"
 version = "0.1.0"
 description = "Backend API for Coffee Atlas — a geospatial coffee knowledge graph platform"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
@@ -34,10 +34,10 @@ packages = ["backend"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py314"
 
 [tool.ty.environment]
-python-version = "3.11"
+python-version = "3.14"
 
 [tool.ty.src]
 include = ["backend", "tests/backend", "ontology/scripts"]

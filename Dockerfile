@@ -1,5 +1,5 @@
 # --- Backend ---
-FROM python:3.11-slim AS backend
+FROM python:3.14-slim AS backend
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
