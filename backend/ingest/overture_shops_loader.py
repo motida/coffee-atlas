@@ -92,28 +92,45 @@ def _category_predicate() -> str:
     return f"categories.primary IN ({quoted})"
 
 
+def _bbox_predicate(bboxes: list[tuple[float, float, float, float]]) -> str:
+    clauses = [
+        f"(bbox.xmin >= {xmin} AND bbox.xmax <= {xmax} "
+        f"AND bbox.ymin >= {ymin} AND bbox.ymax <= {ymax})"
+        for xmin, ymin, xmax, ymax in bboxes
+    ]
+    return "(" + " OR ".join(clauses) + ")"
+
+
 def load_overture_shops(
     db_path: str | None = None,
     conn: duckdb.DuckDBPyConnection | None = None,
     files: list[str] | None = None,
     min_confidence: float = DEFAULT_MIN_CONFIDENCE,
     bbox: tuple[float, float, float, float] | None = None,
+    bboxes: list[tuple[float, float, float, float]] | None = None,
 ) -> ShopIngestCounts:
-    """Pull coffee shops from Overture into shop_shops. Idempotent."""
+    """Pull coffee shops from Overture into shop_shops. Additive and idempotent.
+
+    Existing rows with the same Overture `id` are replaced in place; rows
+    outside the supplied bboxes are left untouched. Pass `bboxes` (multiple
+    regions in one S3 scan) or `bbox` (single region, backward-compat).
+    """
     owns_conn = conn is None
     if conn is None:
         conn = get_connection() if db_path is None else duckdb.connect(db_path)
 
-    if bbox is None:
-        bbox = _resolve_bbox()
-    xmin, ymin, xmax, ymax = bbox
+    if bboxes is None:
+        bboxes = [bbox] if bbox is not None else [_resolve_bbox()]
 
     try:
         _ensure_extensions(conn)
 
         if files is None:
             files = _list_overture_files()
-        print(f"Overture release {OVERTURE_RELEASE}: {len(files)} parquet files, bbox={bbox}")
+        print(
+            f"Overture release {OVERTURE_RELEASE}: {len(files)} parquet files, "
+            f"{len(bboxes)} bbox(es)={bboxes}"
+        )
 
         conn.execute(
             f"""
@@ -129,10 +146,7 @@ def load_overture_shops(
                 websites[1] AS website,
                 confidence
             FROM read_parquet({files!r})
-            WHERE bbox.xmin >= {xmin}
-              AND bbox.xmax <= {xmax}
-              AND bbox.ymin >= {ymin}
-              AND bbox.ymax <= {ymax}
+            WHERE {_bbox_predicate(bboxes)}
               AND {_category_predicate()}
               AND names.primary IS NOT NULL
               AND geometry IS NOT NULL
@@ -145,12 +159,9 @@ def load_overture_shops(
         fetched = int(row[0])
         print(f"Fetched {fetched} candidate rows from Overture")
 
-        conn.execute("DELETE FROM edges_shop_variety")
-        conn.execute("DELETE FROM shop_shops")
-
         conn.execute(
             """
-            INSERT INTO shop_shops (
+            INSERT OR REPLACE INTO shop_shops (
                 id, name, latitude, longitude, address, city, country,
                 website, rating, roasts_in_house, description
             )
