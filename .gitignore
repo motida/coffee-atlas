@@ -33,6 +33,7 @@ data/raw/*
 !data/raw/distribution_seed.json
 data/processed/
 data/parquet/
+data/cache/
 
 # HF Spaces deploy staging
 deploy/huggingface/.staging/
