@@ -106,6 +106,41 @@ def test_altitude_parses_when_column_is_string(db, tmp_path):
     )
 
 
+def test_reingest_preserves_enrichment(db, fixture_csvs):
+    """A standalone cqi re-run must not wipe enrichment added by later stages:
+    geocoded coords/iso_code on countries + regions, and embeddings on methods.
+    Regression for the destructive delete+insert (DB-2/DB-3)."""
+    arabica, robusta = fixture_csvs
+    load_cqi_data(conn=db, arabica_path=arabica, robusta_path=robusta)
+
+    # Simulate later stages enriching rows in place.
+    db.execute(
+        "UPDATE org_countries SET latitude = 9.0, longitude = 38.0, iso_code = 'ET' "
+        "WHERE name = 'Ethiopia'"
+    )
+    db.execute("UPDATE org_regions SET latitude = 6.1, longitude = 38.2 WHERE name = 'Yirgacheffe'")
+    db.execute(
+        "UPDATE proc_methods SET description = 'desc', "
+        "description_embedding = ?::FLOAT[3072] WHERE name = 'Washed / Wet'",
+        [[0.5] * 3072],
+    )
+
+    load_cqi_data(conn=db, arabica_path=arabica, robusta_path=robusta)
+
+    assert db.execute(
+        "SELECT latitude, longitude, iso_code FROM org_countries WHERE name = 'Ethiopia'"
+    ).fetchone() == (9.0, 38.0, "ET")
+    assert db.execute(
+        "SELECT latitude, longitude FROM org_regions WHERE name = 'Yirgacheffe'"
+    ).fetchone() == (6.1, 38.2)
+    desc, embedding = db.execute(
+        "SELECT description, description_embedding FROM proc_methods WHERE name = 'Washed / Wet'"
+    ).fetchone()
+    assert desc == "desc"
+    assert embedding is not None
+    assert len(embedding) == 3072
+
+
 def test_processing_method_categorized(db, fixture_csvs):
     arabica, robusta = fixture_csvs
     load_cqi_data(conn=db, arabica_path=arabica, robusta_path=robusta)

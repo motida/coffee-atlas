@@ -133,6 +133,51 @@ def _parse_altitude(value: object) -> int | None:
         return None
 
 
+# Columns on origin/processing tables populated by stages OTHER than this one
+# (geocoded coordinates, iso_code, embeddings, manual curation). The CQI rebuild
+# uses delete+insert in FK order — DuckDB's ON CONFLICT DO UPDATE can't touch
+# FK-referenced rows — so we snapshot these before the delete and restore them by
+# id afterward, keeping a standalone `--stage cqi` re-run non-destructive.
+_ENRICHMENT_COLUMNS: dict[str, tuple[str, ...]] = {
+    "org_countries": ("latitude", "longitude", "iso_code", "production_volume"),
+    "org_regions": ("latitude", "longitude", "altitude_min", "altitude_max"),
+    "org_farms": ("latitude", "longitude", "soil_type", "owner"),
+    "proc_methods": (
+        "description",
+        "fermentation_duration",
+        "drying_duration",
+        "description_embedding",
+    ),
+}
+
+
+def _snapshot_enrichment(conn: duckdb.DuckDBPyConnection) -> None:
+    """Copy enrichment columns into temp tables before the rebuild deletes them.
+
+    Stays entirely inside DuckDB so FLOAT[3072] embeddings are preserved without
+    a Python round-trip.
+    """
+    for table, cols in _ENRICHMENT_COLUMNS.items():
+        col_list = ", ".join(("id", *cols))
+        conn.execute(
+            f"CREATE OR REPLACE TEMP TABLE _enrich_{table} AS SELECT {col_list} FROM {table}"
+        )
+
+
+def _restore_enrichment(conn: duckdb.DuckDBPyConnection) -> None:
+    """Re-apply snapshotted enrichment to rebuilt rows, matched by id.
+
+    Rows that dropped out of the source aren't re-created, so they simply don't
+    match; new rows have no snapshot entry and keep their NULL enrichment.
+    """
+    for table, cols in _ENRICHMENT_COLUMNS.items():
+        set_clause = ", ".join(f"{c} = e.{c}" for c in cols)
+        conn.execute(
+            f"UPDATE {table} SET {set_clause} FROM _enrich_{table} AS e WHERE {table}.id = e.id"
+        )
+        conn.execute(f"DROP TABLE _enrich_{table}")
+
+
 def _read_cqi(arabica: Path, robusta: Path) -> pl.DataFrame:
     frames: list[pl.DataFrame] = []
     for path in (arabica, robusta):
@@ -234,10 +279,11 @@ def load_cqi_data(
 ) -> IngestCounts:
     """Populate origins + processing tables from CQI cupping CSVs.
 
-    Idempotent: deletes existing rows in dependency order before re-inserting.
-    Note: a standalone re-run currently re-empties geocoded coordinates/iso_code
-    until the geocode stage is run again (delete+insert is required because
-    DuckDB's ON CONFLICT DO UPDATE cannot update FK-referenced rows).
+    Idempotent: edges and origin/processing rows are rebuilt via delete+insert in
+    FK order (DuckDB's ON CONFLICT DO UPDATE can't update FK-referenced rows).
+    Enrichment that later stages add — geocoded coordinates, iso_code, embeddings —
+    is snapshotted before the rebuild and restored by id afterward, so a standalone
+    re-run is non-destructive.
     Pass `conn` for in-memory test connections; otherwise a connection is opened
     against `db_path` or the configured default.
     """
@@ -253,6 +299,8 @@ def load_cqi_data(
             for vid, name in conn.execute("SELECT id, name FROM var_varieties").fetchall()
         }
         built = _build_rows(df, name_to_id)
+
+        _snapshot_enrichment(conn)
 
         for table in (
             "edges_farm_variety",
@@ -289,6 +337,9 @@ def load_cqi_data(
                 "INSERT INTO proc_methods (id, name, category) VALUES (?, ?, ?)",
                 built.methods,
             )
+
+        _restore_enrichment(conn)
+
         if built.country_variety:
             conn.executemany(
                 "INSERT INTO edges_country_variety (id, country_id, variety_id) VALUES (?, ?, ?)",
