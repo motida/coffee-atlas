@@ -8,6 +8,14 @@ Built as a knowledge-graph-backed application where every entity (variety,
 farm, roaster, shop, flavor profile) is a node in a connected graph,
 enabling discovery through relationships rather than flat search.
 
+## Live Demo
+
+- **App:** <https://motidav-coffee-atlas-web.hf.space>
+- **API docs:** <https://motidav-coffee-atlas-api.hf.space/docs>
+
+> Hosted on free Hugging Face Spaces, which sleep after inactivity — the first
+> request may take ~30s to wake the container.
+
 ## Stack
 
 | Layer | Technology |
