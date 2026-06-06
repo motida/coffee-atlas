@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- [Python 3.11+](https://www.python.org/) (3.13.7 pinned via `.python-version`)
+- [Python 3.14+](https://www.python.org/) (3.14.5 pinned via `.python-version`)
 - [uv](https://docs.astral.sh/uv/) — Python package manager
 - [Node.js 20+](https://nodejs.org/)
 - [pyenv](https://github.com/pyenv/pyenv) (recommended for Python version management)

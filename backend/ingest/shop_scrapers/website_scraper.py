@@ -204,9 +204,12 @@ def load_done_ids(scope_key: str) -> set[str]:
         with path.open() as f:
             for line in f:
                 try:
-                    done.add(json.loads(line)["shop_id"])
-                except json.JSONDecodeError, KeyError:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
                     continue
+                shop_id = record.get("shop_id")
+                if shop_id is not None:
+                    done.add(shop_id)
     return done
 
 

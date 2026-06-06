@@ -18,7 +18,7 @@ inside the image.
 ### 1. Build the database locally
 
 ```sh
-uv run -m backend.ingest.pipeline --stage all
+uv run -m backend.ingest.pipeline --all
 ls -lh data/coffee_atlas.duckdb     # confirm the file exists
 ```
 
@@ -96,7 +96,7 @@ subsequent runs (incremental rsync + git push).
 If only the DuckDB file changed:
 
 ```sh
-uv run -m backend.ingest.pipeline --stage all
+uv run -m backend.ingest.pipeline --all
 HF_USER=... ./deploy/huggingface/deploy.sh api
 ```
 

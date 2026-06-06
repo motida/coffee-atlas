@@ -16,6 +16,7 @@ from typing import Any
 import duckdb
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from backend.config import settings
 from backend.db.connection import get_db
 from backend.models.search import SearchResult
 from backend.services.embeddings import EmbeddingService
@@ -94,6 +95,11 @@ def semantic_search(
     entity_types: list[str] = Query(default=[]),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> list[SearchResult]:
+    # Graceful degradation: the public demo runs without a Gemini key. Rather
+    # than 502 on the flagship endpoint, fall back to text search transparently.
+    if not settings.ENABLE_EMBEDDINGS or not settings.GEMINI_API_KEY:
+        return text_search(query=query, limit=limit, entity_types=entity_types, db=db)
+
     sources = SEMANTIC_SOURCES
     if entity_types:
         wanted = set(entity_types)
