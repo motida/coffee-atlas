@@ -1,0 +1,16 @@
+// Coffee Atlas brand mark — a coffee cup on a rounded coffee-800 tile, using the
+// Tailwind `coffee` palette. Kept here as a string so the generated OG / Apple /
+// favicon images share one source of truth.
+// NOTE: keep this in sync with the static favicon at app/icon.svg.
+export const COFFEE_MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Coffee Atlas">
+  <rect width="64" height="64" rx="14" fill="#7a4320"/>
+  <g fill="none" stroke="#e9bd7e" stroke-width="3" stroke-linecap="round" opacity="0.9">
+    <path d="M26 16c-3-3 1-5-1-8"/>
+    <path d="M35 16c-3-3 1-5-1-8"/>
+  </g>
+  <path d="M15 26h26v5a13 13 0 0 1-26 0z" fill="#fdf8f0"/>
+  <path d="M41 28h3.5a5.5 5.5 0 0 1 0 11H41" fill="none" stroke="#fdf8f0" stroke-width="4"/>
+  <rect x="13" y="48" width="30" height="5" rx="2.5" fill="#f2d8b0"/>
+</svg>`;
+
+export const COFFEE_MARK_DATA_URI = `data:image/svg+xml,${encodeURIComponent(COFFEE_MARK_SVG)}`;

@@ -2,10 +2,41 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://motidav-coffee-atlas-web.hf.space";
+
+const DESCRIPTION =
+  "Explore the global coffee ecosystem — from bean genetics and farm origins to roasting science and specialty shops.";
+
 export const metadata: Metadata = {
-  title: "Coffee Atlas",
-  description:
-    "Explore the global coffee ecosystem — from bean genetics and farm origins to roasting science and specialty shops.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Coffee Atlas",
+    template: "%s · Coffee Atlas",
+  },
+  description: DESCRIPTION,
+  applicationName: "Coffee Atlas",
+  keywords: [
+    "coffee",
+    "specialty coffee",
+    "coffee varieties",
+    "coffee origins",
+    "knowledge graph",
+    "geospatial",
+    "flavor wheel",
+  ],
+  openGraph: {
+    type: "website",
+    siteName: "Coffee Atlas",
+    title: "Coffee Atlas",
+    description: DESCRIPTION,
+    url: SITE_URL,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Coffee Atlas",
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
