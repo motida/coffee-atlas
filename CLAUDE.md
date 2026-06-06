@@ -10,7 +10,7 @@ Coffee Atlas is a full-stack geospatial application that maps the global coffee 
 
 ### Stack
 
-- **Backend:** FastAPI (Python 3.11+)
+- **Backend:** FastAPI (Python 3.14+)
 - **Frontend:** Next.js 14+ (App Router, TypeScript, Tailwind CSS)
 - **Database:** DuckDB with Parquet storage (Hive-partitioned by domain)
 - **Graph Layer:** DuckPGQ extension for graph traversal queries

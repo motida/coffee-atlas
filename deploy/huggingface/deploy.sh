@@ -42,7 +42,7 @@ deploy_api() {
     if [[ ! -f "$DB_FILE" ]]; then
         echo "ERROR: $DB_FILE not found." >&2
         echo "Run the ingest pipeline locally first:" >&2
-        echo "  uv run -m backend.ingest.pipeline --stage all" >&2
+        echo "  uv run -m backend.ingest.pipeline --all" >&2
         exit 1
     fi
 

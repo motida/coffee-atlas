@@ -101,6 +101,36 @@ def _bbox_predicate(bboxes: list[tuple[float, float, float, float]]) -> str:
     return "(" + " OR ".join(clauses) + ")"
 
 
+def _merge_shops(conn: duckdb.DuckDBPyConnection) -> None:
+    """Upsert candidate rows from the `_overture_shops` temp table into shop_shops.
+
+    Source-owned columns (name, coordinates, address, website) are refreshed, but
+    curated enrichment — rating, roasts_in_house, description, description_embedding
+    — and created_at are preserved on rows that already exist. New rows get NULL
+    enrichment. This replaces a prior INSERT OR REPLACE that nulled enrichment and
+    reset created_at on every overlapping re-run.
+    """
+    conn.execute(
+        """
+        INSERT INTO shop_shops (
+            id, name, latitude, longitude, address, city, country, website
+        )
+        SELECT id, name, latitude, longitude, address, city, country, website
+        FROM _overture_shops
+        QUALIFY row_number() OVER (PARTITION BY id ORDER BY confidence DESC) = 1
+        ON CONFLICT (id) DO UPDATE SET
+            name = excluded.name,
+            latitude = excluded.latitude,
+            longitude = excluded.longitude,
+            address = excluded.address,
+            city = excluded.city,
+            country = excluded.country,
+            website = excluded.website,
+            updated_at = now()
+        """
+    )
+
+
 def load_overture_shops(
     db_path: str | None = None,
     conn: duckdb.DuckDBPyConnection | None = None,
@@ -111,9 +141,11 @@ def load_overture_shops(
 ) -> ShopIngestCounts:
     """Pull coffee shops from Overture into shop_shops. Additive and idempotent.
 
-    Existing rows with the same Overture `id` are replaced in place; rows
-    outside the supplied bboxes are left untouched. Pass `bboxes` (multiple
-    regions in one S3 scan) or `bbox` (single region, backward-compat).
+    Existing rows with the same Overture `id` are upserted in place — source
+    fields refresh while curated enrichment (rating, description, etc.) and
+    created_at are preserved (see `_merge_shops`); rows outside the supplied
+    bboxes are left untouched. Pass `bboxes` (multiple regions in one S3 scan)
+    or `bbox` (single region, backward-compat).
     """
     owns_conn = conn is None
     if conn is None:
@@ -159,17 +191,7 @@ def load_overture_shops(
         fetched = int(row[0])
         print(f"Fetched {fetched} candidate rows from Overture")
 
-        conn.execute(
-            """
-            INSERT OR REPLACE INTO shop_shops (
-                id, name, latitude, longitude, address, city, country,
-                website, rating, roasts_in_house, description
-            )
-            SELECT id, name, latitude, longitude, address, city, country,
-                   website, NULL, NULL, NULL
-            FROM _overture_shops
-            """
-        )
+        _merge_shops(conn)
 
         row = conn.execute("SELECT COUNT(*) FROM shop_shops").fetchone()
         assert row is not None

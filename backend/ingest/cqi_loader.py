@@ -116,6 +116,23 @@ def _clean(value: object) -> str | None:
     return text
 
 
+def _parse_altitude(value: object) -> int | None:
+    """Parse a CQI altitude cell to integer meters, or None.
+
+    The source `altitude_mean_meters` column contains "NA" literals, so Polars
+    types the whole column as String — meaning even genuinely numeric values
+    arrive here as strings. Parse defensively instead of gating on
+    isinstance(int | float), which silently dropped every altitude.
+    """
+    text = _clean(value)
+    if text is None:
+        return None
+    try:
+        return int(float(text))
+    except ValueError:
+        return None
+
+
 def _read_cqi(arabica: Path, robusta: Path) -> pl.DataFrame:
     frames: list[pl.DataFrame] = []
     for path in (arabica, robusta):
@@ -160,7 +177,7 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
         if not country:
             continue
         country_id = _uid(ORIGIN_NAMESPACE, "country", country)
-        countries.setdefault(country_id, (country_id, country, None))
+        countries.setdefault(country_id, (country_id, country))
 
         region = _clean(row.get("region"))
         region_id: str | None = None
@@ -171,13 +188,7 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
         farm = _clean(row.get("farm"))
         farm_id: str | None = None
         if farm:
-            altitude_raw = row.get("altitude")
-            altitude = (
-                int(altitude_raw)
-                if isinstance(altitude_raw, (int, float))
-                and altitude_raw == altitude_raw  # NaN check
-                else None
-            )
+            altitude = _parse_altitude(row.get("altitude"))
             farm_id = _uid(ORIGIN_NAMESPACE, "farm", country, region or "", farm)
             farms.setdefault(farm_id, (farm_id, farm, region_id, altitude))
 
@@ -224,6 +235,9 @@ def load_cqi_data(
     """Populate origins + processing tables from CQI cupping CSVs.
 
     Idempotent: deletes existing rows in dependency order before re-inserting.
+    Note: a standalone re-run currently re-empties geocoded coordinates/iso_code
+    until the geocode stage is run again (delete+insert is required because
+    DuckDB's ON CONFLICT DO UPDATE cannot update FK-referenced rows).
     Pass `conn` for in-memory test connections; otherwise a connection is opened
     against `db_path` or the configured default.
     """
@@ -257,7 +271,7 @@ def load_cqi_data(
 
         if built.countries:
             conn.executemany(
-                "INSERT INTO org_countries (id, name, iso_code) VALUES (?, ?, ?)",
+                "INSERT INTO org_countries (id, name) VALUES (?, ?)",
                 built.countries,
             )
         if built.regions:

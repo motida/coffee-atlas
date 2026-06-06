@@ -27,7 +27,7 @@ class EmbeddingService:
         self.client = genai.Client(api_key=api_key or settings.GEMINI_API_KEY)
 
     def embed(self, text: str) -> list[float]:
-        """Embed a single text string. Returns a 768-dim float vector."""
+        """Embed a single text string. Returns a 3072-dim float vector."""
         result = self._call([text])
         return result.embeddings[0].values
 

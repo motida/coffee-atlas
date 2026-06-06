@@ -83,6 +83,29 @@ def test_farm_carries_altitude(db, fixture_csvs):
     assert altitude == (1900,)
 
 
+def test_altitude_parses_when_column_is_string(db, tmp_path):
+    """The real CQI altitude column contains 'NA' literals, so Polars types it as
+    String and numeric values arrive as strings. Numeric strings must still parse;
+    'NA' must become NULL. Regression for the dropped-altitude bug."""
+    arabica = tmp_path / "arabica.csv"
+    arabica.write_text(
+        '"Country.of.Origin","Region","Farm.Name","Processing.Method","altitude_mean_meters","Variety"\n'
+        '"Ethiopia","Yirgacheffe","HasAltitude","Washed / Wet","1850","Bourbon"\n'
+        '"Ethiopia","Yirgacheffe","NoAltitude","Washed / Wet","NA","Bourbon"\n'
+    )
+    robusta = tmp_path / "robusta.csv"
+    robusta.write_text(
+        '"Country.of.Origin","Region","Farm.Name","Processing.Method","altitude_mean_meters","Variety"\n'
+    )
+    load_cqi_data(conn=db, arabica_path=arabica, robusta_path=robusta)
+    assert db.execute("SELECT altitude FROM org_farms WHERE name = 'HasAltitude'").fetchone() == (
+        1850,
+    )
+    assert db.execute("SELECT altitude FROM org_farms WHERE name = 'NoAltitude'").fetchone() == (
+        None,
+    )
+
+
 def test_processing_method_categorized(db, fixture_csvs):
     arabica, robusta = fixture_csvs
     load_cqi_data(conn=db, arabica_path=arabica, robusta_path=robusta)

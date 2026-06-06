@@ -12,13 +12,13 @@ enabling discovery through relationships rather than flat search.
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | FastAPI (Python 3.13) |
+| Backend | FastAPI (Python 3.14) |
 | Frontend | Next.js 14 (App Router, TypeScript, Tailwind CSS) |
-| Database | DuckDB with Parquet storage (Hive-partitioned) |
-| Graph | DuckPGQ extension for graph traversal |
-| Vector Search | DuckDB VSS with HNSW indexing |
+| Database | DuckDB (single-file; Parquet/Hive export planned) |
+| Graph | BFS traversal over relational edge tables (DuckPGQ planned) |
+| Vector Search | DuckDB VSS — cosine over stored Gemini embeddings (HNSW index planned) |
 | Maps | MapLibre GL JS with OpenFreeMap tiles |
-| Ontology | OWL 2 via Owlready2, validated with HermiT |
+| Ontology | OWL 2 (Turtle), parsed & exported to DuckDB via rdflib (HermiT DL reasoning planned) |
 
 ## Documentation
 
@@ -30,4 +30,8 @@ enabling discovery through relationships rather than flat search.
 
 ## License
 
-TBD
+The code in this repository is licensed under the [MIT License](LICENSE).
+
+Source **data** retains its own terms, independent of the code license: the WCR
+Varieties Catalog is CC BY-NC-ND 4.0; CQI cupping data and Overture Maps POI
+carry their respective licenses. See [docs/DATA.md](docs/DATA.md) for details.
