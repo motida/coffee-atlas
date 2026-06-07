@@ -12,11 +12,16 @@ const ENTITY_COLORS: Record<string, string> = {
   region: "#14b8a6",
   farm: "#f59e0b",
   flavor: "#f43f5e",
+  processing: "#8b5cf6",
 };
 
 const EDGE_TYPES: { id: string; label: string }[] = [
   { id: "country_region", label: "Country → Region" },
   { id: "region_farm", label: "Region → Farm" },
+  { id: "country_variety", label: "Country → Variety" },
+  { id: "region_variety", label: "Region → Variety" },
+  { id: "farm_variety", label: "Farm → Variety" },
+  { id: "variety_processing", label: "Variety → Processing" },
   { id: "variety_flavor", label: "Variety → Flavor" },
 ];
 
@@ -26,6 +31,7 @@ const ENTITY_DETAIL_URL: Record<string, (id: string) => string | null> = {
   country: (id) => `/explore/countries/${id}`,
   region: (id) => `/explore/regions/${id}`,
   farm: () => null,
+  processing: () => null,
 };
 
 const SEED_SEARCH_TYPES = ["variety", "country", "region", "flavor"];
