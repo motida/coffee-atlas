@@ -24,6 +24,7 @@ VERTEX_TABLES: dict[str, str] = {
     "region": "org_regions",
     "farm": "org_farms",
     "flavor": "flav_attributes",
+    "processing": "proc_methods",
 }
 
 
@@ -61,6 +62,41 @@ EDGES: list[EdgeDef] = [
         src_col="variety_id",
         dst_type="flavor",
         dst_col="flavor_id",
+    ),
+    # Origin -> variety edges (populated by the CQI loader). These bridge the
+    # geographic hierarchy to the variety/flavor cluster, so the graph is a
+    # single connected component rather than two islands.
+    EdgeDef(
+        table="edges_country_variety",
+        edge_type="country_variety",
+        src_type="country",
+        src_col="country_id",
+        dst_type="variety",
+        dst_col="variety_id",
+    ),
+    EdgeDef(
+        table="edges_region_variety",
+        edge_type="region_variety",
+        src_type="region",
+        src_col="region_id",
+        dst_type="variety",
+        dst_col="variety_id",
+    ),
+    EdgeDef(
+        table="edges_farm_variety",
+        edge_type="farm_variety",
+        src_type="farm",
+        src_col="farm_id",
+        dst_type="variety",
+        dst_col="variety_id",
+    ),
+    EdgeDef(
+        table="edges_variety_processing",
+        edge_type="variety_processing",
+        src_type="variety",
+        src_col="variety_id",
+        dst_type="processing",
+        dst_col="method_id",
     ),
 ]
 

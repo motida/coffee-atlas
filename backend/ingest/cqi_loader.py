@@ -84,6 +84,7 @@ class IngestCounts:
     country_variety_edges: int = 0
     region_variety_edges: int = 0
     farm_variety_edges: int = 0
+    variety_processing_edges: int = 0
     unmatched_varieties: int = 0
 
     def total(self) -> int:
@@ -204,6 +205,7 @@ class _BuiltRows:
     country_variety: list[tuple]
     region_variety: list[tuple]
     farm_variety: list[tuple]
+    variety_processing: list[tuple]
     unmatched_count: int
 
 
@@ -215,6 +217,7 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
     cv_edges: dict[str, tuple] = {}
     rv_edges: dict[str, tuple] = {}
     fv_edges: dict[str, tuple] = {}
+    vp_edges: dict[str, tuple] = {}
     unmatched = 0
 
     for row in df.iter_rows(named=True):
@@ -238,6 +241,7 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
             farms.setdefault(farm_id, (farm_id, farm, region_id, altitude))
 
         method = _clean(row.get("processing"))
+        method_id: str | None = None
         if method:
             method_id = _uid(PROC_NAMESPACE, "method", method)
             category = PROCESSING_CATEGORIES.get(method.lower(), "other")
@@ -258,6 +262,11 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
                 if farm_id is not None:
                     fv_id = _uid(EDGE_NAMESPACE, "fv", farm_id, variety_id)
                     fv_edges.setdefault(fv_id, (fv_id, farm_id, variety_id))
+                # variety <-> processing co-occurrence: this sample's variety was
+                # prepared with this processing method.
+                if method_id is not None:
+                    vp_id = _uid(EDGE_NAMESPACE, "vp", variety_id, method_id)
+                    vp_edges.setdefault(vp_id, (vp_id, variety_id, method_id))
 
     return _BuiltRows(
         countries=list(countries.values()),
@@ -267,6 +276,7 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
         country_variety=list(cv_edges.values()),
         region_variety=list(rv_edges.values()),
         farm_variety=list(fv_edges.values()),
+        variety_processing=list(vp_edges.values()),
         unmatched_count=unmatched,
     )
 
@@ -355,6 +365,11 @@ def load_cqi_data(
                 "INSERT INTO edges_farm_variety (id, farm_id, variety_id) VALUES (?, ?, ?)",
                 built.farm_variety,
             )
+        if built.variety_processing:
+            conn.executemany(
+                "INSERT INTO edges_variety_processing (id, variety_id, method_id) VALUES (?, ?, ?)",
+                built.variety_processing,
+            )
     finally:
         if owns_conn:
             conn.close()
@@ -367,6 +382,7 @@ def load_cqi_data(
         country_variety_edges=len(built.country_variety),
         region_variety_edges=len(built.region_variety),
         farm_variety_edges=len(built.farm_variety),
+        variety_processing_edges=len(built.variety_processing),
         unmatched_varieties=built.unmatched_count,
     )
 
@@ -379,6 +395,7 @@ if __name__ == "__main__":
     )
     print(
         f"Variety edges → country: {counts.country_variety_edges}, "
-        f"region: {counts.region_variety_edges}, farm: {counts.farm_variety_edges} "
+        f"region: {counts.region_variety_edges}, farm: {counts.farm_variety_edges}, "
+        f"processing: {counts.variety_processing_edges} "
         f"({counts.unmatched_varieties} unmatched)"
     )

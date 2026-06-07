@@ -1,15 +1,20 @@
 """Build graph edges from populated source tables.
 
-Three edge types are derivable today:
+This stage materializes the edges that are derived rather than ingested:
 
 1. country -> region (from org_regions.country_id)
 2. region -> farm   (from org_farms.region_id)
 3. variety <-> flavor (top-K matches via embedding cosine similarity)
 
-This produces a two-component graph: a geographic hierarchy and a
-semantic variety/flavor cluster. Cross-component edges (farm->variety,
-variety->processing, shop->variety, ...) are blocked on data we don't
-yet have.
+The origin -> variety edges (country/region/farm -> variety) and the
+variety <-> processing edges are populated upstream by the CQI loader from
+cupping-sample co-occurrence; the property graph below stitches them
+together with the edges above into a single connected graph that links the
+geographic hierarchy to the variety/flavor/processing clusters.
+
+Edges still blocked on data we don't yet have: shop -> variety (shop data
+carries no variety references), roast -> variety (no roasting loader yet),
+and processing -> flavor (no source linking the two).
 
 A DuckPGQ PROPERTY GRAPH is defined for parity with the architecture
 spec, but the HTTP endpoints do not depend on it — they query the edge
@@ -112,7 +117,8 @@ CREATE PROPERTY GRAPH coffee_graph
     org_countries,
     org_regions,
     org_farms,
-    flav_attributes
+    flav_attributes,
+    proc_methods
   )
   EDGE TABLES (
     edges_country_region
@@ -123,7 +129,19 @@ CREATE PROPERTY GRAPH coffee_graph
       DESTINATION KEY (farm_id) REFERENCES org_farms (id),
     edges_variety_flavor
       SOURCE KEY (variety_id) REFERENCES var_varieties (id)
-      DESTINATION KEY (flavor_id) REFERENCES flav_attributes (id)
+      DESTINATION KEY (flavor_id) REFERENCES flav_attributes (id),
+    edges_country_variety
+      SOURCE KEY (country_id) REFERENCES org_countries (id)
+      DESTINATION KEY (variety_id) REFERENCES var_varieties (id),
+    edges_region_variety
+      SOURCE KEY (region_id) REFERENCES org_regions (id)
+      DESTINATION KEY (variety_id) REFERENCES var_varieties (id),
+    edges_farm_variety
+      SOURCE KEY (farm_id) REFERENCES org_farms (id)
+      DESTINATION KEY (variety_id) REFERENCES var_varieties (id),
+    edges_variety_processing
+      SOURCE KEY (variety_id) REFERENCES var_varieties (id)
+      DESTINATION KEY (method_id) REFERENCES proc_methods (id)
   )
 """
 

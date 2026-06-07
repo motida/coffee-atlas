@@ -248,6 +248,38 @@ def test_region_and_farm_variety_edges(seeded_db, fixture_csvs):
     assert "Geisha (Panama)" in yirg_varieties
 
 
+def test_variety_processing_edges(seeded_db, fixture_csvs):
+    arabica, robusta = fixture_csvs
+    counts = load_cqi_data(conn=seeded_db, arabica_path=arabica, robusta_path=robusta)
+    # Co-occurrence pairs: Geisha/Washed, Bourbon/Natural, Caturra/Washed,
+    # Maragogipe/Natural — four distinct variety<->processing edges.
+    assert counts.variety_processing_edges == 4
+
+    # Bourbon was a Natural / Dry sample.
+    bourbon_methods = {
+        row[0]
+        for row in seeded_db.execute(
+            """
+            SELECT m.name FROM edges_variety_processing e
+            JOIN var_varieties v ON v.id = e.variety_id
+            JOIN proc_methods m ON m.id = e.method_id
+            WHERE v.name = 'Bourbon'
+            """
+        ).fetchall()
+    }
+    assert bourbon_methods == {"Natural / Dry"}
+
+
+def test_variety_processing_edges_idempotent(seeded_db, fixture_csvs):
+    arabica, robusta = fixture_csvs
+    load_cqi_data(conn=seeded_db, arabica_path=arabica, robusta_path=robusta)
+    first = seeded_db.execute("SELECT COUNT(*) FROM edges_variety_processing").fetchone()[0]
+    load_cqi_data(conn=seeded_db, arabica_path=arabica, robusta_path=robusta)
+    second = seeded_db.execute("SELECT COUNT(*) FROM edges_variety_processing").fetchone()[0]
+    assert first == second
+    assert first > 0
+
+
 @needs_data
 def test_real_csvs_load(db):
     counts = load_cqi_data(conn=db, arabica_path=ARABICA, robusta_path=ROBUSTA)
