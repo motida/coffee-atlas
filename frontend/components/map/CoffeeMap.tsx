@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Map, {
   Layer,
@@ -7,6 +8,7 @@ import Map, {
   Source,
   type MapLayerMouseEvent,
   type MapRef,
+  type ViewStateChangeEvent,
 } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { getOriginsGeo, getRegionsGeo, getShopsGeo } from "@/lib/api";
@@ -27,6 +29,37 @@ const SHOP_POINT_LAYER = "shops-points";
 const SHOPS_MIN_ZOOM = 6;
 const SHOPS_FETCH_LIMIT = 5000;
 
+const VIEW_STORAGE_KEY = "coffee-atlas:map-view";
+
+const DEFAULT_VIEW = {
+  latitude: 39.5,
+  longitude: -98.35,
+  zoom: 4,
+};
+
+// Restore the last map position (persisted in sessionStorage) so drilling into
+// an entity and navigating back doesn't reset the view. Falls back to the
+// default US-centered view when nothing is stored or storage is unavailable.
+function loadInitialView() {
+  if (typeof window === "undefined") return DEFAULT_VIEW;
+  try {
+    const raw = window.sessionStorage.getItem(VIEW_STORAGE_KEY);
+    if (raw) {
+      const v = JSON.parse(raw);
+      if (
+        typeof v?.latitude === "number" &&
+        typeof v?.longitude === "number" &&
+        typeof v?.zoom === "number"
+      ) {
+        return { latitude: v.latitude, longitude: v.longitude, zoom: v.zoom };
+      }
+    }
+  } catch {
+    // ignore malformed JSON / unavailable storage (private mode, quota)
+  }
+  return DEFAULT_VIEW;
+}
+
 type AnyGeo = GeoJSONFeatureCollection<
   CountryGeoProperties | RegionGeoProperties | ShopGeoProperties
 >;
@@ -42,11 +75,7 @@ interface PopupState {
 
 export default function CoffeeMap() {
   const mapRef = useRef<MapRef | null>(null);
-  const [viewState, setViewState] = useState({
-    latitude: 39.5,
-    longitude: -98.35,
-    zoom: 4,
-  });
+  const [viewState, setViewState] = useState(loadInitialView);
   const [countries, setCountries] =
     useState<GeoJSONFeatureCollection<CountryGeoProperties> | null>(null);
   const [regions, setRegions] =
@@ -91,6 +120,24 @@ export default function CoffeeMap() {
       .catch((e) => console.error("Failed to load shops:", e))
       .finally(() => setShopsLoading(false));
   }, []);
+
+  const handleMoveEnd = useCallback(
+    (evt: ViewStateChangeEvent) => {
+      if (typeof window !== "undefined") {
+        try {
+          const { latitude, longitude, zoom } = evt.viewState;
+          window.sessionStorage.setItem(
+            VIEW_STORAGE_KEY,
+            JSON.stringify({ latitude, longitude, zoom }),
+          );
+        } catch {
+          // ignore storage write failures (quota / private mode)
+        }
+      }
+      fetchShops();
+    },
+    [fetchShops],
+  );
 
   const onClick = (e: MapLayerMouseEvent) => {
     const map = mapRef.current;
@@ -159,7 +206,7 @@ export default function CoffeeMap() {
       ref={mapRef}
       {...viewState}
       onMove={(evt) => setViewState(evt.viewState)}
-      onMoveEnd={fetchShops}
+      onMoveEnd={handleMoveEnd}
       onLoad={fetchShops}
       mapStyle={MAP_STYLE}
       style={{ width: "100%", height: "100%" }}
@@ -303,9 +350,12 @@ export default function CoffeeMap() {
             )}
             <div className="mt-1 flex gap-3 text-xs">
               {popup.detailHref && (
-                <a href={popup.detailHref} className="text-coffee-700 underline">
+                <Link
+                  href={popup.detailHref}
+                  className="text-coffee-700 underline"
+                >
                   details →
-                </a>
+                </Link>
               )}
               {popup.link && (
                 <a
