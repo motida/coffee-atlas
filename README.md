@@ -10,11 +10,12 @@ enabling discovery through relationships rather than flat search.
 
 ## Live Demo
 
-- **App:** <https://motidav-coffee-atlas-web.hf.space>
+- **App:** <https://coffee-atlas-tau.vercel.app>
 - **API docs:** <https://motidav-coffee-atlas-api.hf.space/docs>
 
-> Hosted on free Hugging Face Spaces, which sleep after inactivity — the first
-> request may take ~30s to wake the container.
+> The frontend is hosted on Vercel (auto-deployed from `main`). The API runs on
+> a free Hugging Face Space that sleeps after inactivity — the first request may
+> take ~30s to wake the container.
 
 ## Stack
 
