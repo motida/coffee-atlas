@@ -12,6 +12,10 @@ the backend is running.
 | `GET /api/v1/origins/geo` | GeoJSON feature collection |
 | `GET /api/v1/roasting/profiles` | List roast profiles |
 | `GET /api/v1/flavor/wheel` | Flavor wheel hierarchy |
+| `GET /api/v1/distribution/importers` | List green-coffee importers |
+| `GET /api/v1/distribution/certifications` | List certifications |
+| `GET /api/v1/distribution/trade-routes` | List trade routes |
+| `GET /api/v1/distribution/trade-routes/geo` | Trade routes as GeoJSON LineStrings |
 | `GET /api/v1/shops` | List/filter shops |
 | `GET /api/v1/shops/geo` | Shop locations as GeoJSON |
 | `GET /api/v1/shops/nearby` | Nearby shops (lat/lng + radius) |

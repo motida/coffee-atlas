@@ -104,12 +104,15 @@ export type FlavorWheelData = Record<string, Record<string, FlavorWheelLeaf[]>>;
 export interface Importer extends Timestamped {
   name: string;
   country_id: string | null;
+  country_name: string | null;
   website: string | null;
 }
 
 export interface TradeRoute extends Timestamped {
   exporter_country_id: string | null;
   importer_country_id: string | null;
+  exporter_name: string | null;
+  importer_name: string | null;
   annual_volume: number | null;
   year: number | null;
 }
@@ -164,12 +167,23 @@ export interface ShopGeoProperties {
   description: string | null;
 }
 
+export interface TradeRouteGeoProperties {
+  id: string;
+  exporter_id: string;
+  exporter_name: string;
+  importer_id: string;
+  importer_name: string;
+  annual_volume: number | null;
+  year: number | null;
+}
+
 // --- GeoJSON ---
 export interface GeoJSONFeature<P = Record<string, unknown>> {
   type: "Feature";
   geometry: {
     type: string;
-    coordinates: number[];
+    // Point: [lon, lat]; LineString: [[lon, lat], ...]
+    coordinates: number[] | number[][];
   };
   properties: P;
 }
