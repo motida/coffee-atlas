@@ -5,8 +5,8 @@ Two endpoints:
 - /text — case-insensitive LIKE over name + description columns. Cheap,
   works without API calls, covers all entity types.
 - /semantic — embeds the query via Gemini, ranks by cosine similarity
-  over the `name_embedding` columns. Limited to entity types that have
-  embeddings populated (varieties, flavor attributes).
+  over each table's embedding column. Covers every entity type the
+  embeddings stage populates; rows without embeddings are skipped.
 """
 
 from __future__ import annotations
@@ -31,12 +31,17 @@ TEXT_SOURCES: list[tuple[str, str, str, str | None]] = [
     ("country", "org_countries", "name", None),
     ("region", "org_regions", "name", None),
     ("shop", "shop_shops", "name", "description"),
+    ("roast_profile", "roast_profiles", "name", "description"),
 ]
 
-# Semantic-search sources: only tables that have name_embedding populated.
-SEMANTIC_SOURCES: list[tuple[str, str, str, str | None]] = [
-    ("variety", "var_varieties", "name", "description"),
-    ("flavor", "flav_attributes", "name", "description"),
+# Semantic-search sources: (entity_type, table, label_col, desc_col_or_null,
+# embedding_col) — every table the embeddings stage populates.
+SEMANTIC_SOURCES: list[tuple[str, str, str, str | None, str]] = [
+    ("variety", "var_varieties", "name", "description", "name_embedding"),
+    ("flavor", "flav_attributes", "name", "description", "name_embedding"),
+    ("processing", "proc_methods", "name", "description", "description_embedding"),
+    ("roast_profile", "roast_profiles", "name", "description", "description_embedding"),
+    ("shop", "shop_shops", "name", "description", "description_embedding"),
 ]
 
 
@@ -114,12 +119,12 @@ def semantic_search(
 
     rows: list[SearchResult] = []
     per = _per_source_limit(limit, len(sources))
-    for entity_type, table, label_col, desc_col in sources:
+    for entity_type, table, label_col, desc_col, embedding_col in sources:
         cols = f"id, {label_col}" + (f", {desc_col}" if desc_col else "")
         sql = (
             f"SELECT {cols}, "
-            f"array_cosine_similarity(name_embedding, ?::FLOAT[3072]) AS sim "
-            f"FROM {table} WHERE name_embedding IS NOT NULL "
+            f"array_cosine_similarity({embedding_col}, ?::FLOAT[3072]) AS sim "
+            f"FROM {table} WHERE {embedding_col} IS NOT NULL "
             f"ORDER BY sim DESC LIMIT ?"
         )
         for row in db.execute(sql, [vector, per]).fetchall():

@@ -135,7 +135,7 @@ Seven interconnected domains, each with its own database table prefix, router, a
 | **Varieties** | `var_` | CoffeeSpecies, CoffeeVariety, GeneticLineage | WCR Catalog (100+ varieties) |
 | **Origins** | `org_` | Country, Region, Farm, Mill | CQI Database (~1,300 samples) |
 | **Processing** | `proc_` | ProcessingMethod, FermentationType | CQI + manual curation |
-| **Roasting** | `roast_` | RoastProfile, RoastLevel, Roaster | Community-sourced profiles |
+| **Roasting** | `roast_` | RoastProfile, RoastLevel, Roaster | Hand-curated seed (`roasting_seed.json`) |
 | **Flavor** | `flav_` | FlavorAttribute, FlavorCategory | WCR Sensory Lexicon (110 attributes) |
 | **Distribution** | `dist_` | Importer, TradeRoute, Certification | ICO, FAOSTAT |
 | **Shops** | `shop_` | CoffeeShop, Roastery, BrewMethod | Overture Maps POI |
@@ -158,7 +158,7 @@ CoffeeShop ──servesVariety──▶ Variety    ▼
      └──usesRoastProfile──▶ RoastProfile ──enhances/diminishes──▶ FlavorAttribute
 ```
 
-Ten edge tables are defined in the schema to materialize these relationships for graph traversal. Seven are populated from data today: the geographic hierarchy (`edges_country_region`, `edges_region_farm`, built by the graph stage from foreign keys), the semantic `edges_variety_flavor` (top-K embedding similarity, graph stage), and the origin↔variety and variety↔processing edges (`edges_country_variety`, `edges_region_variety`, `edges_farm_variety`, `edges_variety_processing`, built by the CQI loader from cupping-sample co-occurrence). The origin→variety and variety→processing edges bridge the geographic hierarchy to the variety/flavor/processing clusters, so traversal spans a **single connected component** rather than two islands. The remaining three (`edges_shop_variety`, `edges_roast_variety`, `edges_processing_flavor`) are schema-ready and fill in as their source data lands — shop data carries no variety references yet, there is no roasting loader, and no source links processing to flavor. Origin → Variety is split per origin level so each edge gets a real foreign key (no polymorphic IDs):
+Ten edge tables are defined in the schema to materialize these relationships for graph traversal. Eight are populated from data today: the geographic hierarchy (`edges_country_region`, `edges_region_farm`, built by the graph stage from foreign keys), the semantic `edges_variety_flavor` (top-K embedding similarity, graph stage), the origin↔variety and variety↔processing edges (`edges_country_variety`, `edges_region_variety`, `edges_farm_variety`, `edges_variety_processing`, built by the CQI loader from cupping-sample co-occurrence), and `edges_roast_variety` (built by the roasting loader from each profile's species/altitude suitability rule). The origin→variety and variety→processing edges bridge the geographic hierarchy to the variety/flavor/processing clusters, so traversal spans a **single connected component** rather than two islands. The remaining two (`edges_shop_variety`, `edges_processing_flavor`) are schema-ready and fill in as their source data lands — shop data carries no variety references yet, and no source links processing to flavor. Origin → Variety is split per origin level so each edge gets a real foreign key (no polymorphic IDs):
 
 | Edge Table | From | To |
 |-----------|------|-----|

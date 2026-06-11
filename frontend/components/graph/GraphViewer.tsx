@@ -13,6 +13,7 @@ const ENTITY_COLORS: Record<string, string> = {
   farm: "#f59e0b",
   flavor: "#f43f5e",
   processing: "#8b5cf6",
+  roast_profile: "#b45309",
 };
 
 const EDGE_TYPES: { id: string; label: string }[] = [
@@ -23,6 +24,7 @@ const EDGE_TYPES: { id: string; label: string }[] = [
   { id: "farm_variety", label: "Farm → Variety" },
   { id: "variety_processing", label: "Variety → Processing" },
   { id: "variety_flavor", label: "Variety → Flavor" },
+  { id: "roast_variety", label: "Roast → Variety" },
 ];
 
 const ENTITY_DETAIL_URL: Record<string, (id: string) => string | null> = {
@@ -32,9 +34,10 @@ const ENTITY_DETAIL_URL: Record<string, (id: string) => string | null> = {
   region: (id) => `/explore/regions/${id}`,
   farm: () => null,
   processing: () => null,
+  roast_profile: () => null,
 };
 
-const SEED_SEARCH_TYPES = ["variety", "country", "region", "flavor"];
+const SEED_SEARCH_TYPES = ["variety", "country", "region", "flavor", "roast_profile"];
 
 interface SimNode extends d3.SimulationNodeDatum {
   id: string;
@@ -451,7 +454,7 @@ export default function GraphViewer() {
                   className="h-2.5 w-2.5 rounded-full ring-1 ring-white"
                   style={{ backgroundColor: color }}
                 />
-                <span className="capitalize">{type}</span>
+                <span className="capitalize">{type.replace("_", " ")}</span>
               </div>
             ))}
           </div>
@@ -469,7 +472,7 @@ export default function GraphViewer() {
             ✕
           </button>
           <div className="text-xs uppercase tracking-wide text-coffee-600">
-            {selectedNode.entity_type}
+            {selectedNode.entity_type.replace("_", " ")}
           </div>
           <div className="mt-1 text-base font-semibold text-coffee-900">
             {selectedNode.label}

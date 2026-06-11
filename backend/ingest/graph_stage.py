@@ -8,13 +8,14 @@ This stage materializes the edges that are derived rather than ingested:
 
 The origin -> variety edges (country/region/farm -> variety) and the
 variety <-> processing edges are populated upstream by the CQI loader from
-cupping-sample co-occurrence; the property graph below stitches them
-together with the edges above into a single connected graph that links the
-geographic hierarchy to the variety/flavor/processing clusters.
+cupping-sample co-occurrence, and roast -> variety by the roasting loader
+from each profile's suitability rule; the property graph below stitches
+them together with the edges above into a single connected graph that links
+the geographic hierarchy to the variety/flavor/processing/roasting clusters.
 
 Edges still blocked on data we don't yet have: shop -> variety (shop data
-carries no variety references), roast -> variety (no roasting loader yet),
-and processing -> flavor (no source linking the two).
+carries no variety references) and processing -> flavor (no source linking
+the two).
 
 A DuckPGQ PROPERTY GRAPH is defined for parity with the architecture
 spec, but the HTTP endpoints do not depend on it — they query the edge
@@ -118,7 +119,8 @@ CREATE PROPERTY GRAPH coffee_graph
     org_regions,
     org_farms,
     flav_attributes,
-    proc_methods
+    proc_methods,
+    roast_profiles
   )
   EDGE TABLES (
     edges_country_region
@@ -141,7 +143,10 @@ CREATE PROPERTY GRAPH coffee_graph
       DESTINATION KEY (variety_id) REFERENCES var_varieties (id),
     edges_variety_processing
       SOURCE KEY (variety_id) REFERENCES var_varieties (id)
-      DESTINATION KEY (method_id) REFERENCES proc_methods (id)
+      DESTINATION KEY (method_id) REFERENCES proc_methods (id),
+    edges_roast_variety
+      SOURCE KEY (profile_id) REFERENCES roast_profiles (id)
+      DESTINATION KEY (variety_id) REFERENCES var_varieties (id)
   )
 """
 

@@ -1,5 +1,7 @@
 """Tests for the embeddings ingest stage using a fake embedding service."""
 
+import pytest
+
 from backend.ingest.embeddings_stage import TARGETS, run_embeddings
 from backend.ingest.wcr_lexicon_loader import load_wcr_lexicon
 from backend.services.embeddings import DIMENSIONS
@@ -25,10 +27,31 @@ def test_embeds_flavor_attributes(db):
     service = FakeEmbeddingService()
     results = run_embeddings(conn=db, service=service)
     assert results["flav_attributes"] == 110
-    # Other tables are empty — should be 0
+    # Other default tables are empty — should be 0
     for target in TARGETS:
-        if target.table != "flav_attributes":
+        if target.embed_by_default and target.table != "flav_attributes":
             assert results[target.table] == 0
+
+
+def test_default_run_skips_opt_in_tables(db):
+    """shop_shops is embed_by_default=False: a bare run must not touch it."""
+    db.execute(
+        "INSERT INTO shop_shops (id, name, description) VALUES ('s1', 'Cafe', 'pour-over bar')"
+    )
+    results = run_embeddings(conn=db, service=FakeEmbeddingService())
+    assert "shop_shops" not in results
+    nulls = db.execute(
+        "SELECT COUNT(*) FROM shop_shops WHERE description_embedding IS NULL"
+    ).fetchone()[0]
+    assert nulls == 1
+
+
+def test_opt_in_table_runs_when_named(db):
+    db.execute(
+        "INSERT INTO shop_shops (id, name, description) VALUES ('s1', 'Cafe', 'pour-over bar')"
+    )
+    results = run_embeddings(conn=db, service=FakeEmbeddingService(), tables=["shop_shops"])
+    assert results == {"shop_shops": 1}
 
 
 def test_vector_dimensions(db):
@@ -71,6 +94,27 @@ def test_empty_tables_produce_zero(db):
     service = FakeEmbeddingService()
     results = run_embeddings(conn=db, service=service)
     assert all(v == 0 for v in results.values())
+
+
+def test_tables_filter_restricts_run(db):
+    """With `tables`, only the named targets are scanned."""
+    load_wcr_lexicon(conn=db)
+    db.execute(
+        "INSERT INTO roast_profiles (id, name, description) VALUES ('p1', 'Nordic', 'light')"
+    )
+
+    results = run_embeddings(conn=db, service=FakeEmbeddingService(), tables=["roast_profiles"])
+    assert results == {"roast_profiles": 1}
+    # Flavor attributes were not touched despite having NULL embeddings.
+    nulls = db.execute(
+        "SELECT COUNT(*) FROM flav_attributes WHERE name_embedding IS NULL"
+    ).fetchone()[0]
+    assert nulls == 110
+
+
+def test_tables_filter_rejects_unknown_table(db):
+    with pytest.raises(ValueError, match="Unknown embedding tables: nope"):
+        run_embeddings(conn=db, service=FakeEmbeddingService(), tables=["nope"])
 
 
 def test_embeds_fk_referenced_rows(db):

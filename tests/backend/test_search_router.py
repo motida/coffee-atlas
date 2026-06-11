@@ -101,16 +101,23 @@ def test_semantic_search_uses_embedding(client, search_db, monkeypatch):
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
     monkeypatch.setattr("backend.routers.search.EmbeddingService", FakeEmbedder)
 
-    # Add a fake embedding to one variety + one flavor so the cosine call
-    # has something to compute against.
+    # Add a fake embedding to one variety + one flavor + one roast profile so
+    # the cosine call has something to compute against — the roast profile
+    # exercises the description_embedding column path.
     vec = [0.01] * DIMENSIONS
     search_db.execute("UPDATE var_varieties SET name_embedding = ? WHERE id = 'v1'", [vec])
     search_db.execute("UPDATE flav_attributes SET name_embedding = ? WHERE id = 'f1'", [vec])
+    search_db.execute(
+        "INSERT INTO roast_profiles (id, name, description, description_embedding) "
+        "VALUES ('p1', 'Nordic Light', 'Floral filter roast', ?)",
+        [vec],
+    )
 
     r = client.get("/api/v1/search/semantic", params={"query": "floral", "limit": 10})
     assert r.status_code == 200
     results = r.json()
     assert results, "expected results for entities with embeddings"
+    assert {row["entity_type"] for row in results} == {"variety", "flavor", "roast_profile"}
     # Each result should carry a numeric similarity score.
     for row in results:
         assert isinstance(row["similarity"], float)
