@@ -85,6 +85,7 @@ export default function CoffeeMap() {
   const [shopsLoading, setShopsLoading] = useState(false);
   const [shopsCapped, setShopsCapped] = useState(false);
   const [popup, setPopup] = useState<PopupState | null>(null);
+  const [hovering, setHovering] = useState(false);
 
   useEffect(() => {
     getOriginsGeo()
@@ -217,7 +218,9 @@ export default function CoffeeMap() {
         SHOP_POINT_LAYER,
       ]}
       onClick={onClick}
-      cursor={popup ? "pointer" : "grab"}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      cursor={hovering ? "pointer" : "grab"}
     >
       {countries && (
         <Source id="countries" type="geojson" data={countries as AnyGeo}>
@@ -326,10 +329,20 @@ export default function CoffeeMap() {
             filter={["!", ["has", "point_count"]]}
             paint={{
               "circle-color": "#6f3d18",
-              "circle-radius": 5,
+              "circle-radius": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                6,
+                6,
+                12,
+                8,
+                16,
+                11,
+              ],
               "circle-stroke-color": "#fdf8f0",
-              "circle-stroke-width": 1,
-              "circle-opacity": 0.95,
+              "circle-stroke-width": 2.5,
+              "circle-opacity": 1,
             }}
           />
         </Source>
