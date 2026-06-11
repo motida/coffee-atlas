@@ -1,0 +1,130 @@
+{
+  "_meta": {
+    "description": "Hand-curated reference set for the roasting domain: canonical roast profiles spanning the classic light-to-dark taxonomy, plus notable specialty roasters. Temperatures are bean-probe degrees Celsius, times are seconds, and development_time_ratio is development time (first crack to drop) divided by total roast time. Each profile carries a suitable_for rule that the loader resolves against var_varieties to derive RoastProfile → suitableFor → Variety edges: species lists the bean species the profile suits, and min_optimal_altitude requires the variety's optimal_altitude_max to reach the threshold (high-grown beans are denser and retain the acidity that lighter profiles showcase).",
+    "source": "Public roasting literature: Sweet Maria's roast level guide, SCA roast terminology, and conventions popularized by Scott Rao's The Coffee Roaster's Companion. Values are representative midpoints, not any roaster's proprietary curve."
+  },
+  "profiles": [
+    {
+      "name": "Nordic Light",
+      "roast_level": "light",
+      "first_crack_temp": 196.0,
+      "development_time_ratio": 0.15,
+      "charge_temp": 180.0,
+      "total_roast_time": 510,
+      "description": "Scandinavian-style filter roast dropped shortly after first crack. Maximizes origin character, florals, and bright acidity; best with dense, high-grown washed lots that can withstand a short development without tasting grassy.",
+      "suitable_for": { "species": ["Arabica"], "min_optimal_altitude": 1000 }
+    },
+    {
+      "name": "Cinnamon Roast",
+      "roast_level": "light",
+      "first_crack_temp": 196.0,
+      "development_time_ratio": 0.12,
+      "charge_temp": 175.0,
+      "total_roast_time": 480,
+      "description": "The lightest conventional roast, ended at the very start of first crack. Pale cinnamon-brown surface, pronounced sourness and tea-like body; mostly used for cupping evaluation and showcasing exceptional high-altitude lots.",
+      "suitable_for": { "species": ["Arabica"], "min_optimal_altitude": 1000 }
+    },
+    {
+      "name": "City Roast",
+      "roast_level": "medium-light",
+      "first_crack_temp": 197.0,
+      "development_time_ratio": 0.17,
+      "charge_temp": 190.0,
+      "total_roast_time": 570,
+      "description": "Roast taken through first crack and dropped soon after it ends. Balanced sweetness with origin acidity still in front; the everyday specialty filter roast for quality Arabica.",
+      "suitable_for": { "species": ["Arabica"] }
+    },
+    {
+      "name": "City+ Roast",
+      "roast_level": "medium",
+      "first_crack_temp": 198.0,
+      "development_time_ratio": 0.2,
+      "charge_temp": 195.0,
+      "total_roast_time": 630,
+      "description": "A touch more development past first crack, rounding acidity into caramel sweetness while keeping origin character legible. A forgiving middle ground that suits most Arabica regardless of growing altitude.",
+      "suitable_for": { "species": ["Arabica"] }
+    },
+    {
+      "name": "Omni Roast",
+      "roast_level": "medium-light",
+      "first_crack_temp": 197.0,
+      "development_time_ratio": 0.19,
+      "charge_temp": 190.0,
+      "total_roast_time": 600,
+      "description": "A modern specialty compromise developed enough to extract as espresso but light enough to shine as filter. Slightly longer development than a pure filter roast to keep espresso shots from tasting sour.",
+      "suitable_for": { "species": ["Arabica"] }
+    },
+    {
+      "name": "Full City Roast",
+      "roast_level": "medium-dark",
+      "first_crack_temp": 199.0,
+      "development_time_ratio": 0.22,
+      "charge_temp": 200.0,
+      "total_roast_time": 690,
+      "description": "Developed to the verge of second crack with light oil sheen possible. Bittersweet chocolate and caramel dominate; origin acidity recedes. The classic American medium-dark drip roast.",
+      "suitable_for": { "species": ["Arabica"] }
+    },
+    {
+      "name": "Full City+ Roast",
+      "roast_level": "medium-dark",
+      "first_crack_temp": 200.0,
+      "development_time_ratio": 0.24,
+      "charge_temp": 205.0,
+      "total_roast_time": 720,
+      "description": "Into the first snaps of second crack. Roast character and body take over from origin character, which makes it tolerant of softer lots and Robusta components in blends.",
+      "suitable_for": { "species": ["Arabica", "Robusta"] }
+    },
+    {
+      "name": "Classic Espresso",
+      "roast_level": "medium-dark",
+      "first_crack_temp": 200.0,
+      "development_time_ratio": 0.25,
+      "charge_temp": 200.0,
+      "total_roast_time": 750,
+      "description": "Traditional espresso development: slow Maillard phase and a long post-crack stretch for solubility, syrupy body, and crema stability. Works for straight Arabica and the Arabica/Robusta blends of southern-European tradition.",
+      "suitable_for": { "species": ["Arabica", "Robusta"] }
+    },
+    {
+      "name": "Vienna Roast",
+      "roast_level": "dark",
+      "first_crack_temp": 201.0,
+      "development_time_ratio": 0.25,
+      "charge_temp": 210.0,
+      "total_roast_time": 780,
+      "description": "Through the first phase of second crack with visible surface oil. Dark chocolate, light smoke, and heavy body; bean origin matters less than density, so it accepts both species.",
+      "suitable_for": { "species": ["Arabica", "Robusta"] }
+    },
+    {
+      "name": "French Roast",
+      "roast_level": "dark",
+      "first_crack_temp": 202.0,
+      "development_time_ratio": 0.27,
+      "charge_temp": 215.0,
+      "total_roast_time": 810,
+      "description": "Well into second crack: shiny, dark-brown beans with pronounced carbonized bittersweetness. Roast flavor entirely supersedes origin, making it a leveling roast for blends of any composition.",
+      "suitable_for": { "species": ["Arabica", "Robusta"] }
+    },
+    {
+      "name": "Italian Roast",
+      "roast_level": "dark",
+      "first_crack_temp": 203.0,
+      "development_time_ratio": 0.28,
+      "charge_temp": 220.0,
+      "total_roast_time": 840,
+      "description": "The darkest conventional roast, taken near the end of second crack. Smoky, ashy bitterness with thin acidity and maximum body; the historical base of southern-Italian espresso blends, frequently Robusta-heavy.",
+      "suitable_for": { "species": ["Arabica", "Robusta"] }
+    }
+  ],
+  "roasters": [
+    { "name": "Tim Wendelboe", "location": "Oslo, Norway", "website": "https://timwendelboe.no" },
+    { "name": "The Coffee Collective", "location": "Copenhagen, Denmark", "website": "https://coffeecollective.dk" },
+    { "name": "La Cabra", "location": "Aarhus, Denmark", "website": "https://www.lacabra.dk" },
+    { "name": "Square Mile Coffee Roasters", "location": "London, United Kingdom", "website": "https://squaremilecoffee.com" },
+    { "name": "Gardelli Specialty Coffees", "location": "Forlì, Italy", "website": "https://www.gardellicoffee.com" },
+    { "name": "Intelligentsia Coffee", "location": "Chicago, United States", "website": "https://www.intelligentsia.com" },
+    { "name": "Blue Bottle Coffee", "location": "Oakland, United States", "website": "https://bluebottlecoffee.com" },
+    { "name": "Stumptown Coffee Roasters", "location": "Portland, United States", "website": "https://www.stumptowncoffee.com" },
+    { "name": "Heart Coffee Roasters", "location": "Portland, United States", "website": "https://www.heartroasters.com" },
+    { "name": "Onyx Coffee Lab", "location": "Rogers, United States", "website": "https://onyxcoffeelab.com" }
+  ]
+}

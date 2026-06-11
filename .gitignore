@@ -30,8 +30,11 @@ data/raw/*
 !data/raw/country_centroids.json
 !data/raw/cqi_arabica.csv
 !data/raw/cqi_robusta.csv
+!data/raw/distribution_seed.json
+!data/raw/roasting_seed.json
 data/processed/
 data/parquet/
+data/cache/
 
 # HF Spaces deploy staging
 deploy/huggingface/.staging/

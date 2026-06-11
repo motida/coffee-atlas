@@ -13,8 +13,7 @@ import type {
   Variety,
 } from "./types";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}/api/v1${endpoint}`;

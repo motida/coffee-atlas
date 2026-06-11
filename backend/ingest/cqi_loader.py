@@ -84,6 +84,7 @@ class IngestCounts:
     country_variety_edges: int = 0
     region_variety_edges: int = 0
     farm_variety_edges: int = 0
+    variety_processing_edges: int = 0
     unmatched_varieties: int = 0
 
     def total(self) -> int:
@@ -116,6 +117,68 @@ def _clean(value: object) -> str | None:
     return text
 
 
+def _parse_altitude(value: object) -> int | None:
+    """Parse a CQI altitude cell to integer meters, or None.
+
+    The source `altitude_mean_meters` column contains "NA" literals, so Polars
+    types the whole column as String — meaning even genuinely numeric values
+    arrive here as strings. Parse defensively instead of gating on
+    isinstance(int | float), which silently dropped every altitude.
+    """
+    text = _clean(value)
+    if text is None:
+        return None
+    try:
+        return int(float(text))
+    except ValueError:
+        return None
+
+
+# Columns on origin/processing tables populated by stages OTHER than this one
+# (geocoded coordinates, iso_code, embeddings, manual curation). The CQI rebuild
+# uses delete+insert in FK order — DuckDB's ON CONFLICT DO UPDATE can't touch
+# FK-referenced rows — so we snapshot these before the delete and restore them by
+# id afterward, keeping a standalone `--stage cqi` re-run non-destructive.
+_ENRICHMENT_COLUMNS: dict[str, tuple[str, ...]] = {
+    "org_countries": ("latitude", "longitude", "iso_code", "production_volume"),
+    "org_regions": ("latitude", "longitude", "altitude_min", "altitude_max"),
+    "org_farms": ("latitude", "longitude", "soil_type", "owner"),
+    "proc_methods": (
+        "description",
+        "fermentation_duration",
+        "drying_duration",
+        "description_embedding",
+    ),
+}
+
+
+def _snapshot_enrichment(conn: duckdb.DuckDBPyConnection) -> None:
+    """Copy enrichment columns into temp tables before the rebuild deletes them.
+
+    Stays entirely inside DuckDB so FLOAT[3072] embeddings are preserved without
+    a Python round-trip.
+    """
+    for table, cols in _ENRICHMENT_COLUMNS.items():
+        col_list = ", ".join(("id", *cols))
+        conn.execute(
+            f"CREATE OR REPLACE TEMP TABLE _enrich_{table} AS SELECT {col_list} FROM {table}"
+        )
+
+
+def _restore_enrichment(conn: duckdb.DuckDBPyConnection) -> None:
+    """Re-apply snapshotted enrichment to rebuilt rows, matched by id.
+
+    Rows that dropped out of the source aren't re-created, so they simply don't
+    match; new rows have no snapshot entry and keep their NULL enrichment.
+    """
+    for table, cols in _ENRICHMENT_COLUMNS.items():
+        set_clause = ", ".join(f"{c} = e.{c}" for c in cols)
+        conn.execute(
+            f"UPDATE {table} SET {set_clause} FROM _enrich_{table} AS e WHERE {table}.id = e.id"
+        )
+        conn.execute(f"DROP TABLE _enrich_{table}")
+
+
 def _read_cqi(arabica: Path, robusta: Path) -> pl.DataFrame:
     frames: list[pl.DataFrame] = []
     for path in (arabica, robusta):
@@ -142,6 +205,7 @@ class _BuiltRows:
     country_variety: list[tuple]
     region_variety: list[tuple]
     farm_variety: list[tuple]
+    variety_processing: list[tuple]
     unmatched_count: int
 
 
@@ -153,6 +217,7 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
     cv_edges: dict[str, tuple] = {}
     rv_edges: dict[str, tuple] = {}
     fv_edges: dict[str, tuple] = {}
+    vp_edges: dict[str, tuple] = {}
     unmatched = 0
 
     for row in df.iter_rows(named=True):
@@ -160,7 +225,7 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
         if not country:
             continue
         country_id = _uid(ORIGIN_NAMESPACE, "country", country)
-        countries.setdefault(country_id, (country_id, country, None))
+        countries.setdefault(country_id, (country_id, country))
 
         region = _clean(row.get("region"))
         region_id: str | None = None
@@ -171,17 +236,12 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
         farm = _clean(row.get("farm"))
         farm_id: str | None = None
         if farm:
-            altitude_raw = row.get("altitude")
-            altitude = (
-                int(altitude_raw)
-                if isinstance(altitude_raw, (int, float))
-                and altitude_raw == altitude_raw  # NaN check
-                else None
-            )
+            altitude = _parse_altitude(row.get("altitude"))
             farm_id = _uid(ORIGIN_NAMESPACE, "farm", country, region or "", farm)
             farms.setdefault(farm_id, (farm_id, farm, region_id, altitude))
 
         method = _clean(row.get("processing"))
+        method_id: str | None = None
         if method:
             method_id = _uid(PROC_NAMESPACE, "method", method)
             category = PROCESSING_CATEGORIES.get(method.lower(), "other")
@@ -202,6 +262,11 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
                 if farm_id is not None:
                     fv_id = _uid(EDGE_NAMESPACE, "fv", farm_id, variety_id)
                     fv_edges.setdefault(fv_id, (fv_id, farm_id, variety_id))
+                # variety <-> processing co-occurrence: this sample's variety was
+                # prepared with this processing method.
+                if method_id is not None:
+                    vp_id = _uid(EDGE_NAMESPACE, "vp", variety_id, method_id)
+                    vp_edges.setdefault(vp_id, (vp_id, variety_id, method_id))
 
     return _BuiltRows(
         countries=list(countries.values()),
@@ -211,6 +276,7 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
         country_variety=list(cv_edges.values()),
         region_variety=list(rv_edges.values()),
         farm_variety=list(fv_edges.values()),
+        variety_processing=list(vp_edges.values()),
         unmatched_count=unmatched,
     )
 
@@ -223,7 +289,11 @@ def load_cqi_data(
 ) -> IngestCounts:
     """Populate origins + processing tables from CQI cupping CSVs.
 
-    Idempotent: deletes existing rows in dependency order before re-inserting.
+    Idempotent: edges and origin/processing rows are rebuilt via delete+insert in
+    FK order (DuckDB's ON CONFLICT DO UPDATE can't update FK-referenced rows).
+    Enrichment that later stages add — geocoded coordinates, iso_code, embeddings —
+    is snapshotted before the rebuild and restored by id afterward, so a standalone
+    re-run is non-destructive.
     Pass `conn` for in-memory test connections; otherwise a connection is opened
     against `db_path` or the configured default.
     """
@@ -239,6 +309,8 @@ def load_cqi_data(
             for vid, name in conn.execute("SELECT id, name FROM var_varieties").fetchall()
         }
         built = _build_rows(df, name_to_id)
+
+        _snapshot_enrichment(conn)
 
         for table in (
             "edges_farm_variety",
@@ -257,7 +329,7 @@ def load_cqi_data(
 
         if built.countries:
             conn.executemany(
-                "INSERT INTO org_countries (id, name, iso_code) VALUES (?, ?, ?)",
+                "INSERT INTO org_countries (id, name) VALUES (?, ?)",
                 built.countries,
             )
         if built.regions:
@@ -275,6 +347,9 @@ def load_cqi_data(
                 "INSERT INTO proc_methods (id, name, category) VALUES (?, ?, ?)",
                 built.methods,
             )
+
+        _restore_enrichment(conn)
+
         if built.country_variety:
             conn.executemany(
                 "INSERT INTO edges_country_variety (id, country_id, variety_id) VALUES (?, ?, ?)",
@@ -290,6 +365,11 @@ def load_cqi_data(
                 "INSERT INTO edges_farm_variety (id, farm_id, variety_id) VALUES (?, ?, ?)",
                 built.farm_variety,
             )
+        if built.variety_processing:
+            conn.executemany(
+                "INSERT INTO edges_variety_processing (id, variety_id, method_id) VALUES (?, ?, ?)",
+                built.variety_processing,
+            )
     finally:
         if owns_conn:
             conn.close()
@@ -302,6 +382,7 @@ def load_cqi_data(
         country_variety_edges=len(built.country_variety),
         region_variety_edges=len(built.region_variety),
         farm_variety_edges=len(built.farm_variety),
+        variety_processing_edges=len(built.variety_processing),
         unmatched_varieties=built.unmatched_count,
     )
 
@@ -314,6 +395,7 @@ if __name__ == "__main__":
     )
     print(
         f"Variety edges → country: {counts.country_variety_edges}, "
-        f"region: {counts.region_variety_edges}, farm: {counts.farm_variety_edges} "
+        f"region: {counts.region_variety_edges}, farm: {counts.farm_variety_edges}, "
+        f"processing: {counts.variety_processing_edges} "
         f"({counts.unmatched_varieties} unmatched)"
     )

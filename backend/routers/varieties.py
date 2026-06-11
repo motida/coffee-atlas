@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 import duckdb
 
 from backend.db.connection import fetchall_dicts, get_db
@@ -24,8 +24,6 @@ def list_varieties(
 def get_variety(variety_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
     row = db.execute("SELECT * FROM var_varieties WHERE id = ?", [variety_id]).fetchone()
     if not row:
-        from fastapi import HTTPException
-
         raise HTTPException(status_code=404, detail="Variety not found")
     columns = [desc[0] for desc in db.description]
     return dict(zip(columns, row))
@@ -35,12 +33,19 @@ def get_variety(variety_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 def get_variety_flavor(
     variety_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 ) -> list[dict[str, Any]]:
+    if not db.execute("SELECT 1 FROM var_varieties WHERE id = ?", [variety_id]).fetchone():
+        raise HTTPException(status_code=404, detail="Variety not found")
+    # Explicit column list: never ship the 3072-float name_embedding to clients.
     return fetchall_dicts(
         db.execute(
             """
-            SELECT f.* FROM flav_attributes f
+            SELECT f.id, f.name, f.category, f.subcategory, f.description,
+                   f.intensity_reference, f.sensory_reference, f.parent_id,
+                   e.strength
+            FROM flav_attributes f
             JOIN edges_variety_flavor e ON e.flavor_id = f.id
             WHERE e.variety_id = ?
+            ORDER BY f.name
             """,
             [variety_id],
         )

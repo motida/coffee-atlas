@@ -2,6 +2,16 @@
 
 > A geospatial knowledge graph platform that combines semantic web standards, hybrid relational-graph design, and vector search in a single coherent system — mapping the global coffee ecosystem from bean genetics to specialty shops.
 
+> **Implementation status.** This document describes the target architecture; some
+> pieces are deliberately scoped for later. **Live today:** the FastAPI + DuckDB
+> backend, the ingest pipeline, Gemini embeddings with cosine semantic search over
+> varieties + flavor attributes, the Next.js frontend (map, graph, flavor wheel,
+> explore), and rdflib-based ontology validation + triple export. **Planned:**
+> DuckPGQ property-graph queries (currently BFS over relational edge tables), the
+> HNSW/VSS index (currently a full-table cosine scan), HermiT DL reasoning, the
+> remaining cross-domain edge tables, and Hive-partitioned Parquet export. Sections
+> below flag the gap inline where it matters.
+
 ---
 
 ## Why This Project
@@ -39,8 +49,8 @@ The project demonstrates how formal ontology design, graph databases, and vector
 │  └──────────────────────┬───────────────────────────────┘    │
 │  ┌──────────┐  ┌────────┴───────┐  ┌────────────────────┐   │
 │  │Embedding │  │  DuckDB Conn   │  │  Geocoding Service │   │
-│  │ Service  │  │  Manager       │  │  (provider TBD)    │   │
-│  │(Gemini)  │  │  + Extensions  │  │                    │   │
+│  │ Service  │  │  Manager       │  │  (Nominatim + ISO  │   │
+│  │(Gemini)  │  │  + Extensions  │  │   centroids)       │   │
 │  └──────────┘  └────────┬───────┘  └────────────────────┘   │
 └──────────────────────────┼───────────────────────────────────┘
                            │
@@ -75,10 +85,11 @@ Most projects start with a database schema. Coffee Atlas starts with a **formal 
 
 ### Why Ontology-First?
 
-An ontology is not documentation. It's executable:
+An ontology is not documentation. It's designed to be executable (the reasoning
+layer is the main planned extension — see status note above):
 
-- **HermiT reasoner** checks logical consistency — if a class hierarchy is contradictory, the build fails before any data enters the system
-- **Inferred relationships** are computed automatically — if Gesha `belongsToSpecies` Arabica and Arabica `hasProperty` "self-fertile", Gesha inherits that property
+- **HermiT reasoner** (planned) would check logical consistency — if a class hierarchy is contradictory, the build fails before any data enters the system. Today `validate_ontology.py` does an rdflib parse/structure check; DL reasoning is parked.
+- **Inferred relationships** (planned) — e.g. if Gesha `belongsToSpecies` Arabica and Arabica `hasProperty` "self-fertile", Gesha inherits that property
 - **Cross-domain constraints** are formally declared — a `ProcessingMethod` can only `impactOnFlavor` a `FlavorAttribute`, not a `Farm`
 
 ### Modular Architecture
@@ -124,7 +135,7 @@ Seven interconnected domains, each with its own database table prefix, router, a
 | **Varieties** | `var_` | CoffeeSpecies, CoffeeVariety, GeneticLineage | WCR Catalog (100+ varieties) |
 | **Origins** | `org_` | Country, Region, Farm, Mill | CQI Database (~1,300 samples) |
 | **Processing** | `proc_` | ProcessingMethod, FermentationType | CQI + manual curation |
-| **Roasting** | `roast_` | RoastProfile, RoastLevel, Roaster | Community-sourced profiles |
+| **Roasting** | `roast_` | RoastProfile, RoastLevel, Roaster | Hand-curated seed (`roasting_seed.json`) |
 | **Flavor** | `flav_` | FlavorAttribute, FlavorCategory | WCR Sensory Lexicon (110 attributes) |
 | **Distribution** | `dist_` | Importer, TradeRoute, Certification | ICO, FAOSTAT |
 | **Shops** | `shop_` | CoffeeShop, Roastery, BrewMethod | Overture Maps POI |
@@ -147,7 +158,7 @@ CoffeeShop ──servesVariety──▶ Variety    ▼
      └──usesRoastProfile──▶ RoastProfile ──enhances/diminishes──▶ FlavorAttribute
 ```
 
-Eight edge tables materialize these relationships for graph traversal. Origin → Variety is split per origin level so each edge gets a real foreign key (no polymorphic IDs):
+Ten edge tables are defined in the schema to materialize these relationships for graph traversal. Eight are populated from data today: the geographic hierarchy (`edges_country_region`, `edges_region_farm`, built by the graph stage from foreign keys), the semantic `edges_variety_flavor` (top-K embedding similarity, graph stage), the origin↔variety and variety↔processing edges (`edges_country_variety`, `edges_region_variety`, `edges_farm_variety`, `edges_variety_processing`, built by the CQI loader from cupping-sample co-occurrence), and `edges_roast_variety` (built by the roasting loader from each profile's species/altitude suitability rule). The origin→variety and variety→processing edges bridge the geographic hierarchy to the variety/flavor/processing clusters, so traversal spans a **single connected component** rather than two islands. The remaining two (`edges_shop_variety`, `edges_processing_flavor`) are schema-ready and fill in as their source data lands — shop data carries no variety references yet, and no source links processing to flavor. Origin → Variety is split per origin level so each edge gets a real foreign key (no polymorphic IDs):
 
 | Edge Table | From | To |
 |-----------|------|-----|
@@ -216,12 +227,12 @@ Graph queries run inside DuckDB's SQL engine. No network roundtrips to a separat
 
 The `vss` extension builds HNSW (Hierarchical Navigable Small World) indexes on embedding columns:
 
-- **What's embedded**: variety descriptions, shop bios, flavor attribute names, processing method descriptions
+- **What's embedded**: variety descriptions and flavor attribute names today (shop bios and processing descriptions are schema-ready)
 - **Model**: Gemini `gemini-embedding-001` (3072 dimensions)
-- **Index**: HNSW for approximate k-NN search
-- **Query flow**: natural language → embed with Gemini → k-NN search across all entity types → ranked results with similarity scores
+- **Index**: exact cosine scan today via `array_cosine_similarity`; an HNSW index (the `vss` extension) is the planned upgrade for approximate k-NN at scale
+- **Query flow**: natural language → embed with Gemini → cosine ranking over embedded entity types → ranked results with similarity scores. When no Gemini key is configured (e.g. the public demo), `/search/semantic` degrades transparently to text search.
 
-This enables semantic search like *"fruity Ethiopian natural process light roast"* returning relevant varieties, shops, and flavor attributes ranked by semantic similarity.
+This enables semantic search like *"fruity Ethiopian natural process light roast"* returning relevant varieties and flavor attributes ranked by semantic similarity.
 
 ---
 
@@ -374,7 +385,7 @@ The ingest pipeline runs in stages, each independently re-runnable:
 Stage 1: lexicon     ─── WCR Sensory Lexicon PDF ──▶ flav_attributes (110 rows)
 Stage 2: varieties   ─── WCR Web Catalog ──────────▶ var_varieties (100+ rows)
 Stage 3: cqi         ─── Kaggle CSV ───────────────▶ org_*, proc_methods (~1,300 rows)
-Stage 4: geocode     ─── Geocoding API (TBD) ──────▶ lat/lng on org_*, shop_*
+Stage 4: geocode     ─── Nominatim + ISO centroids ▶ lat/lng on org_countries/regions
 Stage 5: shops       ─── Overture Maps POI ────────▶ shop_shops
 Stage 6: embeddings  ─── Gemini API ────────────────▶ *_embedding columns
 Stage 7: graph       ─── Computed ─────────────────▶ edges_* tables

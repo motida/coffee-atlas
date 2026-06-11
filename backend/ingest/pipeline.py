@@ -5,10 +5,20 @@ import sys
 
 from backend.config import settings
 
-STAGES = ["lexicon", "varieties", "cqi", "geocode", "shops", "embeddings", "graph"]
+STAGES = [
+    "lexicon",
+    "varieties",
+    "cqi",
+    "geocode",
+    "shops",
+    "distribution",
+    "roasting",
+    "embeddings",
+    "graph",
+]
 
 
-def run_stage(stage: str) -> None:
+def run_stage(stage: str, tables: list[str] | None = None) -> None:
     if stage == "lexicon":
         from backend.ingest.wcr_lexicon_loader import load_wcr_lexicon
 
@@ -52,6 +62,27 @@ def run_stage(stage: str) -> None:
         counts = load_overture_shops(settings.DUCKDB_PATH)
         print(f"Inserted {counts.inserted} shops from {counts.fetched} Overture candidates")
 
+    elif stage == "distribution":
+        from backend.ingest.distribution_loader import load_distribution
+
+        counts = load_distribution(settings.DUCKDB_PATH)
+        print(
+            f"Loaded {counts.certifications} certifications, "
+            f"{counts.importers} importers, {counts.trade_routes} trade routes "
+            f"(+{counts.countries_added} new countries)"
+        )
+        if counts.unresolved:
+            print(f"  Unresolved: {len(counts.unresolved)} entries")
+
+    elif stage == "roasting":
+        from backend.ingest.roasting_loader import load_roasting
+
+        counts = load_roasting(settings.DUCKDB_PATH)
+        print(
+            f"Loaded {counts.profiles} roast profiles, {counts.roasters} roasters, "
+            f"{counts.roast_variety_edges} roast→variety edges"
+        )
+
     elif stage == "embeddings":
         if not settings.ENABLE_EMBEDDINGS:
             print("Embeddings disabled (ENABLE_EMBEDDINGS=false)")
@@ -59,11 +90,15 @@ def run_stage(stage: str) -> None:
         if not settings.GEMINI_API_KEY:
             print("Skipped: GEMINI_API_KEY not set")
             return
-        from backend.ingest.embeddings_stage import run_embeddings
+        from backend.ingest.embeddings_stage import TARGETS, run_embeddings
 
-        results = run_embeddings()
+        results = run_embeddings(tables=tables)
         for table, count in results.items():
             print(f"  {table}: {count} rows embedded")
+        if tables is None:
+            for t in TARGETS:
+                if not t.embed_by_default:
+                    print(f"  {t.table}: skipped by default (run with --tables {t.table})")
         total = sum(results.values())
         print(f"Total: {total} rows embedded")
 
@@ -87,7 +122,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Coffee Atlas data ingest pipeline")
     parser.add_argument("--stage", choices=STAGES, help="Run a specific ingest stage")
     parser.add_argument("--all", action="store_true", help="Run all stages in order")
+    parser.add_argument(
+        "--tables",
+        nargs="+",
+        metavar="TABLE",
+        help="Embeddings stage only: restrict to these target tables "
+        "(e.g. --tables roast_profiles)",
+    )
     args = parser.parse_args()
+
+    if args.tables and args.stage != "embeddings":
+        parser.error("--tables only applies to --stage embeddings")
 
     if args.all:
         for stage in STAGES:
@@ -97,7 +142,7 @@ def main() -> None:
             except NotImplementedError as e:
                 print(f"  Skipped: {e}")
     elif args.stage:
-        run_stage(args.stage)
+        run_stage(args.stage, tables=args.tables)
     else:
         parser.print_help()
 

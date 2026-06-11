@@ -10,6 +10,7 @@
 | [ICO Market Reports](https://ico.org) | Trade and production statistics |
 | [FAOSTAT](https://www.fao.org/faostat) | Country-level trade flows |
 | [Overture Maps](https://overturemaps.org) | Coffee shop POI data |
+| Hand-curated roasting seed (`data/raw/roasting_seed.json`) | 11 canonical roast profiles + 10 notable roasters |
 
 ## Ingest pipeline
 
@@ -23,9 +24,25 @@ uv run python -m backend.ingest.pipeline --stage varieties   # WCR varieties
 uv run python -m backend.ingest.pipeline --stage cqi         # CQI cupping data
 uv run python -m backend.ingest.pipeline --stage geocode     # Geocode origins
 uv run python -m backend.ingest.pipeline --stage shops       # Coffee shops (Overture, S3)
+uv run python -m backend.ingest.pipeline --stage distribution # Certifications, importers, trade routes
+uv run python -m backend.ingest.pipeline --stage roasting    # Roast profiles + suitability edges
 uv run python -m backend.ingest.pipeline --stage embeddings  # Vector embeddings
 uv run python -m backend.ingest.pipeline --stage graph       # Build graph edges
 uv run python -m backend.ingest.pipeline --all               # Run all stages
+```
+
+The embeddings stage accepts `--tables` to restrict the run to specific
+target tables — useful for embedding one freshly loaded domain:
+
+```bash
+uv run python -m backend.ingest.pipeline --stage embeddings --tables roast_profiles
+```
+
+`shop_shops` is **skipped by default** (~215K rows, far beyond the Gemini
+free tier's ~1K requests/day) and only runs when named explicitly:
+
+```bash
+uv run python -m backend.ingest.pipeline --stage embeddings --tables shop_shops
 ```
 
 ## Overture shops stage
@@ -52,3 +69,16 @@ bump if the pinned default disappears. Check
 ```bash
 OVERTURE_RELEASE=2026-04-15.0 just ingest shops
 ```
+
+## Roasting stage
+
+The `roasting` stage loads `data/raw/roasting_seed.json` — a hand-curated
+reference set of 11 canonical roast profiles (Cinnamon through Italian,
+plus Nordic Light, Omni, and Classic Espresso) and 10 notable specialty
+roasters. Values are representative midpoints from public roasting
+literature, not any roaster's proprietary curve.
+
+Each profile carries a `suitable_for` rule (species list + optional
+`min_optimal_altitude`) that the loader resolves against `var_varieties`
+to derive `edges_roast_variety` (RoastProfile → suitableFor → Variety),
+so run the `varieties` stage first.

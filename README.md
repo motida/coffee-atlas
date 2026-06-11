@@ -8,17 +8,26 @@ Built as a knowledge-graph-backed application where every entity (variety,
 farm, roaster, shop, flavor profile) is a node in a connected graph,
 enabling discovery through relationships rather than flat search.
 
+## Live Demo
+
+- **App:** <https://coffee-atlas-tau.vercel.app>
+- **API docs:** <https://motidav-coffee-atlas-api.hf.space/docs>
+
+> The frontend is hosted on Vercel (auto-deployed from `main`). The API runs on
+> a free Hugging Face Space that sleeps after inactivity — the first request may
+> take ~30s to wake the container.
+
 ## Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | FastAPI (Python 3.13) |
+| Backend | FastAPI (Python 3.14) |
 | Frontend | Next.js 14 (App Router, TypeScript, Tailwind CSS) |
-| Database | DuckDB with Parquet storage (Hive-partitioned) |
-| Graph | DuckPGQ extension for graph traversal |
-| Vector Search | DuckDB VSS with HNSW indexing |
+| Database | DuckDB (single-file; Parquet/Hive export planned) |
+| Graph | BFS traversal over relational edge tables (DuckPGQ planned) |
+| Vector Search | DuckDB VSS — cosine over stored Gemini embeddings (HNSW index planned) |
 | Maps | MapLibre GL JS with OpenFreeMap tiles |
-| Ontology | OWL 2 via Owlready2, validated with HermiT |
+| Ontology | OWL 2 (Turtle), parsed & exported to DuckDB via rdflib (HermiT DL reasoning planned) |
 
 ## Documentation
 
@@ -30,4 +39,8 @@ enabling discovery through relationships rather than flat search.
 
 ## License
 
-TBD
+The code in this repository is licensed under the [MIT License](LICENSE).
+
+Source **data** retains its own terms, independent of the code license: the WCR
+Varieties Catalog is CC BY-NC-ND 4.0; CQI cupping data and Overture Maps POI
+carry their respective licenses. See [docs/DATA.md](docs/DATA.md) for details.

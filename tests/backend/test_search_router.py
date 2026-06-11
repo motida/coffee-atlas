@@ -12,6 +12,7 @@ import duckdb
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.config import settings
 from backend.db.connection import get_db
 from backend.db.schema import create_tables
 from backend.main import app
@@ -94,18 +95,41 @@ def test_semantic_search_uses_embedding(client, search_db, monkeypatch):
             # SOME order.
             return [0.01] * DIMENSIONS
 
+    # Pin the embeddings config so the test exercises the real semantic path
+    # regardless of the ambient environment (no .env / GEMINI_API_KEY in CI).
+    monkeypatch.setattr(settings, "ENABLE_EMBEDDINGS", True)
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-key")
     monkeypatch.setattr("backend.routers.search.EmbeddingService", FakeEmbedder)
 
-    # Add a fake embedding to one variety + one flavor so the cosine call
-    # has something to compute against.
+    # Add a fake embedding to one variety + one flavor + one roast profile so
+    # the cosine call has something to compute against — the roast profile
+    # exercises the description_embedding column path.
     vec = [0.01] * DIMENSIONS
     search_db.execute("UPDATE var_varieties SET name_embedding = ? WHERE id = 'v1'", [vec])
     search_db.execute("UPDATE flav_attributes SET name_embedding = ? WHERE id = 'f1'", [vec])
+    search_db.execute(
+        "INSERT INTO roast_profiles (id, name, description, description_embedding) "
+        "VALUES ('p1', 'Nordic Light', 'Floral filter roast', ?)",
+        [vec],
+    )
 
     r = client.get("/api/v1/search/semantic", params={"query": "floral", "limit": 10})
     assert r.status_code == 200
     results = r.json()
     assert results, "expected results for entities with embeddings"
+    assert {row["entity_type"] for row in results} == {"variety", "flavor", "roast_profile"}
     # Each result should carry a numeric similarity score.
     for row in results:
         assert isinstance(row["similarity"], float)
+
+
+def test_semantic_search_falls_back_without_key(client, monkeypatch):
+    """With no Gemini key (e.g. the public demo), /semantic must degrade to text
+    search and return 200 instead of 502."""
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    r = client.get("/api/v1/search/semantic", params={"query": "floral", "limit": 10})
+    assert r.status_code == 200
+    results = r.json()
+    assert results, "fallback should still surface text matches"
+    # Text-search fallback carries no similarity score.
+    assert all(row["similarity"] is None for row in results)
