@@ -11,6 +11,7 @@ class ImporterBase(BaseModel):
 
 class ImporterRead(ImporterBase):
     id: str
+    country_name: str | None = None  # joined from org_countries
     created_at: datetime
     updated_at: datetime
 
@@ -24,6 +25,8 @@ class TradeRouteBase(BaseModel):
 
 class TradeRouteRead(TradeRouteBase):
     id: str
+    exporter_name: str | None = None  # joined from org_countries
+    importer_name: str | None = None
     created_at: datetime
     updated_at: datetime
 

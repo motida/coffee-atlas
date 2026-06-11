@@ -1,14 +1,18 @@
 import type {
+  Certification,
   Country,
   FlavorAttribute,
   FlavorWheelData,
   GeoJSONFeatureCollection,
   CountryGeoProperties,
+  Importer,
   Region,
   RegionGeoProperties,
   SearchResult,
   Shop,
   ShopGeoProperties,
+  TradeRoute,
+  TradeRouteGeoProperties,
   TraversalResult,
   Variety,
 } from "./types";
@@ -62,6 +66,25 @@ export const getFlavorWheel = () => fetchAPI<FlavorWheelData>(`/flavor/wheel`);
 
 export const getFlavorAttribute = (id: string) =>
   fetchAPI<FlavorAttribute>(`/flavor/attributes/${id}`);
+
+// --- Distribution ---
+export const getImporters = (limit = 20, offset = 0) =>
+  fetchAPI<Importer[]>(`/distribution/importers?limit=${limit}&offset=${offset}`);
+
+export const getCertifications = (limit = 20, offset = 0) =>
+  fetchAPI<Certification[]>(
+    `/distribution/certifications?limit=${limit}&offset=${offset}`,
+  );
+
+export const getTradeRoutes = (limit = 100, offset = 0) =>
+  fetchAPI<TradeRoute[]>(
+    `/distribution/trade-routes?limit=${limit}&offset=${offset}`,
+  );
+
+export const getTradeRoutesGeo = () =>
+  fetchAPI<GeoJSONFeatureCollection<TradeRouteGeoProperties>>(
+    `/distribution/trade-routes/geo`,
+  );
 
 // --- Shops ---
 export const getShops = (limit = 20, offset = 0) =>
