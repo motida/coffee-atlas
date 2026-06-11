@@ -27,10 +27,31 @@ def test_embeds_flavor_attributes(db):
     service = FakeEmbeddingService()
     results = run_embeddings(conn=db, service=service)
     assert results["flav_attributes"] == 110
-    # Other tables are empty — should be 0
+    # Other default tables are empty — should be 0
     for target in TARGETS:
-        if target.table != "flav_attributes":
+        if target.embed_by_default and target.table != "flav_attributes":
             assert results[target.table] == 0
+
+
+def test_default_run_skips_opt_in_tables(db):
+    """shop_shops is embed_by_default=False: a bare run must not touch it."""
+    db.execute(
+        "INSERT INTO shop_shops (id, name, description) VALUES ('s1', 'Cafe', 'pour-over bar')"
+    )
+    results = run_embeddings(conn=db, service=FakeEmbeddingService())
+    assert "shop_shops" not in results
+    nulls = db.execute(
+        "SELECT COUNT(*) FROM shop_shops WHERE description_embedding IS NULL"
+    ).fetchone()[0]
+    assert nulls == 1
+
+
+def test_opt_in_table_runs_when_named(db):
+    db.execute(
+        "INSERT INTO shop_shops (id, name, description) VALUES ('s1', 'Cafe', 'pour-over bar')"
+    )
+    results = run_embeddings(conn=db, service=FakeEmbeddingService(), tables=["shop_shops"])
+    assert results == {"shop_shops": 1}
 
 
 def test_vector_dimensions(db):

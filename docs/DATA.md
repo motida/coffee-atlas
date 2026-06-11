@@ -32,12 +32,17 @@ uv run python -m backend.ingest.pipeline --all               # Run all stages
 ```
 
 The embeddings stage accepts `--tables` to restrict the run to specific
-target tables — useful for embedding one freshly loaded domain without
-spending Gemini quota on large ones (`shop_shops` alone is ~215K rows,
-far beyond the free tier's daily request limit):
+target tables — useful for embedding one freshly loaded domain:
 
 ```bash
 uv run python -m backend.ingest.pipeline --stage embeddings --tables roast_profiles
+```
+
+`shop_shops` is **skipped by default** (~215K rows, far beyond the Gemini
+free tier's ~1K requests/day) and only runs when named explicitly:
+
+```bash
+uv run python -m backend.ingest.pipeline --stage embeddings --tables shop_shops
 ```
 
 ## Overture shops stage

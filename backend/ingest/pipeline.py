@@ -90,11 +90,15 @@ def run_stage(stage: str, tables: list[str] | None = None) -> None:
         if not settings.GEMINI_API_KEY:
             print("Skipped: GEMINI_API_KEY not set")
             return
-        from backend.ingest.embeddings_stage import run_embeddings
+        from backend.ingest.embeddings_stage import TARGETS, run_embeddings
 
         results = run_embeddings(tables=tables)
         for table, count in results.items():
             print(f"  {table}: {count} rows embedded")
+        if tables is None:
+            for t in TARGETS:
+                if not t.embed_by_default:
+                    print(f"  {t.table}: skipped by default (run with --tables {t.table})")
         total = sum(results.values())
         print(f"Total: {total} rows embedded")
 
