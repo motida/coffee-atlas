@@ -18,7 +18,7 @@ STAGES = [
 ]
 
 
-def run_stage(stage: str) -> None:
+def run_stage(stage: str, tables: list[str] | None = None) -> None:
     if stage == "lexicon":
         from backend.ingest.wcr_lexicon_loader import load_wcr_lexicon
 
@@ -92,7 +92,7 @@ def run_stage(stage: str) -> None:
             return
         from backend.ingest.embeddings_stage import run_embeddings
 
-        results = run_embeddings()
+        results = run_embeddings(tables=tables)
         for table, count in results.items():
             print(f"  {table}: {count} rows embedded")
         total = sum(results.values())
@@ -118,7 +118,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Coffee Atlas data ingest pipeline")
     parser.add_argument("--stage", choices=STAGES, help="Run a specific ingest stage")
     parser.add_argument("--all", action="store_true", help="Run all stages in order")
+    parser.add_argument(
+        "--tables",
+        nargs="+",
+        metavar="TABLE",
+        help="Embeddings stage only: restrict to these target tables "
+        "(e.g. --tables roast_profiles)",
+    )
     args = parser.parse_args()
+
+    if args.tables and args.stage != "embeddings":
+        parser.error("--tables only applies to --stage embeddings")
 
     if args.all:
         for stage in STAGES:
@@ -128,7 +138,7 @@ def main() -> None:
             except NotImplementedError as e:
                 print(f"  Skipped: {e}")
     elif args.stage:
-        run_stage(args.stage)
+        run_stage(args.stage, tables=args.tables)
     else:
         parser.print_help()
 

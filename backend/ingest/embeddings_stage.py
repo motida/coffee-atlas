@@ -62,12 +62,29 @@ TARGETS: list[EmbeddingTarget] = [
 def run_embeddings(
     conn: duckdb.DuckDBPyConnection | None = None,
     service: Embedder | None = None,
+    tables: list[str] | None = None,
 ) -> dict[str, int]:
-    """Embed all tables registered in TARGETS.
+    """Embed all tables registered in TARGETS, or just `tables` if given.
+
+    `tables` restricts the run to specific target tables — useful for
+    embedding one freshly loaded domain without touching quota-heavy
+    tables like shop_shops. Unknown names raise ValueError.
 
     Returns a dict of {table_name: rows_embedded}.
     Pass `conn` and `service` for testing (in-memory DB + fake embedder).
     """
+    targets = TARGETS
+    if tables is not None:
+        known = {t.table for t in TARGETS}
+        unknown = sorted(set(tables) - known)
+        if unknown:
+            raise ValueError(
+                f"Unknown embedding tables: {', '.join(unknown)} "
+                f"(valid: {', '.join(sorted(known))})"
+            )
+        wanted = set(tables)
+        targets = [t for t in TARGETS if t.table in wanted]
+
     owns_conn = conn is None
     if conn is None:
         conn = get_connection()
@@ -77,7 +94,7 @@ def run_embeddings(
     results: dict[str, int] = {}
 
     try:
-        for target in TARGETS:
+        for target in targets:
             count = _embed_table(conn, service, target)
             results[target.table] = count
     finally:

@@ -31,6 +31,15 @@ uv run python -m backend.ingest.pipeline --stage graph       # Build graph edges
 uv run python -m backend.ingest.pipeline --all               # Run all stages
 ```
 
+The embeddings stage accepts `--tables` to restrict the run to specific
+target tables — useful for embedding one freshly loaded domain without
+spending Gemini quota on large ones (`shop_shops` alone is ~215K rows,
+far beyond the free tier's daily request limit):
+
+```bash
+uv run python -m backend.ingest.pipeline --stage embeddings --tables roast_profiles
+```
+
 ## Overture shops stage
 
 The `shops` stage is **not** part of `just bootstrap` — it queries the
