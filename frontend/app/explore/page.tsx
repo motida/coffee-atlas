@@ -16,7 +16,7 @@ const ENTITY_TYPES = [
   { id: "roast_profile", label: "Roasts" },
 ] as const;
 
-const SEMANTIC_TYPES = new Set(["variety", "flavor"]);
+const SEMANTIC_TYPES = new Set(["variety", "flavor", "shop", "roast_profile"]);
 
 const TYPE_LINK: Record<string, (id: string) => string> = {
   variety: (id) => `/explore/varieties/${id}`,
