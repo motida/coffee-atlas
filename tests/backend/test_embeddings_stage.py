@@ -71,3 +71,38 @@ def test_empty_tables_produce_zero(db):
     service = FakeEmbeddingService()
     results = run_embeddings(conn=db, service=service)
     assert all(v == 0 for v in results.values())
+
+
+def test_embeds_fk_referenced_rows(db):
+    """Rows referenced by edge tables must still be embeddable.
+
+    DuckDB rewrites ARRAY-column updates as delete+insert, which violates
+    foreign keys from edge tables; the stage works around it by snapshotting
+    and restoring the referencing edges. Regression test for the roasting
+    stage, whose loader creates roast→variety edges before embedding runs.
+    """
+    db.execute(
+        "INSERT INTO var_varieties (id, name, description) VALUES ('v1', 'Geisha', 'floral')"
+    )
+    db.execute("INSERT INTO org_farms (id, name) VALUES ('f1', 'Konga')")
+    db.execute(
+        "INSERT INTO roast_profiles (id, name, description) VALUES ('p1', 'Nordic', 'light')"
+    )
+    db.execute("INSERT INTO edges_farm_variety (id, farm_id, variety_id) VALUES ('e1', 'f1', 'v1')")
+    db.execute(
+        "INSERT INTO edges_roast_variety (id, profile_id, variety_id) VALUES ('e2', 'p1', 'v1')"
+    )
+
+    results = run_embeddings(conn=db, service=FakeEmbeddingService())
+    assert results["var_varieties"] == 1
+    assert results["roast_profiles"] == 1
+
+    # Embeddings written and the referencing edges restored intact.
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM var_varieties WHERE name_embedding IS NOT NULL"
+        ).fetchone()[0]
+        == 1
+    )
+    assert db.execute("SELECT COUNT(*) FROM edges_farm_variety").fetchone()[0] == 1
+    assert db.execute("SELECT COUNT(*) FROM edges_roast_variety").fetchone()[0] == 1

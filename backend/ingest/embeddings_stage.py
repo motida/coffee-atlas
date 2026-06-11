@@ -4,6 +4,12 @@ Scans each registered table for rows where the embedding column is NULL,
 generates vectors via the Gemini embedding service, and writes them back.
 Idempotent: re-running only processes rows that haven't been embedded yet.
 
+DuckDB executes UPDATEs of ARRAY columns as delete+insert internally, so
+embedding a row that an edge table references by foreign key raises a
+constraint error. The write-back therefore snapshots the referencing edge
+tables, clears them, applies the updates, and restores them — all inside
+one transaction (see _fk_safe_write_back).
+
 Run with:  python -m backend.ingest.pipeline --stage embeddings
 """
 
@@ -103,10 +109,51 @@ def _embed_table(
     texts = [r[1] for r in rows]
     vectors = service.embed_batch(texts)
 
-    for row_id, vector in zip(ids, vectors):
-        conn.execute(
-            f"UPDATE {target.table} SET {target.embedding_col} = $1 WHERE id = $2",
-            [vector, row_id],
-        )
-
+    _fk_safe_write_back(conn, target, list(zip(ids, vectors)))
     return len(ids)
+
+
+def _referencing_tables(conn: duckdb.DuckDBPyConnection, table: str) -> list[str]:
+    """Tables holding a foreign key into `table` (e.g. its edge tables)."""
+    rows = conn.execute(
+        """
+        SELECT DISTINCT table_name FROM duckdb_constraints()
+        WHERE constraint_type = 'FOREIGN KEY'
+          AND constraint_text LIKE '%REFERENCES ' || ? || '(%'
+        """,
+        [table],
+    ).fetchall()
+    return [r[0] for r in rows]
+
+
+def _fk_safe_write_back(
+    conn: duckdb.DuckDBPyConnection,
+    target: EmbeddingTarget,
+    id_vectors: list[tuple[str, list[float]]],
+) -> None:
+    """Write embeddings, working around DuckDB's FK limitation.
+
+    Updating an ARRAY column rewrites the row as delete+insert, which fails
+    while any edge row references it. Snapshot the referencing tables into
+    temp tables, clear them, update, and restore. This cannot run as one
+    transaction — DuckDB's over-eager FK checking still sees the deleted
+    edge index entries until their delete commits — so the restore happens
+    in a try/finally instead. If the process dies mid-write the temp
+    snapshot is lost, but every edge table is rebuilt from source by its
+    ingest stage (cqi / roasting / graph), so recovery is a stage re-run.
+    """
+    refs = _referencing_tables(conn, target.table)
+    for ref in refs:
+        conn.execute(f"CREATE TEMP TABLE _snapshot_{ref} AS SELECT * FROM {ref}")
+        conn.execute(f"DELETE FROM {ref}")
+
+    try:
+        for row_id, vector in id_vectors:
+            conn.execute(
+                f"UPDATE {target.table} SET {target.embedding_col} = $1 WHERE id = $2",
+                [vector, row_id],
+            )
+    finally:
+        for ref in refs:
+            conn.execute(f"INSERT INTO {ref} SELECT * FROM _snapshot_{ref}")
+            conn.execute(f"DROP TABLE _snapshot_{ref}")
