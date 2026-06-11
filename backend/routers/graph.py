@@ -25,6 +25,7 @@ VERTEX_TABLES: dict[str, str] = {
     "farm": "org_farms",
     "flavor": "flav_attributes",
     "processing": "proc_methods",
+    "roast_profile": "roast_profiles",
 }
 
 
@@ -97,6 +98,16 @@ EDGES: list[EdgeDef] = [
         src_col="variety_id",
         dst_type="processing",
         dst_col="method_id",
+    ),
+    # RoastProfile -> suitableFor -> Variety (populated by the roasting loader
+    # from each profile's suitable_for rule).
+    EdgeDef(
+        table="edges_roast_variety",
+        edge_type="roast_variety",
+        src_type="roast_profile",
+        src_col="profile_id",
+        dst_type="variety",
+        dst_col="variety_id",
     ),
 ]
 

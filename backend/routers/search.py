@@ -31,6 +31,7 @@ TEXT_SOURCES: list[tuple[str, str, str, str | None]] = [
     ("country", "org_countries", "name", None),
     ("region", "org_regions", "name", None),
     ("shop", "shop_shops", "name", "description"),
+    ("roast_profile", "roast_profiles", "name", "description"),
 ]
 
 # Semantic-search sources: only tables that have name_embedding populated.

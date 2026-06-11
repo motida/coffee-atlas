@@ -5,7 +5,17 @@ import sys
 
 from backend.config import settings
 
-STAGES = ["lexicon", "varieties", "cqi", "geocode", "shops", "distribution", "embeddings", "graph"]
+STAGES = [
+    "lexicon",
+    "varieties",
+    "cqi",
+    "geocode",
+    "shops",
+    "distribution",
+    "roasting",
+    "embeddings",
+    "graph",
+]
 
 
 def run_stage(stage: str) -> None:
@@ -63,6 +73,15 @@ def run_stage(stage: str) -> None:
         )
         if counts.unresolved:
             print(f"  Unresolved: {len(counts.unresolved)} entries")
+
+    elif stage == "roasting":
+        from backend.ingest.roasting_loader import load_roasting
+
+        counts = load_roasting(settings.DUCKDB_PATH)
+        print(
+            f"Loaded {counts.profiles} roast profiles, {counts.roasters} roasters, "
+            f"{counts.roast_variety_edges} roast→variety edges"
+        )
 
     elif stage == "embeddings":
         if not settings.ENABLE_EMBEDDINGS:

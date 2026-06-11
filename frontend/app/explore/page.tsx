@@ -13,6 +13,7 @@ const ENTITY_TYPES = [
   { id: "country", label: "Countries" },
   { id: "region", label: "Regions" },
   { id: "shop", label: "Shops" },
+  { id: "roast_profile", label: "Roasts" },
 ] as const;
 
 const SEMANTIC_TYPES = new Set(["variety", "flavor"]);
@@ -31,6 +32,7 @@ const TYPE_BADGE: Record<string, string> = {
   country: "bg-emerald-100 text-emerald-800",
   region: "bg-teal-100 text-teal-800",
   shop: "bg-coffee-200 text-coffee-900",
+  roast_profile: "bg-orange-100 text-orange-800",
 };
 
 const titleCase = (s: string) =>
