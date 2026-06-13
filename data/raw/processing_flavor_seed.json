@@ -1,0 +1,29 @@
+{
+  "_comment": "Hand-curated ProcessingMethod -> enhances/diminishes -> FlavorAttribute relationships. Methods are keyed by the coarse `category` cqi_loader assigns (wet / dry / honey / semi-washed). Flavor names match nodes in the WCR/SCAA flavor wheel (flav_attributes.name).",
+  "relationships": [
+    {
+      "method_category": "wet",
+      "note": "Washed: clean cup that showcases origin acidity, floral and citric high notes, tea-like clarity; fermentation character is rinsed away.",
+      "enhances": ["Citrus fruit", "Floral", "Black Tea", "Sour"],
+      "diminishes": ["Alcohol/Fermented"]
+    },
+    {
+      "method_category": "dry",
+      "note": "Natural / dry: fruit dries on the cherry, pushing heavy berry and jammy dried-fruit sweetness plus winey/boozy depth, at the cost of clean citric brightness.",
+      "enhances": ["Berry", "Dried fruit", "Other fruit", "Alcohol/Fermented", "Brown sugar"],
+      "diminishes": ["Citrus fruit"]
+    },
+    {
+      "method_category": "honey",
+      "note": "Pulped natural / honey: mucilage left on the bean yields rounded syrupy sweetness — brown sugar, vanilla, soft fruit — between washed clarity and natural intensity.",
+      "enhances": ["Brown sugar", "Overall sweet", "Vanilla", "Sweet Aromatics", "Other fruit"],
+      "diminishes": []
+    },
+    {
+      "method_category": "semi-washed",
+      "note": "Semi-washed / wet-hulled (giling basah): earthy, herbal, cocoa and cedar/spice with full body and muted acidity, the classic Sumatran profile.",
+      "enhances": ["Cocoa", "Brown spice", "Beany", "Pipe tobacco"],
+      "diminishes": ["Sour", "Citrus fruit"]
+    }
+  ]
+}
