@@ -57,6 +57,20 @@ export interface ProcessingMethod extends Timestamped {
   drying_duration: number | null;
 }
 
+/** A flavor attribute linked to a processing method, with the method's effect on it.
+ *  Shape returned by /processing/methods/{id}/flavor (flavor leaf + edge effect). */
+export interface ProcessingFlavorLink {
+  id: string;
+  name: string;
+  category: string | null;
+  subcategory: string | null;
+  description: string | null;
+  intensity_reference: string | null;
+  sensory_reference: string | null;
+  parent_id: string | null;
+  effect: string | null;
+}
+
 // --- Roasting ---
 export interface RoastProfile extends Timestamped {
   name: string;
