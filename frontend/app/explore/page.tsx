@@ -12,6 +12,7 @@ const ENTITY_TYPES = [
   { id: "flavor", label: "Flavors" },
   { id: "country", label: "Countries" },
   { id: "region", label: "Regions" },
+  { id: "processing", label: "Processing" },
   { id: "shop", label: "Shops" },
   { id: "roast_profile", label: "Roasts" },
 ] as const;
@@ -27,6 +28,7 @@ const TYPE_LINK: Record<string, (id: string) => string> = {
   flavor: (id) => `/explore/flavors/${id}`,
   country: (id) => `/explore/countries/${id}`,
   region: (id) => `/explore/regions/${id}`,
+  processing: (id) => `/explore/processing/${id}`,
   shop: (id) => `/explore/shops/${id}`,
 };
 
@@ -35,6 +37,7 @@ const TYPE_BADGE: Record<string, string> = {
   flavor: "bg-rose-100 text-rose-800",
   country: "bg-emerald-100 text-emerald-800",
   region: "bg-teal-100 text-teal-800",
+  processing: "bg-sky-100 text-sky-800",
   shop: "bg-coffee-200 text-coffee-900",
   roast_profile: "bg-orange-100 text-orange-800",
 };
