@@ -11,6 +11,7 @@ from backend.db.schema import create_tables
 from backend.routers import (
     varieties,
     origins,
+    processing,
     roasting,
     flavor,
     distribution,
@@ -45,6 +46,7 @@ app.add_middleware(
 
 app.include_router(varieties.router)
 app.include_router(origins.router)
+app.include_router(processing.router)
 app.include_router(roasting.router)
 app.include_router(flavor.router)
 app.include_router(distribution.router)
