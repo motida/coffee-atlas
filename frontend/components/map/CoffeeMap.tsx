@@ -11,12 +11,19 @@ import Map, {
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { getOriginsGeo, getRegionsGeo, getShopsGeo } from "@/lib/api";
+import {
+  getOriginsGeo,
+  getRegionsGeo,
+  getShopsGeo,
+  getTradeRoutesGeo,
+} from "@/lib/api";
+import { toArcs } from "@/lib/arc";
 import type {
   CountryGeoProperties,
   GeoJSONFeatureCollection,
   RegionGeoProperties,
   ShopGeoProperties,
+  TradeRouteGeoProperties,
 } from "@/lib/types";
 
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
@@ -25,6 +32,28 @@ const REGION_LAYER = "regions-layer";
 const SHOP_CLUSTER_LAYER = "shops-clusters";
 const SHOP_CLUSTER_COUNT_LAYER = "shops-cluster-count";
 const SHOP_POINT_LAYER = "shops-points";
+const TRADE_ROUTE_HIT_LAYER = "trade-routes-hit";
+const TRADE_ROUTE_BG_LAYER = "trade-routes-bg";
+const TRADE_ROUTE_DASH_LAYER = "trade-routes-dash";
+
+// Flowing-dash sequence for the trade-route animation (the Mapbox GL "animate a
+// line" technique): cycling these dash patterns makes the dashes appear to
+// travel from exporter to importer. Applied imperatively, frame by frame.
+const DASH_SEQUENCE: number[][] = [
+  [0, 4, 3],
+  [0.5, 4, 2.5],
+  [1, 4, 2],
+  [1.5, 4, 1.5],
+  [2, 4, 1],
+  [2.5, 4, 0.5],
+  [3, 4, 0],
+  [0, 0.5, 4, 2.5],
+  [0, 1, 4, 2],
+  [0, 1.5, 4, 1.5],
+  [0, 2, 4, 1],
+  [0, 2.5, 4, 0.5],
+  [0, 3, 4, 0],
+];
 
 const SHOPS_MIN_ZOOM = 6;
 const SHOPS_FETCH_LIMIT = 5000;
@@ -61,7 +90,10 @@ function loadInitialView() {
 }
 
 type AnyGeo = GeoJSONFeatureCollection<
-  CountryGeoProperties | RegionGeoProperties | ShopGeoProperties
+  | CountryGeoProperties
+  | RegionGeoProperties
+  | ShopGeoProperties
+  | TradeRouteGeoProperties
 >;
 
 interface PopupState {
@@ -71,6 +103,7 @@ interface PopupState {
   subtitle?: string;
   link?: string;
   detailHref?: string;
+  links?: { label: string; href: string }[];
 }
 
 export default function CoffeeMap() {
@@ -86,6 +119,10 @@ export default function CoffeeMap() {
   const [shopsCapped, setShopsCapped] = useState(false);
   const [popup, setPopup] = useState<PopupState | null>(null);
   const [hovering, setHovering] = useState(false);
+  const [showRoutes, setShowRoutes] = useState(false);
+  const [routes, setRoutes] =
+    useState<GeoJSONFeatureCollection<TradeRouteGeoProperties> | null>(null);
+  const [routesLoading, setRoutesLoading] = useState(false);
 
   useEffect(() => {
     getOriginsGeo()
@@ -140,6 +177,49 @@ export default function CoffeeMap() {
     [fetchShops],
   );
 
+  // Lazy-load trade routes the first time the layer is enabled, converting the
+  // straight exporter→importer segments from the API into bezier arcs.
+  const toggleRoutes = useCallback(() => {
+    setShowRoutes((prev) => {
+      const next = !prev;
+      if (next && !routes && !routesLoading) {
+        setRoutesLoading(true);
+        getTradeRoutesGeo()
+          .then((fc) => setRoutes(toArcs(fc)))
+          .catch((err) => console.error("Failed to load trade routes:", err))
+          .finally(() => setRoutesLoading(false));
+      }
+      return next;
+    });
+  }, [routes, routesLoading]);
+
+  // Drive the dashed overlay so flows appear to move exporter→importer. The
+  // dasharray is set imperatively (kept out of the declarative paint) so
+  // react-map-gl's prop reconciliation on pan/zoom doesn't fight the animation.
+  useEffect(() => {
+    if (!showRoutes || !routes) return;
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    let raf = 0;
+    let step = -1;
+    const animate = (ts: number) => {
+      const next = Math.floor(ts / 60) % DASH_SEQUENCE.length;
+      if (next !== step) {
+        step = next;
+        if (map.getLayer(TRADE_ROUTE_DASH_LAYER)) {
+          map.setPaintProperty(
+            TRADE_ROUTE_DASH_LAYER,
+            "line-dasharray",
+            DASH_SEQUENCE[step],
+          );
+        }
+      }
+      raf = requestAnimationFrame(animate);
+    };
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
+  }, [showRoutes, routes]);
+
   const onClick = (e: MapLayerMouseEvent) => {
     const map = mapRef.current;
     const feature = e.features?.[0];
@@ -160,6 +240,30 @@ export default function CoffeeMap() {
           map.easeTo({ center: [lng, lat], zoom });
         });
       }
+      return;
+    }
+
+    if (layerId === TRADE_ROUTE_HIT_LAYER) {
+      const props = feature.properties as TradeRouteGeoProperties;
+      setPopup({
+        longitude: e.lngLat.lng,
+        latitude: e.lngLat.lat,
+        title: `${props.exporter_name} → ${props.importer_name}`,
+        subtitle:
+          props.annual_volume != null
+            ? `${props.annual_volume.toLocaleString()} t${props.year ? ` (${props.year})` : ""}`
+            : "green-coffee trade route",
+        links: [
+          {
+            label: props.exporter_name,
+            href: `/explore/countries/${props.exporter_id}`,
+          },
+          {
+            label: props.importer_name,
+            href: `/explore/countries/${props.importer_id}`,
+          },
+        ],
+      });
       return;
     }
 
@@ -212,6 +316,7 @@ export default function CoffeeMap() {
       mapStyle={MAP_STYLE}
       style={{ width: "100%", height: "100%" }}
       interactiveLayerIds={[
+        TRADE_ROUTE_HIT_LAYER,
         COUNTRY_LAYER,
         REGION_LAYER,
         SHOP_CLUSTER_LAYER,
@@ -222,6 +327,35 @@ export default function CoffeeMap() {
       onMouseLeave={() => setHovering(false)}
       cursor={hovering ? "pointer" : "grab"}
     >
+      {showRoutes && routes && (
+        <Source id="trade-routes" type="geojson" data={routes as AnyGeo}>
+          {/* Transparent wide line: a generous click/hover target for the
+              otherwise thin arcs. Rendered first so it sits beneath markers. */}
+          <Layer
+            id={TRADE_ROUTE_HIT_LAYER}
+            type="line"
+            layout={{ "line-cap": "round", "line-join": "round" }}
+            paint={{ "line-color": "#000000", "line-opacity": 0, "line-width": 12 }}
+          />
+          <Layer
+            id={TRADE_ROUTE_BG_LAYER}
+            type="line"
+            layout={{ "line-cap": "round", "line-join": "round" }}
+            paint={{
+              "line-color": "#92400e",
+              "line-opacity": 0.3,
+              "line-width": 1.5,
+            }}
+          />
+          {/* Animated dashes (dasharray driven imperatively by the effect). */}
+          <Layer
+            id={TRADE_ROUTE_DASH_LAYER}
+            type="line"
+            paint={{ "line-color": "#f59e0b", "line-width": 2.5 }}
+          />
+        </Source>
+      )}
+
       {countries && (
         <Source id="countries" type="geojson" data={countries as AnyGeo}>
           <Layer
@@ -381,6 +515,19 @@ export default function CoffeeMap() {
                 </a>
               )}
             </div>
+            {popup.links && (
+              <div className="mt-1 flex flex-wrap gap-3 text-xs">
+                {popup.links.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    className="text-coffee-700 underline"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </Popup>
       )}
@@ -409,6 +556,28 @@ export default function CoffeeMap() {
           </>
         ) : (
           <span className="text-gray-500">Loading origins…</span>
+        )}
+      </div>
+
+      <div className="absolute right-3 top-3 rounded bg-white/90 px-3 py-2 text-xs shadow">
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            checked={showRoutes}
+            onChange={toggleRoutes}
+            className="accent-amber-600"
+          />
+          <span className="inline-block h-0.5 w-4 rounded bg-amber-500 align-middle" />
+          Trade routes
+        </label>
+        {showRoutes && (
+          <div className="mt-1 text-gray-500">
+            {routesLoading
+              ? "loading…"
+              : routes
+                ? `${routes.features.length} green-coffee flows`
+                : ""}
+          </div>
         )}
       </div>
     </Map>
