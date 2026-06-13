@@ -6,6 +6,8 @@ import type {
   GeoJSONFeatureCollection,
   CountryGeoProperties,
   Importer,
+  ProcessingFlavorLink,
+  ProcessingMethod,
   Region,
   RegionGeoProperties,
   SearchResult,
@@ -56,6 +58,22 @@ export const getOriginsGeo = () =>
 
 export const getRegionsGeo = () =>
   fetchAPI<GeoJSONFeatureCollection<RegionGeoProperties>>(`/origins/regions/geo`);
+
+// --- Processing ---
+export const getProcessingMethods = (limit = 20, offset = 0, category?: string) => {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (category) params.set("category", category);
+  return fetchAPI<ProcessingMethod[]>(`/processing/methods?${params.toString()}`);
+};
+
+export const getProcessingMethod = (id: string) =>
+  fetchAPI<ProcessingMethod>(`/processing/methods/${id}`);
+
+export const getProcessingMethodVarieties = (id: string) =>
+  fetchAPI<Variety[]>(`/processing/methods/${id}/varieties`);
+
+export const getProcessingMethodFlavor = (id: string) =>
+  fetchAPI<ProcessingFlavorLink[]>(`/processing/methods/${id}/flavor`);
 
 // --- Roasting ---
 export const getRoastProfiles = (limit = 20, offset = 0) =>

@@ -42,6 +42,9 @@ def search_db() -> Iterator[duckdb.DuckDBPyConnection]:
         "INSERT INTO shop_shops (id, name, description, latitude, longitude) VALUES "
         "('s1', 'Floral Cafe', 'Specialty pour-over shop', 1.0, 2.0)"
     )
+    conn.execute(
+        "INSERT INTO proc_methods (id, name, category) VALUES ('p1', 'Washed / Wet', 'wet')"
+    )
     yield conn
     conn.close()
 
@@ -102,6 +105,16 @@ def test_text_search_species_case_insensitive(client):
         params=[("query", "floral"), ("species", "arabica"), ("limit", "50")],
     )
     assert {row["id"] for row in r.json()} == {"v1"}
+
+
+def test_text_search_finds_processing_methods(client):
+    # proc_methods has no embeddings (description is NULL after CQI), so text
+    # search by name is the only way to surface processing methods.
+    r = client.get("/api/v1/search/text", params={"query": "washed", "limit": 50})
+    assert r.status_code == 200
+    results = r.json()
+    proc = [row for row in results if row["entity_type"] == "processing"]
+    assert [row["id"] for row in proc] == ["p1"]
 
 
 def test_text_search_empty_query_rejected(client):

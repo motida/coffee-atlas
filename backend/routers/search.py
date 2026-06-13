@@ -30,6 +30,7 @@ TEXT_SOURCES: list[tuple[str, str, str, str | None]] = [
     ("flavor", "flav_attributes", "name", "description"),
     ("country", "org_countries", "name", None),
     ("region", "org_regions", "name", None),
+    ("processing", "proc_methods", "name", "description"),
     ("shop", "shop_shops", "name", "description"),
     ("roast_profile", "roast_profiles", "name", "description"),
 ]
