@@ -13,10 +13,20 @@ router = APIRouter(prefix="/api/v1/varieties", tags=["varieties"])
 def list_varieties(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    species: str | None = Query(None, description="Filter by species, e.g. Arabica or Robusta"),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> list[dict[str, Any]]:
+    where = ""
+    params: list[Any] = []
+    if species is not None:
+        where = "WHERE LOWER(species) = LOWER(?)"
+        params.append(species)
+    params.extend([limit, offset])
     return fetchall_dicts(
-        db.execute("SELECT * FROM var_varieties LIMIT ? OFFSET ?", [limit, offset])
+        db.execute(
+            f"SELECT * FROM var_varieties {where} ORDER BY name LIMIT ? OFFSET ?",
+            params,
+        )
     )
 
 
