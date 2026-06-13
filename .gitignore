@@ -32,6 +32,7 @@ data/raw/*
 !data/raw/cqi_robusta.csv
 !data/raw/distribution_seed.json
 !data/raw/roasting_seed.json
+!data/raw/processing_flavor_seed.json
 data/processed/
 data/parquet/
 data/cache/
