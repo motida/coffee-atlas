@@ -279,6 +279,7 @@ Each domain has exactly one router with a dedicated prefix:
 | `origins.py` | `/api/v1/origins` | List, detail, GeoJSON export |
 | `roasting.py` | `/api/v1/roasting` | Profiles list and detail |
 | `flavor.py` | `/api/v1/flavor` | Wheel hierarchy, attribute detail |
+| `distribution.py` | `/api/v1/distribution` | Importers, certifications, trade routes + GeoJSON arcs |
 | `shops.py` | `/api/v1/shops` | List, detail, GeoJSON, nearby (Haversine) |
 | `graph.py` | `/api/v1/graph` | Traverse, shortest path |
 | `search.py` | `/api/v1/search` | Semantic similarity, full-text |

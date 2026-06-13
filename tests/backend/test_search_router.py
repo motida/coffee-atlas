@@ -25,10 +25,11 @@ def search_db() -> Iterator[duckdb.DuckDBPyConnection]:
     conn = duckdb.connect(":memory:")
     create_tables(conn)
     conn.execute(
-        "INSERT INTO var_varieties (id, name, description) VALUES "
-        "('v1', 'Geisha', 'Floral aromatic Ethiopian landrace'), "
-        "('v2', 'SL28', 'Bold Kenyan variety'), "
-        "('v3', 'Caturra', 'Compact Brazilian mutation')"
+        "INSERT INTO var_varieties (id, name, species, description) VALUES "
+        "('v1', 'Geisha', 'Arabica', 'Floral aromatic Ethiopian landrace'), "
+        "('v2', 'SL28', 'Arabica', 'Bold Kenyan variety'), "
+        "('v3', 'Caturra', 'Arabica', 'Compact Brazilian mutation'), "
+        "('v4', 'Nemaya', 'Robusta', 'Floral hardy rootstock hybrid')"
     )
     conn.execute(
         "INSERT INTO flav_attributes (id, name, description) VALUES "
@@ -71,6 +72,36 @@ def test_text_search_entity_type_filter(client):
     results = r.json()
     assert results, "expected at least one match"
     assert {row["entity_type"] for row in results} == {"flavor"}
+
+
+def test_text_search_species_filter_scopes_to_variety(client):
+    # "floral" also matches a flavor and a shop, but a species filter must
+    # restrict the result set to varieties of that species only.
+    r = client.get(
+        "/api/v1/search/text",
+        params=[("query", "floral"), ("species", "Arabica"), ("limit", "50")],
+    )
+    assert r.status_code == 200
+    results = r.json()
+    assert {row["entity_type"] for row in results} == {"variety"}
+    assert {row["id"] for row in results} == {"v1"}
+
+
+def test_text_search_species_robusta(client):
+    # Same query, the other species: only the Robusta variety comes back.
+    r = client.get(
+        "/api/v1/search/text",
+        params=[("query", "floral"), ("species", "Robusta"), ("limit", "50")],
+    )
+    assert {row["id"] for row in r.json()} == {"v4"}
+
+
+def test_text_search_species_case_insensitive(client):
+    r = client.get(
+        "/api/v1/search/text",
+        params=[("query", "floral"), ("species", "arabica"), ("limit", "50")],
+    )
+    assert {row["id"] for row in r.json()} == {"v1"}
 
 
 def test_text_search_empty_query_rejected(client):

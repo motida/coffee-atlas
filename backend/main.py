@@ -8,7 +8,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.db.connection import get_connection
 from backend.db.schema import create_tables
-from backend.routers import varieties, origins, roasting, flavor, shops, graph, search
+from backend.routers import (
+    varieties,
+    origins,
+    roasting,
+    flavor,
+    distribution,
+    shops,
+    graph,
+    search,
+)
 
 
 @asynccontextmanager
@@ -38,6 +47,7 @@ app.include_router(varieties.router)
 app.include_router(origins.router)
 app.include_router(roasting.router)
 app.include_router(flavor.router)
+app.include_router(distribution.router)
 app.include_router(shops.router)
 app.include_router(graph.router)
 app.include_router(search.router)

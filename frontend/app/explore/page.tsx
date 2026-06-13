@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { searchSemantic, searchText } from "@/lib/api";
+import { getVarieties, searchSemantic, searchText } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 
 type Mode = "text" | "semantic";
@@ -17,6 +17,10 @@ const ENTITY_TYPES = [
 ] as const;
 
 const SEMANTIC_TYPES = new Set(["variety", "flavor", "shop", "roast_profile"]);
+
+// Species is a variety-only structured field, not a free-text term — filtering
+// by it scopes results to varieties of that species.
+const SPECIES_OPTIONS = ["Arabica", "Robusta"] as const;
 
 const TYPE_LINK: Record<string, (id: string) => string> = {
   variety: (id) => `/explore/varieties/${id}`,
@@ -49,13 +53,25 @@ export default function ExplorePage() {
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("text");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+  const [species, setSpecies] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const reqIdRef = useRef(0);
 
+  // The species facet only makes sense while varieties are in the result set.
+  const varietyInScope =
+    selectedTypes.size === 0 || selectedTypes.has("variety");
+
+  // Drop a stale species filter if the user narrows to non-variety types.
   useEffect(() => {
-    if (query.trim().length === 0) {
+    if (!varietyInScope && species) setSpecies(null);
+  }, [varietyInScope, species]);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    // Nothing to do without either a query or a species filter to browse by.
+    if (trimmed.length === 0 && !species) {
       setResults([]);
       setError(null);
       return;
@@ -65,14 +81,35 @@ export default function ExplorePage() {
       const myId = ++reqIdRef.current;
       setLoading(true);
       setError(null);
-      const types =
-        selectedTypes.size > 0
-          ? Array.from(selectedTypes)
-          : mode === "semantic"
-            ? Array.from(SEMANTIC_TYPES)
-            : undefined;
-      const fetcher = mode === "semantic" ? searchSemantic : searchText;
-      fetcher(query.trim(), 30, types)
+
+      const run = (): Promise<SearchResult[]> => {
+        if (trimmed.length === 0) {
+          // Species-only browse: list varieties of that species directly from
+          // the structured endpoint rather than fuzzy-matching text.
+          return getVarieties(30, 0, species ?? undefined).then((vs) =>
+            vs.map((v) => ({
+              id: v.id,
+              entity_type: "variety",
+              label: v.name,
+              description: v.description,
+              similarity: null,
+            })),
+          );
+        }
+        // A species filter scopes the search to varieties on the backend, so
+        // don't also send entity_types (they'd be ignored anyway).
+        const types = species
+          ? undefined
+          : selectedTypes.size > 0
+            ? Array.from(selectedTypes)
+            : mode === "semantic"
+              ? Array.from(SEMANTIC_TYPES)
+              : undefined;
+        const fetcher = mode === "semantic" ? searchSemantic : searchText;
+        return fetcher(trimmed, 30, types, species ?? undefined);
+      };
+
+      run()
         .then((rs) => {
           if (myId !== reqIdRef.current) return;
           setResults(rs);
@@ -89,7 +126,7 @@ export default function ExplorePage() {
     }, 250);
 
     return () => clearTimeout(handle);
-  }, [query, mode, selectedTypes]);
+  }, [query, mode, selectedTypes, species]);
 
   const toggleType = (id: string) => {
     setSelectedTypes((prev) => {
@@ -158,10 +195,13 @@ export default function ExplorePage() {
               </button>
             );
           })}
-          {selectedTypes.size > 0 && (
+          {(selectedTypes.size > 0 || species) && (
             <button
               type="button"
-              onClick={() => setSelectedTypes(new Set())}
+              onClick={() => {
+                setSelectedTypes(new Set());
+                setSpecies(null);
+              }}
               className="text-xs text-coffee-600 underline hover:text-coffee-800"
             >
               clear
@@ -169,12 +209,37 @@ export default function ExplorePage() {
           )}
         </div>
 
+        {varietyInScope && (
+          <div className="inline-flex items-center gap-1.5">
+            <span className="text-xs text-coffee-600">Species:</span>
+            <div className="inline-flex overflow-hidden rounded-md border border-coffee-200 text-xs">
+              <button
+                type="button"
+                onClick={() => setSpecies(null)}
+                className={`px-2.5 py-1 ${species === null ? "bg-coffee-700 text-white" : "bg-white text-coffee-700 hover:bg-coffee-50"}`}
+              >
+                All
+              </button>
+              {SPECIES_OPTIONS.map((sp) => (
+                <button
+                  key={sp}
+                  type="button"
+                  onClick={() => setSpecies(sp)}
+                  className={`border-l border-coffee-200 px-2.5 py-1 ${species === sp ? "bg-coffee-700 text-white" : "bg-white text-coffee-700 hover:bg-coffee-50"}`}
+                >
+                  {sp}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {loading && (
           <span className="text-xs text-gray-500">Searching…</span>
         )}
       </div>
 
-      {mode === "semantic" && query.length === 0 && (
+      {mode === "semantic" && query.length === 0 && !species && (
         <div className="mb-6 rounded-lg border border-coffee-200 bg-coffee-50 px-4 py-3 text-xs text-coffee-700">
           Semantic search uses Gemini embeddings over varieties + flavor
           attributes. Try:{" "}

@@ -1,14 +1,18 @@
 import type {
+  Certification,
   Country,
   FlavorAttribute,
   FlavorWheelData,
   GeoJSONFeatureCollection,
   CountryGeoProperties,
+  Importer,
   Region,
   RegionGeoProperties,
   SearchResult,
   Shop,
   ShopGeoProperties,
+  TradeRoute,
+  TradeRouteGeoProperties,
   TraversalResult,
   Variety,
 } from "./types";
@@ -28,8 +32,11 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 }
 
 // --- Varieties ---
-export const getVarieties = (limit = 20, offset = 0) =>
-  fetchAPI(`/varieties?limit=${limit}&offset=${offset}`);
+export const getVarieties = (limit = 20, offset = 0, species?: string) => {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (species) params.set("species", species);
+  return fetchAPI<Variety[]>(`/varieties?${params.toString()}`);
+};
 
 export const getVariety = (id: string) => fetchAPI<Variety>(`/varieties/${id}`);
 
@@ -62,6 +69,25 @@ export const getFlavorWheel = () => fetchAPI<FlavorWheelData>(`/flavor/wheel`);
 
 export const getFlavorAttribute = (id: string) =>
   fetchAPI<FlavorAttribute>(`/flavor/attributes/${id}`);
+
+// --- Distribution ---
+export const getImporters = (limit = 20, offset = 0) =>
+  fetchAPI<Importer[]>(`/distribution/importers?limit=${limit}&offset=${offset}`);
+
+export const getCertifications = (limit = 20, offset = 0) =>
+  fetchAPI<Certification[]>(
+    `/distribution/certifications?limit=${limit}&offset=${offset}`,
+  );
+
+export const getTradeRoutes = (limit = 100, offset = 0) =>
+  fetchAPI<TradeRoute[]>(
+    `/distribution/trade-routes?limit=${limit}&offset=${offset}`,
+  );
+
+export const getTradeRoutesGeo = () =>
+  fetchAPI<GeoJSONFeatureCollection<TradeRouteGeoProperties>>(
+    `/distribution/trade-routes/geo`,
+  );
 
 // --- Shops ---
 export const getShops = (limit = 20, offset = 0) =>
@@ -105,12 +131,14 @@ const buildSearchUrl = (
   query: string,
   limit: number,
   entityTypes?: string[],
+  species?: string,
 ) => {
   const params = new URLSearchParams({
     query,
     limit: String(limit),
   });
   for (const t of entityTypes ?? []) params.append("entity_types", t);
+  if (species) params.set("species", species);
   return `${base}?${params.toString()}`;
 };
 
@@ -118,16 +146,18 @@ export const searchSemantic = (
   query: string,
   limit = 20,
   entityTypes?: string[],
+  species?: string,
 ) =>
   fetchAPI<SearchResult[]>(
-    buildSearchUrl("/search/semantic", query, limit, entityTypes),
+    buildSearchUrl("/search/semantic", query, limit, entityTypes, species),
   );
 
 export const searchText = (
   query: string,
   limit = 20,
   entityTypes?: string[],
+  species?: string,
 ) =>
   fetchAPI<SearchResult[]>(
-    buildSearchUrl("/search/text", query, limit, entityTypes),
+    buildSearchUrl("/search/text", query, limit, entityTypes, species),
   );
