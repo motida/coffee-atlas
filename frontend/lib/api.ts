@@ -32,8 +32,11 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 }
 
 // --- Varieties ---
-export const getVarieties = (limit = 20, offset = 0) =>
-  fetchAPI(`/varieties?limit=${limit}&offset=${offset}`);
+export const getVarieties = (limit = 20, offset = 0, species?: string) => {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (species) params.set("species", species);
+  return fetchAPI<Variety[]>(`/varieties?${params.toString()}`);
+};
 
 export const getVariety = (id: string) => fetchAPI<Variety>(`/varieties/${id}`);
 
@@ -128,12 +131,14 @@ const buildSearchUrl = (
   query: string,
   limit: number,
   entityTypes?: string[],
+  species?: string,
 ) => {
   const params = new URLSearchParams({
     query,
     limit: String(limit),
   });
   for (const t of entityTypes ?? []) params.append("entity_types", t);
+  if (species) params.set("species", species);
   return `${base}?${params.toString()}`;
 };
 
@@ -141,16 +146,18 @@ export const searchSemantic = (
   query: string,
   limit = 20,
   entityTypes?: string[],
+  species?: string,
 ) =>
   fetchAPI<SearchResult[]>(
-    buildSearchUrl("/search/semantic", query, limit, entityTypes),
+    buildSearchUrl("/search/semantic", query, limit, entityTypes, species),
   );
 
 export const searchText = (
   query: string,
   limit = 20,
   entityTypes?: string[],
+  species?: string,
 ) =>
   fetchAPI<SearchResult[]>(
-    buildSearchUrl("/search/text", query, limit, entityTypes),
+    buildSearchUrl("/search/text", query, limit, entityTypes, species),
   );

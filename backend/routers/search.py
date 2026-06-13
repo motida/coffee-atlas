@@ -54,12 +54,18 @@ def text_search(
     query: str = Query(..., min_length=1),
     limit: int = Query(20, ge=1, le=100),
     entity_types: list[str] = Query(default=[]),
+    species: str | None = Query(None, description="Filter varieties by species (Arabica/Robusta)"),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> list[SearchResult]:
-    sources = TEXT_SOURCES
-    if entity_types:
+    # species is a variety-only attribute, so asking for one scopes the whole
+    # search to varieties — overriding any other entity_types selection.
+    if species is not None:
+        sources = [s for s in TEXT_SOURCES if s[0] == "variety"]
+    elif entity_types:
         wanted = set(entity_types)
-        sources = [s for s in sources if s[0] in wanted]
+        sources = [s for s in TEXT_SOURCES if s[0] in wanted]
+    else:
+        sources = TEXT_SOURCES
     if not sources:
         return []
 
@@ -67,15 +73,19 @@ def text_search(
     per = _per_source_limit(limit, len(sources))
     rows: list[SearchResult] = []
     for entity_type, table, label_col, desc_col in sources:
-        where = [f"LOWER({label_col}) LIKE ?"]
+        match_clauses = [f"LOWER({label_col}) LIKE ?"]
         params: list[Any] = [pattern]
         if desc_col is not None:
-            where.append(f"LOWER(COALESCE({desc_col}, '')) LIKE ?")
+            match_clauses.append(f"LOWER(COALESCE({desc_col}, '')) LIKE ?")
             params.append(pattern)
+        where = f"({' OR '.join(match_clauses)})"
+        if species is not None:
+            where += " AND LOWER(species) = LOWER(?)"
+            params.append(species)
         cols = f"id, {label_col}" + (f", {desc_col}" if desc_col else "")
         sql = (
             f"SELECT {cols} FROM {table} "
-            f"WHERE {' OR '.join(where)} "
+            f"WHERE {where} "
             f"ORDER BY length({label_col}) ASC "  # exact-ish matches first
             f"LIMIT ?"
         )
@@ -98,17 +108,24 @@ def semantic_search(
     query: str = Query(..., min_length=1),
     limit: int = Query(20, ge=1, le=100),
     entity_types: list[str] = Query(default=[]),
+    species: str | None = Query(None, description="Filter varieties by species (Arabica/Robusta)"),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> list[SearchResult]:
     # Graceful degradation: the public demo runs without a Gemini key. Rather
     # than 502 on the flagship endpoint, fall back to text search transparently.
     if not settings.ENABLE_EMBEDDINGS or not settings.GEMINI_API_KEY:
-        return text_search(query=query, limit=limit, entity_types=entity_types, db=db)
+        return text_search(
+            query=query, limit=limit, entity_types=entity_types, species=species, db=db
+        )
 
-    sources = SEMANTIC_SOURCES
-    if entity_types:
+    # species is variety-only, so it scopes the whole search to varieties.
+    if species is not None:
+        sources = [s for s in SEMANTIC_SOURCES if s[0] == "variety"]
+    elif entity_types:
         wanted = set(entity_types)
-        sources = [s for s in sources if s[0] in wanted]
+        sources = [s for s in SEMANTIC_SOURCES if s[0] in wanted]
+    else:
+        sources = SEMANTIC_SOURCES
     if not sources:
         return []
 
@@ -121,13 +138,19 @@ def semantic_search(
     per = _per_source_limit(limit, len(sources))
     for entity_type, table, label_col, desc_col, embedding_col in sources:
         cols = f"id, {label_col}" + (f", {desc_col}" if desc_col else "")
+        where = f"{embedding_col} IS NOT NULL"
+        bind: list[Any] = [vector]
+        if species is not None:
+            where += " AND LOWER(species) = LOWER(?)"
+            bind.append(species)
+        bind.append(per)
         sql = (
             f"SELECT {cols}, "
             f"array_cosine_similarity({embedding_col}, ?::FLOAT[3072]) AS sim "
-            f"FROM {table} WHERE {embedding_col} IS NOT NULL "
+            f"FROM {table} WHERE {where} "
             f"ORDER BY sim DESC LIMIT ?"
         )
-        for row in db.execute(sql, [vector, per]).fetchall():
+        for row in db.execute(sql, bind).fetchall():
             rows.append(
                 SearchResult(
                     id=row[0],
