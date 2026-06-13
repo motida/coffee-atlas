@@ -9,6 +9,7 @@ STAGES = [
     "lexicon",
     "varieties",
     "cqi",
+    "processing_flavor",
     "geocode",
     "shops",
     "distribution",
@@ -44,6 +45,18 @@ def run_stage(stage: str, tables: list[str] | None = None) -> None:
             f"region: {counts.region_variety_edges}, farm: {counts.farm_variety_edges} "
             f"({counts.unmatched_varieties} unmatched)"
         )
+
+    elif stage == "processing_flavor":
+        from backend.ingest.processing_flavor_loader import load_processing_flavor
+
+        counts = load_processing_flavor(settings.DUCKDB_PATH)
+        print(
+            f"Seeded {counts.edges} processing→flavor edges across {counts.methods_matched} methods"
+        )
+        if counts.skipped_methods:
+            print(f"  Skipped method categories (not found): {counts.skipped_methods}")
+        if counts.skipped_flavors:
+            print(f"  Skipped flavors (not found): {counts.skipped_flavors}")
 
     elif stage == "geocode":
         from backend.ingest.geocode_stage import run_geocode
