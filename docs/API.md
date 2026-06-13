@@ -10,6 +10,9 @@ the backend is running.
 | `GET /api/v1/varieties` | List/filter coffee varieties |
 | `GET /api/v1/origins` | List origin countries/regions |
 | `GET /api/v1/origins/geo` | GeoJSON feature collection |
+| `GET /api/v1/processing/methods` | List/filter processing methods |
+| `GET /api/v1/processing/methods/{id}/varieties` | Varieties prepared with a method |
+| `GET /api/v1/processing/methods/{id}/flavor` | Flavors a method enhances/diminishes |
 | `GET /api/v1/roasting/profiles` | List roast profiles |
 | `GET /api/v1/flavor/wheel` | Flavor wheel hierarchy |
 | `GET /api/v1/distribution/importers` | List green-coffee importers |
