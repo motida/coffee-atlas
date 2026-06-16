@@ -147,3 +147,21 @@ def test_jsonld_graph_form():
     assert len(products) == 1
     assert products[0].roast_level == "dark"
     assert products[0].is_blend is True
+
+
+def test_jsonld_prefers_specific_process():
+    html = (
+        '<script type="application/ld+json">'
+        '{"@type":"Product","name":"Sumatra","description":"a semi washed lot"}</script>'
+    )
+    p = extract_jsonld(html, "https://x.example")[0]
+    assert p.process == "Semi-Washed"  # longest-key wins over the substring "washed"
+
+
+def test_jsonld_rejects_non_http_url():
+    html = (
+        '<script type="application/ld+json">'
+        '{"@type":"Product","name":"Kenya AA","url":"javascript:alert(1)"}</script>'
+    )
+    p = extract_jsonld(html, "https://acme.example")[0]
+    assert p.url == "https://acme.example"  # falls back to site_url, never javascript:

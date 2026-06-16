@@ -254,12 +254,21 @@ def extract_shopify(payload: dict[str, Any], site_url: str) -> list[ScrapedProdu
 
 
 def _search_text(text: str, mapping: dict[str, str]) -> str | None:
-    """Substring match a canonical-value mapping against freeform text."""
+    """Word-boundary match a canonical-value mapping against freeform text,
+    preferring the most specific (longest) key so "semi washed" beats "washed"
+    and a match inside another word (e.g. "drying") can't trigger."""
     low = text.lower()
-    for key, value in mapping.items():
-        if key in low:
-            return value
+    for key in sorted(mapping, key=lambda k: len(k), reverse=True):
+        if re.search(rf"\b{re.escape(key)}\b", low):
+            return mapping[key]
     return None
+
+
+def _safe_url(url: object, fallback: str) -> str:
+    """Only accept http(s) URLs from scraped third-party data (no javascript:/data:)."""
+    if isinstance(url, str) and urlparse(url).scheme in ("http", "https"):
+        return url
+    return fallback
 
 
 def _iter_jsonld_products(data: Any) -> list[dict[str, Any]]:
@@ -306,7 +315,7 @@ def _parse_jsonld_product(obj: dict[str, Any], site_url: str) -> ScrapedProduct 
     return ScrapedProduct(
         roaster=roaster or _roaster_from_site(site_url),
         title=title,
-        url=obj.get("url") or site_url,
+        url=_safe_url(obj.get("url"), site_url),
         description=description,
         tags=[],
         channel="retail",
@@ -434,8 +443,16 @@ def _ms(started: float) -> int:
     return int((time.monotonic() - started) * 1000)
 
 
+# Outcomes that are permanent — a resume should NOT re-scrape these. Transient
+# failures (fetch_error, http_error like 429/5xx) are omitted so they retry.
+_TERMINAL_STATUSES = {"ok", "empty", "skip"}
+
+
 def _completed_sites(cache_dir: Path) -> set[str]:
-    """Sites already recorded in any prior JSONL log (for resumability)."""
+    """Sites already successfully recorded in a prior JSONL log (for resume).
+
+    Sites whose last outcome was a transient error are left out so they retry.
+    """
     done: set[str] = set()
     if not cache_dir.exists():
         return done
@@ -445,7 +462,7 @@ def _completed_sites(cache_dir: Path) -> set[str]:
                 rec = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if "_site_done" in rec:
+            if "_site_done" in rec and rec.get("status") in _TERMINAL_STATUSES:
                 done.add(rec["_site_done"])
     return done
 
@@ -509,6 +526,11 @@ def main() -> None:
     parser.add_argument("--run-id", default="run", help="JSONL log basename under the cache dir")
     parser.add_argument("--dry-run", action="store_true", help="Print results, write nothing")
     args = parser.parse_args()
+
+    if args.concurrency < 1:
+        parser.error("--concurrency must be >= 1")  # Semaphore(0) would deadlock
+    if args.max_products < 1:
+        parser.error("--max-products must be >= 1")
 
     sites = list(args.site)
     if args.sites_file:

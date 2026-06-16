@@ -116,3 +116,30 @@ def test_existing_roaster_reused_not_duplicated(db):
         "SELECT COUNT(*) FROM prod_products WHERE roaster_id = 'seed-verve'"
     ).fetchone()[0]
     assert linked == 3
+
+
+def test_roaster_reuse_is_case_insensitive(db):
+    # vendor differs only in case/whitespace from a previously-seeded roaster.
+    db.execute("INSERT INTO roast_roasters (id, name) VALUES ('seed-verve', 'Verve Coffee')")
+    load_products([_rec(VERVE, "verve  coffee", "Ethiopia Ayla", "Coffee", price=28.0)], db)
+    rows = db.execute("SELECT id FROM roast_roasters WHERE name ILIKE 'verve coffee'").fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == "seed-verve"
+
+
+def test_classify_keeps_filter_roast_coffee():
+    # "Filter" is a roast designation, not equipment — must survive.
+    assert classify_coffee("Ethiopia Guji Filter", "Coffee", []) is True
+    assert classify_coffee("Three Africas Filter", None, []) is True
+    # An actual filter accessory still drops (brand/sock token catches it).
+    assert classify_coffee("Coffee Sock Reusable Travel Filter", "Coffee Filter", []) is False
+
+
+def test_classify_drops_gifts_plural():
+    assert classify_coffee("Holiday Gifts", "Gifts", []) is False
+
+
+def test_empty_records_no_crash(db):
+    counts = load_products([], db)
+    assert (counts.products, counts.roasters, counts.dropped_non_coffee) == (0, 0, 0)
+    assert db.execute("SELECT COUNT(*) FROM prod_products").fetchone()[0] == 0

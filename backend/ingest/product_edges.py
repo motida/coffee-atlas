@@ -35,15 +35,36 @@ _MIN_REGION = 4
 _MIN_VARIETY = 3
 _MIN_FLAVOR = 4
 
-# Flavor names that collide with process/roast vocabulary in prose.
-_FLAVOR_STOPWORDS = {"honey"}
+# Flavor leaf names that are generic English words and over-match marketing
+# prose ("fresh"/"bitter"/...) or collide with process vocabulary ("honey").
+_FLAVOR_STOPWORDS = {
+    "honey",
+    "fresh",
+    "bitter",
+    "sour",
+    "salty",
+    "stale",
+    "grain",
+    "burnt",
+    "woody",
+    "winey",
+    "fermented",
+    "pepper",
+}
+
+# Variety names that are also colloquial coffee words / place names and would
+# match non-variety mentions ("java" = coffee slang + Indonesian island).
+_VARIETY_STOPWORDS = {"java"}
 
 
-# SQL: a website column normalized to its bare registrable-ish domain.
+# SQL: a website column normalized to its bare registrable-ish domain. lower()
+# is applied INSIDE regexp_replace so the (lowercase) scheme/www pattern matches
+# regardless of the stored casing — otherwise "HTTPS://..." normalizes wrong and
+# the shop↔roaster domain join silently misses.
 def _domain_sql(col: str) -> str:
     return (
-        f"split_part(split_part(lower("
-        f"regexp_replace({col}, '^https?://(www\\.)?', '')), '/', 1), '?', 1)"
+        f"split_part(split_part("
+        f"regexp_replace(lower({col}), '^https?://(www\\.)?', ''), '/', 1), '?', 1)"
     )
 
 
@@ -94,7 +115,13 @@ def _content_edges(
     )
     regions = _compiled(conn.execute("SELECT id, name FROM org_regions").fetchall(), _MIN_REGION)
     varieties = _compiled(
-        conn.execute("SELECT id, name FROM var_varieties").fetchall(), _MIN_VARIETY, alias=True
+        [
+            (i, n)
+            for i, n in conn.execute("SELECT id, name FROM var_varieties").fetchall()
+            if n and n.lower() not in _VARIETY_STOPWORDS
+        ],
+        _MIN_VARIETY,
+        alias=True,
     )
     flavors = _compiled(
         [

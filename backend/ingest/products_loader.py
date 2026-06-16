@@ -58,7 +58,7 @@ _NON_COFFEE_TITLE = re.compile(
     r"rocket\s*espresso|v60|"
     r"mug|tumbler|tote|hoodie|t-?shirt|tee|beanie|candle|poster|sticker|"
     r"kanteen|bottle|sock|"
-    r"sampler|bundle|gift|sample\s*set|tasting\s*set|filters?|cleaning|sets?)\b",
+    r"sampler|bundle|gifts?|sample\s*set|tasting\s*set|cleaning|sets?)\b",
     re.I,
 )
 
@@ -67,7 +67,7 @@ _NON_COFFEE_TITLE = re.compile(
 _NON_COFFEE_TYPE = re.compile(
     r"\b(tea|machine|grinder|equipment|brewers?|brewing|gear|accessor\w*|"
     r"drinkware|merch\w*|apparel|logoware|supplies|warehouse|event|ticket|"
-    r"subscription|carbon\s*offset|alt\s*beverage|cleaning|gift)\b",
+    r"subscription|carbon\s*offset|alt\s*beverage|cleaning|gifts?)\b",
     re.I,
 )
 
@@ -85,6 +85,31 @@ def _slug(*parts: str) -> str:
 
 def _uid(*parts: str) -> str:
     return str(uuid.uuid5(PRODUCT_NAMESPACE, _slug(*parts)))
+
+
+# Every product-domain table, in FK-safe delete order (everything that
+# references prod_products and the shared parent tables comes before
+# prod_products itself). Parent-table loaders that refresh a table the product
+# domain FK-references — e.g. roasting_loader's DELETE FROM roast_roasters,
+# which prod_products.roaster_id points at — must call clear_products() first
+# or their DELETE raises a ConstraintException on a re-run.
+PRODUCT_TABLES = (
+    "edges_product_variety",
+    "edges_product_region",
+    "edges_product_country",
+    "edges_product_flavor",
+    "edges_product_roast",
+    "edges_shop_product",
+    "edges_roaster_product",
+    "edges_shop_roaster",
+    "prod_products",
+)
+
+
+def clear_products(conn: duckdb.DuckDBPyConnection) -> None:
+    """Delete all product-domain rows in FK-safe order."""
+    for table in PRODUCT_TABLES:
+        conn.execute(f"DELETE FROM {table}")
 
 
 def classify_coffee(title: str, product_type: str | None, tags: list[str]) -> bool:
@@ -118,7 +143,10 @@ def read_scraped(path: str | Path) -> list[dict[str, Any]]:
             line = line.strip()
             if not line:
                 continue
-            obj = json.loads(line)
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                continue  # tolerate a truncated/partial line from an interrupted scrape
             if "product" not in obj:  # skip _site_done markers
                 continue
             product = dict(obj["product"])
@@ -127,17 +155,27 @@ def read_scraped(path: str | Path) -> list[dict[str, Any]]:
     return records
 
 
+def _norm_name(name: str) -> str:
+    """Case/whitespace-insensitive key for roaster-name matching."""
+    return re.sub(r"\s+", " ", name).strip().casefold()
+
+
 def _roaster_name_by_site(coffee_records: list[dict[str, Any]]) -> dict[str, str]:
-    """Per site, the roaster name = modal vendor among its coffee products."""
-    vendors: dict[str, Counter[str]] = {}
+    """Per site, the roaster name = modal vendor among its coffee products.
+
+    Vendors are grouped case/whitespace-insensitively so "Onyx Coffee Lab" and
+    "Onyx coffee lab" count as one; the most common raw spelling is the display.
+    """
+    by_site: dict[str, dict[str, Counter[str]]] = {}
     for rec in coffee_records:
         site = rec.get("site") or ""
         vendor = (rec.get("roaster") or "").strip()
         if vendor:
-            vendors.setdefault(site, Counter())[vendor] += 1
+            by_site.setdefault(site, {}).setdefault(_norm_name(vendor), Counter())[vendor] += 1
     names: dict[str, str] = {}
-    for site, counter in vendors.items():
-        names[site] = counter.most_common(1)[0][0]
+    for site, groups in by_site.items():
+        best = max(groups.values(), key=lambda c: sum(c.values()))
+        names[site] = best.most_common(1)[0][0]
     return names
 
 
@@ -164,20 +202,23 @@ def load_products(
     # Reuse an existing roaster row when the name already exists (e.g. from the
     # roasting seed) so we don't create a duplicate node under a fresh id.
     existing_roasters = {
-        name: rid for rid, name in conn.execute("SELECT id, name FROM roast_roasters").fetchall()
+        _norm_name(name): rid
+        for rid, name in conn.execute("SELECT id, name FROM roast_roasters").fetchall()
     }
 
     roasters: dict[str, tuple[str, str, str | None]] = {}  # id -> (id, name, website)
     products: dict[str, tuple[Any, ...]] = {}
     for rec in coffee:
-        site = rec.get("site") or ""
-        roaster_name = site_roaster.get(site) or _name_from_domain(site)
-        roaster_id = existing_roasters.get(roaster_name) or _uid("roaster", roaster_name)
-        roasters[roaster_id] = (roaster_id, roaster_name, site or None)
-
         title = (rec.get("title") or "").strip()
         if not title:
-            continue
+            continue  # skip before registering a roaster, so no product-less roaster node
+        site = rec.get("site") or ""
+        roaster_name = site_roaster.get(site) or _name_from_domain(site)
+        roaster_id = existing_roasters.get(_norm_name(roaster_name)) or _uid(
+            "roaster", roaster_name
+        )
+        roasters[roaster_id] = (roaster_id, roaster_name, site or None)
+
         product_id = _uid("product", site, title)
         products[product_id] = (
             product_id,
@@ -192,36 +233,29 @@ def load_products(
             rec.get("description"),
         )
 
-    # FK-safe write order: clear product-referencing edges, then products, then
-    # upsert roasters (DO NOTHING — never clobber the roasting domain's rows).
-    for table in (
-        "edges_product_variety",
-        "edges_product_region",
-        "edges_product_country",
-        "edges_product_flavor",
-        "edges_product_roast",
-        "edges_shop_product",
-        "edges_roaster_product",
-        "prod_products",
-    ):
-        conn.execute(f"DELETE FROM {table}")
+    # FK-safe teardown of the whole product domain, then re-insert below.
+    # Roasters are upserted DO NOTHING so the roasting domain's rows are never
+    # clobbered.
+    clear_products(conn)
 
-    conn.executemany(
-        """
-        INSERT INTO roast_roasters (id, name, website) VALUES (?, ?, ?)
-        ON CONFLICT (id) DO NOTHING
-        """,
-        [(rid, name, website) for rid, name, website in roasters.values()],
-    )
-    conn.executemany(
-        """
-        INSERT INTO prod_products
-            (id, name, roaster_id, roast_level, process, is_blend, price,
-             net_weight_grams, url, description)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        list(products.values()),
-    )
+    if roasters:
+        conn.executemany(
+            """
+            INSERT INTO roast_roasters (id, name, website) VALUES (?, ?, ?)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            list(roasters.values()),
+        )
+    if products:
+        conn.executemany(
+            """
+            INSERT INTO prod_products
+                (id, name, roaster_id, roast_level, process, is_blend, price,
+                 net_weight_grams, url, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            list(products.values()),
+        )
 
     return ProductCounts(
         roasters=len(roasters),
