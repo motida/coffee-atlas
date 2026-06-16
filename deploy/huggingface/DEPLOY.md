@@ -50,8 +50,12 @@ For each Space (`coffee-atlas-api` and `coffee-atlas-web`):
 
 **`coffee-atlas-api`** → Settings → Variables and secrets:
 
-- `GEMINI_API_KEY` (secret) — only needed if you ever re-run embeddings inside
-  the Space. The bundled DB already has them.
+- `GEMINI_API_KEY` (secret) — required at runtime for `/api/v1/search/semantic`.
+  The endpoint embeds the incoming query and ranks rows by cosine similarity;
+  without the key it silently falls back to plain text (LIKE) search. The
+  bundled DB already holds the entity embeddings — this key is for embedding the
+  query, not the stored rows — so it's also needed if you ever re-run the
+  embeddings stage inside the Space.
 
 **`coffee-atlas-web`** → Settings → Variables and secrets:
 
