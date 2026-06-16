@@ -1,0 +1,26 @@
+# Curated specialty-coffee roasters whose storefronts expose a public Shopify
+# /products.json endpoint. Verified 2026-06-16 (HTTP 200 + products present).
+# Used as the crawl frontier for backend.ingest.shop_scrapers.product_scraper,
+# since shop_shops.roasts_in_house is unpopulated (see memory).
+# Format: one site root per line; blank lines and # comments are ignored.
+
+https://www.blackwhiteroasters.com
+https://onyxcoffeelab.com
+https://sey.coffee
+https://www.vervecoffee.com
+https://www.coffeebros.com
+https://methodicalcoffee.com
+https://www.deathwishcoffee.com
+https://redbaycoffee.com
+https://parlorcoffee.com
+https://www.intelligentsia.com
+https://www.stumptowncoffee.com
+https://counterculturecoffee.com
+https://georgehowellcoffee.com
+https://ceremonycoffee.com
+https://corvuscoffee.com
+https://www.madcapcoffee.com
+https://sweetbloomcoffee.com
+https://www.equatorcoffees.com
+https://www.wonderstate.com
+https://www.passengercoffee.com

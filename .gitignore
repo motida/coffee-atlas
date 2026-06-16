@@ -33,6 +33,7 @@ data/raw/*
 !data/raw/distribution_seed.json
 !data/raw/roasting_seed.json
 !data/raw/processing_flavor_seed.json
+!data/raw/roaster_sites.txt
 data/processed/
 data/parquet/
 data/cache/
