@@ -152,12 +152,18 @@ def load_products(
     site_roaster = _roaster_name_by_site(coffee)
 
     # Build roaster + product rows keyed by deterministic id (dedupes repeats).
+    # Reuse an existing roaster row when the name already exists (e.g. from the
+    # roasting seed) so we don't create a duplicate node under a fresh id.
+    existing_roasters = {
+        name: rid for rid, name in conn.execute("SELECT id, name FROM roast_roasters").fetchall()
+    }
+
     roasters: dict[str, tuple[str, str, str | None]] = {}  # id -> (id, name, website)
     products: dict[str, tuple[Any, ...]] = {}
     for rec in coffee:
         site = rec.get("site") or ""
         roaster_name = site_roaster.get(site) or _name_from_domain(site)
-        roaster_id = _uid("roaster", roaster_name)
+        roaster_id = existing_roasters.get(roaster_name) or _uid("roaster", roaster_name)
         roasters[roaster_id] = (roaster_id, roaster_name, site or None)
 
         title = (rec.get("title") or "").strip()

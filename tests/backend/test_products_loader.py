@@ -102,3 +102,17 @@ def test_roasting_roasters_not_clobbered(db):
     db.execute("INSERT INTO roast_roasters (id, name) VALUES ('seed-1', 'Seed Roaster')")
     load_products(_records(), db)
     assert db.execute("SELECT COUNT(*) FROM roast_roasters WHERE id = 'seed-1'").fetchone()[0] == 1
+
+
+def test_existing_roaster_reused_not_duplicated(db):
+    # A roaster name that already exists (e.g. from the roasting seed) must be
+    # reused, not duplicated under a fresh products-namespace id.
+    db.execute("INSERT INTO roast_roasters (id, name) VALUES ('seed-verve', 'Verve Coffee')")
+    load_products(_records(), db)
+    rows = db.execute("SELECT id FROM roast_roasters WHERE name = 'Verve Coffee'").fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == "seed-verve"
+    linked = db.execute(
+        "SELECT COUNT(*) FROM prod_products WHERE roaster_id = 'seed-verve'"
+    ).fetchone()[0]
+    assert linked == 3
