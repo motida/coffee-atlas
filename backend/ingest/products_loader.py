@@ -42,7 +42,7 @@ import duckdb
 from backend.db.connection import get_connection
 
 PRODUCT_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000008")
-DEFAULT_SOURCE = Path("data/cache/product_scrape/curated.jsonl")
+DEFAULT_SOURCE = Path("data/cache/product_scrape")  # dir of scraper JSONL logs
 
 # Non-coffee signal — matched against product_type, title and tags. Roaster
 # stores carry tea, drinkware, brewers, merch, gift cards, etc. Tuned against
@@ -103,18 +103,27 @@ def classify_coffee(title: str, product_type: str | None, tags: list[str]) -> bo
 
 
 def read_scraped(path: str | Path) -> list[dict[str, Any]]:
-    """Read product records from a scraper JSONL, flattening site onto each."""
+    """Read product records from scraper JSONL, flattening site onto each.
+
+    Accepts a single .jsonl file or a directory of them (all *.jsonl are read,
+    so resumable scrapes split across run files are picked up together).
+    """
+    p = Path(path)
+    files = sorted(p.glob("*.jsonl")) if p.is_dir() else [p]
     records: list[dict[str, Any]] = []
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line:
+    for file in files:
+        if not file.exists():
             continue
-        obj = json.loads(line)
-        if "product" not in obj:  # skip _site_done markers
-            continue
-        product = dict(obj["product"])
-        product["site"] = obj.get("site")
-        records.append(product)
+        for line in file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            obj = json.loads(line)
+            if "product" not in obj:  # skip _site_done markers
+                continue
+            product = dict(obj["product"])
+            product["site"] = obj.get("site")
+            records.append(product)
     return records
 
 

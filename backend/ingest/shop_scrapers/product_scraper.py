@@ -44,6 +44,7 @@ REQUEST_TIMEOUT = 15.0
 MAX_DESCRIPTION_LEN = 1200
 SHOPIFY_PAGE_SIZE = 250  # Shopify's max page size for /products.json
 CACHE_DIR = Path("data/cache/product_scrape")
+DEFAULT_SITES_FILE = Path("data/raw/roaster_sites.txt")
 
 # Roast-level tags → canonical level. Matched case-insensitively against the
 # product's Shopify tags (exact tag equality — tags are clean, freeform body
@@ -484,6 +485,12 @@ async def scrape(
     return results
 
 
+def read_sites(path: str | Path = DEFAULT_SITES_FILE) -> list[str]:
+    """Roaster site URLs from a text file; blank lines and # comments ignored."""
+    lines = Path(path).read_text(encoding="utf-8").splitlines()
+    return [ln.strip() for ln in lines if ln.strip() and not ln.lstrip().startswith("#")]
+
+
 def _append_jsonl(path: Path, result: SiteResult) -> None:
     with path.open("a", encoding="utf-8") as f:
         for product in result.products:
@@ -493,8 +500,9 @@ def _append_jsonl(path: Path, result: SiteResult) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Scrape roaster product catalogs")
+    parser.add_argument("--site", action="append", default=[], help="Roaster site URL (repeatable)")
     parser.add_argument(
-        "--site", action="append", required=True, help="Roaster site URL (repeatable)"
+        "--sites-file", help=f"File of site URLs, one per line (default: {DEFAULT_SITES_FILE})"
     )
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--max-products", type=int, default=SHOPIFY_PAGE_SIZE)
@@ -502,9 +510,17 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Print results, write nothing")
     args = parser.parse_args()
 
+    sites = list(args.site)
+    if args.sites_file:
+        sites += read_sites(args.sites_file)
+    if not sites:  # neither --site nor --sites-file given → fall back to the curated list
+        sites = read_sites()
+    if not sites:
+        parser.error("no sites: pass --site/--sites-file or populate the default sites file")
+
     asyncio.run(
         scrape(
-            args.site,
+            sites,
             concurrency=args.concurrency,
             max_products=args.max_products,
             run_id=args.run_id,
