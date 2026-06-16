@@ -79,6 +79,7 @@ def load_wcr_varieties(
             "edges_shop_variety",
             "edges_variety_processing",
             "edges_roast_variety",
+            "edges_product_variety",
         ):
             conn.execute(f"DELETE FROM {edge}")
         conn.execute("DELETE FROM var_varieties")

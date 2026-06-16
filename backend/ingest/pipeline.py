@@ -15,6 +15,7 @@ STAGES = [
     "shops",
     "distribution",
     "roasting",
+    "products",
     "embeddings",
     "graph",
 ]
@@ -109,6 +110,24 @@ def run_stage(stage: str, tables: list[str] | None = None) -> None:
             f"{counts.roast_variety_edges} roast→variety edges"
         )
 
+    elif stage == "products":
+        import asyncio
+
+        from backend.ingest.products_loader import load_from_file
+        from backend.ingest.shop_scrapers.product_scraper import read_sites, scrape
+
+        sites = read_sites()
+        print(f"Scraping {len(sites)} roaster sites (resumable)...")
+        asyncio.run(
+            scrape(sites, concurrency=4, max_products=250, run_id="pipeline", dry_run=False)
+        )
+        counts = load_from_file()
+        print(
+            f"Loaded {counts.products} products from {counts.roasters} roasters "
+            f"({counts.dropped_non_coffee} non-coffee dropped). "
+            f"Product edges are built in the graph stage."
+        )
+
     elif stage == "embeddings":
         if not settings.ENABLE_EMBEDDINGS:
             print("Embeddings disabled (ENABLE_EMBEDDINGS=false)")
@@ -136,6 +155,7 @@ def run_stage(stage: str, tables: list[str] | None = None) -> None:
             f"country->region: {counts.country_region}, "
             f"region->farm: {counts.region_farm}, "
             f"variety<->flavor: {counts.variety_flavor}, "
+            f"product_edges: {counts.product_edges}, "
             f"property_graph: {'ok' if counts.property_graph_ok else 'skipped'}"
         )
 

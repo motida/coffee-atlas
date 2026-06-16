@@ -1,0 +1,86 @@
+@prefix : <http://coffeeatlas.org/ontology/products#> .
+@prefix ca: <http://coffeeatlas.org/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://coffeeatlas.org/ontology/products> a owl:Ontology ;
+    rdfs:label "Coffee Products Module" ;
+    rdfs:comment "Defines coffee products — a roaster's named offering (a bag of roasted beans), the keystone node linking shops, roasters, varieties, origins, roast profiles, and flavors." .
+
+:CoffeeProduct a owl:Class ;
+    rdfs:label "Coffee Product" ;
+    rdfs:comment "A named, sellable coffee offering from a roaster (single-origin or blend)." .
+
+:consistsOfVariety a owl:ObjectProperty ;
+    rdfs:label "consists of variety" ;
+    rdfs:comment "A variety in the product. Single-origin products have one; blends have several." ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range <http://coffeeatlas.org/ontology/varieties#CoffeeVariety> .
+
+:servesProduct a owl:ObjectProperty ;
+    rdfs:label "serves product" ;
+    rdfs:domain <http://coffeeatlas.org/ontology/shops#CoffeeShop> ;
+    rdfs:range :CoffeeProduct .
+
+:roasts a owl:ObjectProperty ;
+    rdfs:label "roasts" ;
+    rdfs:domain <http://coffeeatlas.org/ontology/roasting#Roaster> ;
+    rdfs:range :CoffeeProduct .
+
+:partnersWith a owl:ObjectProperty ;
+    rdfs:label "partners with" ;
+    rdfs:comment "A shop sells products from this roaster." ;
+    rdfs:domain <http://coffeeatlas.org/ontology/shops#CoffeeShop> ;
+    rdfs:range <http://coffeeatlas.org/ontology/roasting#Roaster> .
+
+:hasOriginRegion a owl:ObjectProperty ;
+    rdfs:label "has origin region" ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range <http://coffeeatlas.org/ontology/origins#Region> .
+
+:hasOriginCountry a owl:ObjectProperty ;
+    rdfs:label "has origin country" ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range <http://coffeeatlas.org/ontology/origins#Country> .
+
+:roastedTo a owl:ObjectProperty ;
+    rdfs:label "roasted to" ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range <http://coffeeatlas.org/ontology/roasting#RoastProfile> .
+
+:exhibitsFlavor a owl:ObjectProperty ;
+    rdfs:label "exhibits flavor" ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range <http://coffeeatlas.org/ontology/flavor#FlavorAttribute> .
+
+:roastLevel a owl:DatatypeProperty ;
+    rdfs:label "roast level" ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range xsd:string .
+
+:process a owl:DatatypeProperty ;
+    rdfs:label "process" ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range xsd:string .
+
+:isBlend a owl:DatatypeProperty ;
+    rdfs:label "is blend" ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range xsd:boolean .
+
+:price a owl:DatatypeProperty ;
+    rdfs:label "price" ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range xsd:decimal .
+
+:netWeightGrams a owl:DatatypeProperty ;
+    rdfs:label "net weight (grams)" ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range xsd:integer .
+
+:productUrl a owl:DatatypeProperty ;
+    rdfs:label "product URL" ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range xsd:anyURI .

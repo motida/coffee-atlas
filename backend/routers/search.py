@@ -33,6 +33,7 @@ TEXT_SOURCES: list[tuple[str, str, str, str | None]] = [
     ("processing", "proc_methods", "name", "description"),
     ("shop", "shop_shops", "name", "description"),
     ("roast_profile", "roast_profiles", "name", "description"),
+    ("product", "prod_products", "name", "description"),
 ]
 
 # Semantic-search sources: (entity_type, table, label_col, desc_col_or_null,
@@ -43,6 +44,7 @@ SEMANTIC_SOURCES: list[tuple[str, str, str, str | None, str]] = [
     ("processing", "proc_methods", "name", "description", "description_embedding"),
     ("roast_profile", "roast_profiles", "name", "description", "description_embedding"),
     ("shop", "shop_shops", "name", "description", "description_embedding"),
+    ("product", "prod_products", "name", "description", "description_embedding"),
 ]
 
 

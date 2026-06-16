@@ -57,6 +57,11 @@ TARGETS: list[EmbeddingTarget] = [
         embedding_col="description_embedding",
     ),
     EmbeddingTarget(
+        table="prod_products",
+        text_sql="name || ' — ' || COALESCE(description, '')",
+        embedding_col="description_embedding",
+    ),
+    EmbeddingTarget(
         table="shop_shops",
         text_sql="name || ' — ' || COALESCE(description, '')",
         embedding_col="description_embedding",

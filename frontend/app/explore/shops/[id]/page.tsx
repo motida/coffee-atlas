@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getNearbyShops, getShop } from "@/lib/api";
+import { getNearbyShops, getShop, getShopProducts } from "@/lib/api";
 import { EntityCard, EntityPage, Field, Section } from "@/components/explore/EntityPage";
-import type { Shop } from "@/lib/types";
+import type { Product, Shop } from "@/lib/types";
 
 interface NearbyShop extends Shop {
   distance_km: number;
@@ -12,6 +12,7 @@ interface NearbyShop extends Shop {
 export default function ShopPage({ params }: { params: { id: string } }) {
   const [shop, setShop] = useState<Shop | null>(null);
   const [nearby, setNearby] = useState<NearbyShop[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,6 +30,7 @@ export default function ShopPage({ params }: { params: { id: string } }) {
         }
       })
       .catch((e) => setError(String(e)));
+    getShopProducts(params.id).then(setProducts).catch(() => setProducts([]));
   }, [params.id]);
 
   if (error) {
@@ -83,6 +85,27 @@ export default function ShopPage({ params }: { params: { id: string } }) {
           <p className="text-sm leading-relaxed text-gray-800">{shop.description}</p>
         </Section>
       )}
+
+      <Section
+        title="Coffee served"
+        count={products.length}
+        empty="No products linked (this shop isn't matched to a roaster we've scraped)."
+      >
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+          {products.map((p) => (
+            <EntityCard
+              key={p.id}
+              href={`/explore/products/${p.id}`}
+              title={p.name}
+              subtitle={
+                [p.roaster_name, p.price !== null ? `$${p.price}` : null]
+                  .filter(Boolean)
+                  .join(" · ") || undefined
+              }
+            />
+          ))}
+        </div>
+      </Section>
 
       <Section
         title="Nearby shops (within 5 km)"

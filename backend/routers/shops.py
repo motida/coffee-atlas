@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 import duckdb
 
 from backend.db.connection import fetchall_dicts, get_db
+from backend.models.products import ProductRead
 from backend.models.shops import ShopRead
 
 router = APIRouter(prefix="/api/v1/shops", tags=["shops"])
@@ -110,3 +111,29 @@ def get_shop(shop_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> d
         raise HTTPException(status_code=404, detail="Shop not found")
     columns = [desc[0] for desc in db.description]
     return dict(zip(columns, row))
+
+
+@router.get("/{shop_id}/products", response_model=list[ProductRead])
+def get_shop_products(
+    shop_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
+) -> list[dict[str, Any]]:
+    """Products this shop serves (via the roaster it partners with)."""
+    if not db.execute("SELECT 1 FROM shop_shops WHERE id = ?", [shop_id]).fetchone():
+        raise HTTPException(status_code=404, detail="Shop not found")
+    product_cols = (
+        "id, name, roaster_id, roast_level, process, is_blend, price, "
+        "net_weight_grams, url, description, created_at, updated_at"
+    )
+    cols = ", ".join(f"p.{c}" for c in product_cols.split(", "))
+    return fetchall_dicts(
+        db.execute(
+            f"""
+            SELECT {cols}, r.name AS roaster_name
+            FROM prod_products p
+            JOIN edges_shop_product e ON e.product_id = p.id
+            LEFT JOIN roast_roasters r ON p.roaster_id = r.id
+            WHERE e.shop_id = ? ORDER BY p.name
+            """,
+            [shop_id],
+        )
+    )
