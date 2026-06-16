@@ -25,6 +25,7 @@ from typing import Any
 import duckdb
 
 from backend.db.connection import get_connection
+from backend.ingest.products_loader import clear_products
 
 ROAST_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000007")
 DEFAULT_SOURCE = Path("data/raw/roasting_seed.json")
@@ -90,6 +91,11 @@ def load_roasting(
         conn = get_connection() if db_path is None else duckdb.connect(db_path)
 
     try:
+        # The product domain FK-references roast_roasters (prod_products.roaster_id,
+        # edges_roaster_product, edges_shop_roaster) and roast_profiles
+        # (edges_product_roast), so tear it down first or the deletes below raise
+        # a ConstraintException on a re-run. The products stage rebuilds it after.
+        clear_products(conn)
         # Edges reference profiles by FK, so they go first; then delete+insert
         # the referenced tables (ON CONFLICT can't update FK-referenced rows).
         for table in ("edges_roast_variety", "roast_profiles", "roast_roasters"):

@@ -8,6 +8,8 @@ import type {
   Importer,
   ProcessingFlavorLink,
   ProcessingMethod,
+  Product,
+  ProductOrigin,
   Region,
   RegionGeoProperties,
   SearchResult,
@@ -128,6 +130,27 @@ export const getNearbyShops = (lat: number, lng: number, radiusKm = 5) =>
   fetchAPI<(Shop & { distance_km: number })[]>(
     `/shops/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`,
   );
+
+export const getShopProducts = (id: string) =>
+  fetchAPI<Product[]>(`/shops/${id}/products`);
+
+// --- Products ---
+export const getProducts = (limit = 20, offset = 0, roasterId?: string) => {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (roasterId) params.set("roaster_id", roasterId);
+  return fetchAPI<Product[]>(`/products?${params.toString()}`);
+};
+
+export const getProduct = (id: string) => fetchAPI<Product>(`/products/${id}`);
+
+export const getProductVarieties = (id: string) =>
+  fetchAPI<Variety[]>(`/products/${id}/varieties`);
+
+export const getProductFlavors = (id: string) =>
+  fetchAPI<FlavorAttribute[]>(`/products/${id}/flavors`);
+
+export const getProductOrigin = (id: string) =>
+  fetchAPI<ProductOrigin>(`/products/${id}/origin`);
 
 // --- Graph ---
 export const graphTraverse = (

@@ -1,0 +1,827 @@
+{
+  "products": [
+    {
+      "id": 10224253600057,
+      "title": "El Burro - Natural Gesha Lot E",
+      "handle": "r-el-burro-natural-gesha-lot-e",
+      "body_html": "<p dir=\"ltr\"><span><strong>MEET THE PRODUCER |</strong> </span><span>For four generations and over a hundred years, the Lamastus family has made its passion for coffee a bonafide family tradition. What started with a man named Robert Lamastus in 1918 has catapulted to an innumerable number of awards, prizes, and accolades under the leadership of his grandson, Wilford Lamastus, Sr., and his great-grandson, Wilford Jr. </span></p>\n<p dir=\"ltr\"><span>Founded by Robert in 1918, Elida Estate is the flagship farm in the Lamastus fleet, and it is perhaps the most well-known of their fleet. But there are two other farms in the Panamanian highlands which bear the Lamastus family name: Luito Estate, and the origin story of today's black label release, El Burro Estate. </span></p>\n<p dir=\"ltr\"><span>El Burro is located in the southernmost coffee-growing region of Panama, and part of it sits inside the Baru Volcano National Park (BVNP). This location is important for a few reasons: first, because of its protected status within BVNP, coffees being produced at El Burro come from some of the most undisturbed farmland in all of Panama. It is surrounded by native, cloudy rainforest, and the crop benefits tremendously from the fresh volcanic soil supplied by Volcano Baru. Additionally, the high altitude of the farm amidst this lush backdrop lends itself to particularly advantageous coffee-growing conditions: the climate is very dry during the dry season and very wet during the wet season, causing extended ripening times for El Burro's most beloved lots: Gesha.</span><b></b></p>\n<p dir=\"ltr\"><strong>TRUST THE PROCESS | </strong><span>The unique terroir in which this coffee grows is heavily responsible for its equally unique - and utterly distinguished - flavor profile. No fancy fermentation techniques here, folks—this coffee was handpicked at peak ripeness, handsorted for quality, and spread out on raised beds to sun-dry until optimal moisture content was achieved. </span><b></b></p>\n<p dir=\"ltr\"><span><strong>TAKE A SIP |</strong> </span><span>When </span><em>hot</em><span>, this coffee has a pleasantly floral aroma and leaves us seeing RED—red fruits, raspberry, and red wine, for example. Subtle tropical notes, like mango, can also be perceived. The coffee is smooth and chocolatey at this temperature, leaving us feeling as though we’ve indulged in some Valentine’s Day spoils. </span><b></b></p>\n<p dir=\"ltr\"><span>As the coffee approaches a pleasantly </span><em>warm</em><span> temperature, acidity ticks up and it becomes more jammy in nature. Mango and raspberry persist, and red wine gives way to something a little more tropical, like sangria. Guava is a surprising and lovely addition to the flavor call sheet here! </span><b></b></p>\n<p dir=\"ltr\"><span>When </span><span><em>cool</em>, </span><span>this coffee gives us more of everything we’ve already experienced: it’s more tropical, more red-fruited, and even more like milk chocolate. From top to bottom, this cup strikes a lovely balance between variety and processing—a feat which has been mastered by many careful Lamastus hands. </span><b></b></p>\n<p dir=\"ltr\"><span><strong>Origin |</strong> </span><span>Boquete, Panama</span></p>\n<p dir=\"ltr\"><span><strong>Producer |</strong> </span><span>Lamastus Family Estates</span></p>\n<p dir=\"ltr\"><span><strong>Farm |</strong> </span><span>El Burro</span></p>\n<p dir=\"ltr\"><span><strong>Process |</strong> </span><span>Natural</span></p>\n<p dir=\"ltr\"><span><strong>Variety |</strong> </span><span>Gesha</span></p>\n<p><b id=\"docs-internal-guid-0583a8b8-7fff-6b46-191f-4a8beff40af8\"><span>Elevation | </span></b>1500-1750 MASL</p>",
+      "published_at": "2026-06-12T09:30:10-04:00",
+      "created_at": "2026-06-02T09:40:22-04:00",
+      "updated_at": "2026-06-16T05:29:53-04:00",
+      "vendor": "Black & White Coffee Roasters",
+      "product_type": "Retail SO",
+      "tags": [
+        "Black Label",
+        "clean",
+        "lighter",
+        "Natural",
+        "Panama",
+        "retail"
+      ],
+      "variants": [
+        {
+          "id": 53353899327801,
+          "title": "100g",
+          "option1": "100g",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-ELB-NG10",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "32.00",
+          "grams": 113,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 10224253600057,
+          "created_at": "2026-06-02T09:40:22-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 53353899360569,
+          "title": "12oz",
+          "option1": "12oz",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-ELB-NG12",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "96.00",
+          "grams": 354,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 10224253600057,
+          "created_at": "2026-06-02T09:40:22-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 53659624898873,
+          "created_at": "2026-06-02T15:48:20-04:00",
+          "position": 1,
+          "updated_at": "2026-06-02T15:48:22-04:00",
+          "product_id": 10224253600057,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/ElBurroNaturalGeshalotEOnlineCard_4x_27bd93f9-01ea-4bdf-a610-7e11cef4fde7.png?v=1780429702",
+          "width": 712,
+          "height": 712
+        },
+        {
+          "id": 53663202378041,
+          "created_at": "2026-06-03T15:53:34-04:00",
+          "position": 2,
+          "updated_at": "2026-06-03T15:53:36-04:00",
+          "product_id": 10224253600057,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/ElBurroNaturalGesha_Whitebackground.jpg?v=1780516416",
+          "width": 2048,
+          "height": 2048
+        }
+      ],
+      "options": [
+        {
+          "name": "Size",
+          "position": 1,
+          "values": [
+            "100g",
+            "12oz"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10224252977465,
+      "title": "El Burro - Natural Gesha Lot E",
+      "handle": "w-el-burro-natural-gesha-lot-e",
+      "body_html": "<p dir=\"ltr\"><span><strong>MEET THE PRODUCER |</strong> </span><span>For four generations and over a hundred years, the Lamastus family has made its passion for coffee a bonafide family tradition. What started with a man named Robert Lamastus in 1918 has catapulted to an innumerable number of awards, prizes, and accolades under the leadership of his grandson, Wilford Lamastus, Sr., and his great-grandson, Wilford Jr. </span></p>\n<p dir=\"ltr\"><span>Founded by Robert in 1918, Elida Estate is the flagship farm in the Lamastus fleet, and it is perhaps the most well-known of their fleet. But there are two other farms in the Panamanian highlands which bear the Lamastus family name: Luito Estate, and the origin story of today's black label release, El Burro Estate. </span></p>\n<p dir=\"ltr\"><span>El Burro is located in the southernmost coffee-growing region of Panama, and part of it sits inside the Baru Volcano National Park (BVNP). This location is important for a few reasons: first, because of its protected status within BVNP, coffees being produced at El Burro come from some of the most undisturbed farmland in all of Panama. It is surrounded by native, cloudy rainforest, and the crop benefits tremendously from the fresh volcanic soil supplied by Volcano Baru. Additionally, the high altitude of the farm amidst this lush backdrop lends itself to particularly advantageous coffee-growing conditions: the climate is very dry during the dry season and very wet during the wet season, causing extended ripening times for El Burro's most beloved lots: Gesha.</span><b></b></p>\n<p dir=\"ltr\"><strong>TRUST THE PROCESS | </strong><span>The unique terroir in which this coffee grows is heavily responsible for its equally unique - and utterly distinguished - flavor profile. No fancy fermentation techniques here, folks—this coffee was handpicked at peak ripeness, handsorted for quality, and spread out on raised beds to sun-dry until optimal moisture content was achieved. </span><b></b></p>\n<p dir=\"ltr\"><span><strong>TAKE A SIP |</strong> </span><span>When </span><em>hot</em><span>, this coffee has a pleasantly floral aroma and leaves us seeing RED—red fruits, raspberry, and red wine, for example. Subtle tropical notes, like mango, can also be perceived. The coffee is smooth and chocolatey at this temperature, leaving us feeling as though we’ve indulged in some Valentine’s Day spoils. </span><b></b></p>\n<p dir=\"ltr\"><span>As the coffee approaches a pleasantly </span><em>warm</em><span> temperature, acidity ticks up and it becomes more jammy in nature. Mango and raspberry persist, and red wine gives way to something a little more tropical, like sangria. Guava is a surprising and lovely addition to the flavor call sheet here! </span><b></b></p>\n<p dir=\"ltr\"><span>When </span><span><em>cool</em>, </span><span>this coffee gives us more of everything we’ve already experienced: it’s more tropical, more red-fruited, and even more like milk chocolate. From top to bottom, this cup strikes a lovely balance between variety and processing—a feat which has been mastered by many careful Lamastus hands. </span><b></b></p>\n<p dir=\"ltr\"><span><strong>Origin |</strong> </span><span>Boquete, Panama</span></p>\n<p dir=\"ltr\"><span><strong>Producer |</strong> </span><span>Lamastus Family Estates</span></p>\n<p dir=\"ltr\"><span><strong>Farm |</strong> </span><span>El Burro</span></p>\n<p dir=\"ltr\"><span><strong>Process |</strong> </span><span>Natural</span></p>\n<p dir=\"ltr\"><span><strong>Variety |</strong> </span><span>Gesha</span></p>\n<p><b id=\"docs-internal-guid-0583a8b8-7fff-6b46-191f-4a8beff40af8\"><span>Elevation | </span></b>1500-1750 MASL<br></p>",
+      "published_at": "2026-06-12T09:29:40-04:00",
+      "created_at": "2026-06-02T09:40:09-04:00",
+      "updated_at": "2026-06-16T05:29:53-04:00",
+      "vendor": "Black & White Coffee Roasters",
+      "product_type": "Wholesale SO",
+      "tags": [
+        "wholesale"
+      ],
+      "variants": [
+        {
+          "id": 53353898639673,
+          "title": "100g",
+          "option1": "100g",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-ELB-NG10",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "27.75",
+          "grams": 113,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 10224252977465,
+          "created_at": "2026-06-02T09:40:09-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 53353898672441,
+          "title": "12oz",
+          "option1": "12oz",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-ELB-NG12",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "76.80",
+          "grams": 354,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 10224252977465,
+          "created_at": "2026-06-02T09:40:09-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 53373541581113,
+          "title": "Brew Card (max 3 per order)",
+          "option1": "Brew Card (max 3 per order)",
+          "option2": null,
+          "option3": null,
+          "sku": "BREW CARD",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "0.00",
+          "grams": 3,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 10224252977465,
+          "created_at": "2026-06-08T13:09:33-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 53659624997177,
+          "created_at": "2026-06-02T15:48:38-04:00",
+          "position": 1,
+          "updated_at": "2026-06-02T15:48:39-04:00",
+          "product_id": 10224252977465,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/ElBurroNaturalGeshaLotE_brewcardprint_online_4x_fb4ad9ea-9cc6-4088-b371-b81812eec132.png?v=1780429719",
+          "width": 827,
+          "height": 1116
+        }
+      ],
+      "options": [
+        {
+          "name": "Size",
+          "position": 1,
+          "values": [
+            "100g",
+            "12oz",
+            "Brew Card (max 3 per order)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10231629119801,
+      "title": "Arturo Paz - Itacayo Gesha",
+      "handle": "r-arturo-paz-itacayo-gesha",
+      "body_html": "<p dir=\"ltr\"><span><strong>MEET THE PRODUCER |</strong> </span><span>In specialty coffee circles, the Paz family in Honduras needs no introduction. Our buddy, Benjamin Paz, is likely the most familiar to you—he's been featured prominently on our menu over the years. Outgoing and gregarious, you might think that Ben is the sole star of his family's dry mill and export company in Santa Barbara, San Vicente Coffee Exporters. </span><b></b></p>\n<p dir=\"ltr\"><span>But there's also a quieter, shyer, unsung hero of the family business as well. His name is Angel Arturo Paz, and his hands are behind this stunning washed Gesha offering.</span><b></b></p>\n<p dir=\"ltr\"><span>A third generation coffee producer, Arturo is quiet, charming, and very devoted to his large extended family. He and Benjamin started formally working together in 2012 when they began cultivating coffee on small plots of farmland in a very rural part of Santa Barbara. Today, Arturo serves as the chief of quality control at San Vicente, and he continues to participate (and thrive!) in Honduras Cup of Excellence, with which he's been involved in since its inception.</span><b></b></p>\n<p dir=\"ltr\"><strong>TRUST THE PROCESS | </strong><span>This lot underwent traditional Honduran washed processing protocols. The result is a straight over-the-plate, low-to-no-fermentation impact Gesha lot—and honestly, it couldn't be lovelier.</span><b></b></p>\n<p dir=\"ltr\"><strong>TAKE A SIP | </strong><span>Delicate and stunning, this coffee shares a lot of characteristics with the flower it emanates on the nose—gardenia. It’s floral, tropical, and tea-like, reminding us of some of our favorite Ethiopian Gesha coffees. But it’s also remarkably sweet, alluding to its Santa Barbara birthplace. This coffee sips like oolong tea that’s been served alongside a crisp vanilla cookie, making us dream of afternoon tea in the English countryside.</span><b></b></p>\n<p dir=\"ltr\"><strong>Origin | </strong><span>El Sauce, Santa Barbara, Honduras</span></p>\n<p dir=\"ltr\"><strong>Producer | </strong><span>Angel Arturo Paz</span></p>\n<p dir=\"ltr\"><span><strong>Farm |</strong> </span><span>Itacayo</span></p>\n<p dir=\"ltr\"><strong>Process | </strong><span>Washed</span></p>\n<p dir=\"ltr\"><span><strong>Variety |</strong> </span><span>Gesha</span></p>\n<p><b id=\"docs-internal-guid-6a13b2dc-7fff-6cbb-f64d-9f9860322e36\"><span>Elevation | </span></b>1550-1730 MASL</p>",
+      "published_at": "2026-06-11T09:00:08-04:00",
+      "created_at": "2026-06-08T16:22:33-04:00",
+      "updated_at": "2026-06-16T05:29:53-04:00",
+      "vendor": "Black & White Coffee Roasters",
+      "product_type": "Retail SO",
+      "tags": [
+        "Bottomless",
+        "clean",
+        "Honduras",
+        "lighter",
+        "retail",
+        "Washed"
+      ],
+      "variants": [
+        {
+          "id": 53376692027705,
+          "title": "12oz",
+          "option1": "12oz",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-ARP-IG12",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "28.00",
+          "grams": 354,
+          "compare_at_price": "0.00",
+          "position": 1,
+          "product_id": 10231629119801,
+          "created_at": "2026-06-08T16:22:34-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 53376692060473,
+          "title": "2lb",
+          "option1": "2lb",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-ARP-IG02",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "72.00",
+          "grams": 939,
+          "compare_at_price": "0.00",
+          "position": 2,
+          "product_id": 10231629119801,
+          "created_at": "2026-06-08T16:22:34-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 53376692093241,
+          "title": "5lb",
+          "option1": "5lb",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-ARP-IG05",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "175.00",
+          "grams": 2311,
+          "compare_at_price": "0.00",
+          "position": 3,
+          "product_id": 10231629119801,
+          "created_at": "2026-06-08T16:22:34-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 53720598151481,
+          "created_at": "2026-06-09T14:38:24-04:00",
+          "position": 1,
+          "updated_at": "2026-06-09T14:38:26-04:00",
+          "product_id": 10231629119801,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/ArturoPaz_itacayoGesha_onlinecard_4x_f0af90a1-103d-4c79-bc67-e0ee27510a39.png?v=1781030306",
+          "width": 712,
+          "height": 712
+        },
+        {
+          "id": 53729008714041,
+          "created_at": "2026-06-10T11:25:23-04:00",
+          "position": 2,
+          "updated_at": "2026-06-10T11:25:25-04:00",
+          "product_id": 10231629119801,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/ArturoPaz_itacayoGesha_whitebackground.jpg?v=1781105125",
+          "width": 2048,
+          "height": 2048
+        }
+      ],
+      "options": [
+        {
+          "name": "Size",
+          "position": 1,
+          "values": [
+            "12oz",
+            "2lb",
+            "5lb"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10231628988729,
+      "title": "Bombe - Honey",
+      "handle": "r-bombe-honey",
+      "body_html": "<p dir=\"ltr\"><strong>MEET THE PRODUCER | </strong><span>Tamiru Tadesse was born in the small village of Alo in Bensa, a district of Sidama with rich soil and high elevation, making it an ideal locale for specialty coffee production in the caffeinated history of Ethiopia. Tamiru began his professional career as a university professor and electrical engineer, but something kept calling him back to coffee. </span><b></b></p>\n<p dir=\"ltr\"><span>When Ethiopia held its first Cup of Excellence in 2020, Tamiru saw firsthand that exceptional coffee could be both celebrated and rewarded. Together with his wife, Messi, Tamiru founded Alo Coffee, an exporting company and network of processing stations throughout Bensa. In 2021, with their inaugural entry, Tamiru and Messi won Ethiopia’s Cup of Excellence with a lot processed from their hometown of Alo, transforming their leap of faith into a pillar of greatness.</span><b></b></p>\n<p dir=\"ltr\"><span><strong>TRUST THE PROCESS |</strong> </span><span>Honey processed coffees were relatively unheard of until the last five years. However, as Ethiopia’s climate has grown more arid, honey processing offers producers a way to conserve water, compared to washed processing methods.</span><b></b></p>\n<p dir=\"ltr\"><span>Coffee is pulped, although a high percentage of mucilage is left intact. Rather than fermenting in water, as is traditional in Ethiopian washed processing, the coffee sits dry in its fruit mucilage, fermenting for approximately one week. The mucilage turns dark and sticky—hence its likeness to honey—and is rinsed off at the end of its fermentation period. The coffee is then laid out to dry until optimal moisture content is achieved. </span><b></b></p>\n<p dir=\"ltr\"><span><strong>TAKE A SIP |</strong> </span><span>Everything about this coffee has us crooning, </span><span>“Isn’t she lovely…”</span><span> Quite floral, like white flowers, it’s stunning from the first sip to the last—giving us everything we could want from the final Ethiopian offerings of the season. It tastes like a washed coffee, but the honey processing lends some lovely yellow fruit notes, like mango and nectarine. This coffee sips like oolong tea steeped with lemon zest, making it the perfect addition to your summer porch sitting schemes.</span><b></b></p>\n<p dir=\"ltr\"><strong>Origin | </strong><span>Bensa, Sidama, Ethiopia</span></p>\n<p dir=\"ltr\"><strong>Producer | </strong><span>Alo Coffee</span></p>\n<p dir=\"ltr\"><span><strong>Process |</strong> </span><span>Honey</span></p>\n<p dir=\"ltr\"><strong>Variety | </strong><span>74158</span></p>\n<p><b id=\"docs-internal-guid-d66b889b-7fff-c251-f558-9749ba7635a1\"><span>Elevation | </span></b>2200-2400 MASL</p>",
+      "published_at": "2026-06-11T09:00:07-04:00",
+      "created_at": "2026-06-08T16:22:11-04:00",
+      "updated_at": "2026-06-16T05:29:53-04:00",
+      "vendor": "Black & White Coffee Roasters",
+      "product_type": "Retail SO",
+      "tags": [
+        "Bottomless",
+        "clean",
+        "Ethiopia",
+        "Honey",
+        "lighter",
+        "retail"
+      ],
+      "variants": [
+        {
+          "id": 53376691765561,
+          "title": "12oz",
+          "option1": "12oz",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-BOM-HO12",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "28.00",
+          "grams": 354,
+          "compare_at_price": "0.00",
+          "position": 1,
+          "product_id": 10231628988729,
+          "created_at": "2026-06-08T16:22:11-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 53376691798329,
+          "title": "2lb",
+          "option1": "2lb",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-BOM-HO02",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "72.00",
+          "grams": 939,
+          "compare_at_price": "0.00",
+          "position": 2,
+          "product_id": 10231628988729,
+          "created_at": "2026-06-08T16:22:11-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 53376691831097,
+          "title": "5lb",
+          "option1": "5lb",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-BOM-HO05",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "175.00",
+          "grams": 2311,
+          "compare_at_price": "0.00",
+          "position": 3,
+          "product_id": 10231628988729,
+          "created_at": "2026-06-08T16:22:11-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 53720596349241,
+          "created_at": "2026-06-09T14:37:49-04:00",
+          "position": 1,
+          "updated_at": "2026-06-09T14:37:51-04:00",
+          "product_id": 10231628988729,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/BombeHoneyonlinecard_4x_38be6b41-cd5d-43ca-bc5e-3f4183f11701.png?v=1781030271",
+          "width": 712,
+          "height": 712
+        },
+        {
+          "id": 53729008025913,
+          "created_at": "2026-06-10T11:25:02-04:00",
+          "position": 2,
+          "updated_at": "2026-06-10T11:25:04-04:00",
+          "product_id": 10231628988729,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/Bombe_Honey_EthiopianWhiteBackdrop.jpg?v=1781105104",
+          "width": 2048,
+          "height": 2048
+        }
+      ],
+      "options": [
+        {
+          "name": "Size",
+          "position": 1,
+          "values": [
+            "12oz",
+            "2lb",
+            "5lb"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10181628657977,
+      "title": "Sebastian Ramirez - Red Fruit",
+      "handle": "r-sebastian-ramirez-red-fruit",
+      "body_html": "<p dir=\"ltr\"><span><strong>MEET THE PRODUCER |</strong> </span><span>Sebastián Ramírez is a fourth generation coffee producer who started growing coffee more than 13 years ago. Early in his career, he started exploring the nuances of fermentation, and today, Sebastián is regarded as a master of advanced processing techniques like co-fermentation and carbonic maceration. His mission is to make coffee accessible and exciting, and Sebastián champions those efforts in his processing endeavors and as a mentor for the Unblended Young Producer Program. Sebastián and his coffees can be accurately described as \"anything but ordinary,\" and this strawberry co-ferment adaptation is one of our favorite iterations of that endearing moniker.</span><b></b></p>\n<p dir=\"ltr\"><span><strong>TRUST THE PROCESS |</strong> </span><span>After being picked at peak ripeness, this Castillo lot underwent anaerobic fermentation with added CO2 injection, nestled alongside wine yeast, fruit glucose, and dehydrated strawberries. The coffee was later dried in two phases: first under shade for 20-25 days, and then in Grain-Pro bags for stabilization for 15 days.</span><b></b></p>\n<p dir=\"ltr\"><span><strong>TAKE A SIP |</strong> </span><span>As far as strawberry co-ferments go, this one is pretty much a classic. It’s super sweet, like cooked strawberries, and it possesses the loud, funky energy of grape flavored goodies like grape candy—or that grape snow cone Alan Jackson once crooned about. Further fruit notes, like peaches, are also prevalent throughout the cup. The finish is smooth and sweet, reminding us of milk chocolate. </span><b></b></p>\n<p dir=\"ltr\"><span><strong>Origin |</strong> </span><span>Quindío, Colombia</span></p>\n<p dir=\"ltr\"><strong>Producer | </strong><span>Sebastián Ramirez</span></p>\n<p dir=\"ltr\"><span><strong>Farm |</strong> </span><span>Finca El Placer</span></p>\n<p dir=\"ltr\"><span><strong>Process |</strong> </span><span>Co-ferment</span></p>\n<p dir=\"ltr\"><span><strong>Variety |</strong> </span><span>Castillo</span></p>\n<p><b id=\"docs-internal-guid-5b5664ba-7fff-327c-ea50-6ca560456392\"><span>Elevation | </span></b>1700–1800 MASL</p>",
+      "published_at": "2026-06-09T12:54:55-04:00",
+      "created_at": "2026-04-20T12:05:56-04:00",
+      "updated_at": "2026-06-16T05:29:53-04:00",
+      "vendor": "Black & White Coffee Roasters",
+      "product_type": "Retail SO",
+      "tags": [
+        "Co-ferment",
+        "Colombia"
+      ],
+      "variants": [
+        {
+          "id": 52429056442681,
+          "title": "12oz",
+          "option1": "12oz",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-SeR-RF12",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "28.00",
+          "grams": 354,
+          "compare_at_price": "0.00",
+          "position": 1,
+          "product_id": 10181628657977,
+          "created_at": "2026-04-20T12:05:57-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 52429056475449,
+          "title": "2lb",
+          "option1": "2lb",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-SeR-RF02",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "72.00",
+          "grams": 939,
+          "compare_at_price": "0.00",
+          "position": 2,
+          "product_id": 10181628657977,
+          "created_at": "2026-04-20T12:05:57-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 52429056508217,
+          "title": "5lb",
+          "option1": "5lb",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-SeR-RF05",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "175.00",
+          "grams": 2311,
+          "compare_at_price": "0.00",
+          "position": 3,
+          "product_id": 10181628657977,
+          "created_at": "2026-04-20T12:05:57-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 53434581352761,
+          "created_at": "2026-04-20T12:14:42-04:00",
+          "position": 1,
+          "updated_at": "2026-04-20T12:14:44-04:00",
+          "product_id": 10181628657977,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/SebastianRamirezRedFruits_onlinecard_4x_3264b978-e192-4556-9756-783cd09e6b64.png?v=1776701684",
+          "width": 712,
+          "height": 712
+        },
+        {
+          "id": 53445655658809,
+          "created_at": "2026-04-22T13:10:43-04:00",
+          "position": 2,
+          "updated_at": "2026-04-22T13:10:45-04:00",
+          "product_id": 10181628657977,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/SebastianRamirezRedFruits_20206.jpg?v=1776877845",
+          "width": 2048,
+          "height": 2048
+        }
+      ],
+      "options": [
+        {
+          "name": "Size",
+          "position": 1,
+          "values": [
+            "12oz",
+            "2lb",
+            "5lb"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10224257499449,
+      "title": "The Future - Summer Slush",
+      "handle": "r-the-future-summer-slush",
+      "body_html": "<p><em>The Future has been a beloved staple on our year-round menu for quite awhile now. With it, we have been able to showcase excellence in processing techniques, particularly in regards to anaerobic and co-fermentation endeavors. Our goal with each of these unique blends is to elevate flavor as the guiding principle for each creation.</em></p>\n<p><meta charset=\"utf-8\"><meta charset=\"utf-8\"><b id=\"docs-internal-guid-cbc065f2-7fff-9dc3-71a0-a7d502c864e7\"><span>HOW WE GOT HERE | </span></b>When it comes to flavor, we're well known for being pretty nostalgic around here. And there's a good reason for that: our memories are tightly woven into our senses, with taste and smell being the chief sensory gatekeepers of our past. With this release, we celebrate yet another gas station relic of our youth: the often messy, infinitely slurpable slushee. Whether yours was red or blue, carbonated or still, fruit-flavored or soda-adjacent—everyone had a favorite and made it their own.</p>\n<p dir=\"ltr\"><span>As a concept, the slushee wasn’t exactly an intentional concoction. In 1958, Omar Knedlik – the owner of a local Dairy Queen in Kansas – began storing sodas in his freezer after the restaurant’s soda machine went kaput. The sodas thawed to a slush when taken out of the freezer and sold to patrons, and soon Omar realized that people actually seemed to prefer them that way! By 1962, he had secured a patent and a logo for what became the original ICEE machine. And in 1965, he sold three of those machines to the company that might’ve provided you your very first slushee-slurping experience: 7-Eleven.</span><b></b></p>\n<p dir=\"ltr\"><span>As part of the licensing deal with ICEE, 7-Eleven agreed to name their slush product the Slurpee. This triggered a now very long list of alternate names for the drink: ICEE, Slurpee, slush, slushy, slushie, and slushee… just to name a few. Whatever you came to call this gas station darling, we hope you’ll at least agree that we can all call it one thing: DELICIOUS.</span></p>\n<p dir=\"ltr\"><span><strong>HOW WE DID IT |</strong> </span><span>Recreating this beverage as a coffee offering came with its fair share of challenges. The result needed to be intense and fruity, but also crushable and sweet. To accomplish this, we began with a natural lot from Ethiopia, which really grounds the flavor profile of the blend. Next, we added equal parts of a naturally processed coffee from Costa Rica and a Dragonfruit co-fermented coffee from Colombia, both of which contribute plenty of red-painted flavors. Jhonatan Gasca’s proprietary Pacamara lot blends processing methods exceptionally well, and we knew it had a home here. Finally, Jairo Arcila’s loud Lychee co-ferment adds a little more life to the party: </span></p>\n<ul>\n<li aria-level=\"1\" dir=\"ltr\">\n<p role=\"presentation\" dir=\"ltr\"><span>35% Mulugeta Muntasha - Natural (Arbegona, Ethiopia)</span></p>\n</li>\n<li aria-level=\"1\" dir=\"ltr\">\n<p role=\"presentation\" dir=\"ltr\"><span>20% Lica Torres - Black Cherry (Rivas, Brunca, Costa Rica)</span></p>\n</li>\n<li aria-level=\"1\" dir=\"ltr\">\n<p role=\"presentation\" dir=\"ltr\"><span>20% Jairo Arcila - Dragonfruit (Armenia, Quindio, Colombia)</span></p>\n</li>\n<li aria-level=\"1\" dir=\"ltr\">\n<p role=\"presentation\" dir=\"ltr\"><span>18% Jhonatan Gasca - Pacamara (Bruselas, Huila, Colombia)</span></p>\n</li>\n<li aria-level=\"1\" dir=\"ltr\">\n<p role=\"presentation\" dir=\"ltr\"><span>7% Jairo Arcila - Lychee (Armenia, Quindio, Colombia)</span></p>\n</li>\n</ul>\n<p dir=\"ltr\"><strong>HOW IT TASTES | </strong><span>Consider this coffee an ode to the gas station slushee of your dreams! It’s intense like blue raspberry, red as a cherry popsicle, resembles the citrus profile of lemon Italian ice, and somehow remains as crushable as a bag of peach rings (another favorite gas station pick-me-up, we might add). It’s certainly intense but surprisingly crushable—and definitely ready for all things summer. </span><b></b></p>\n<p dir=\"ltr\"><strong>Countries of Origin | </strong><span>Ethiopia, Costa Rica, &amp; Columbia</span></p>\n<p dir=\"ltr\"><strong>Producers | </strong><span>Mulugeta Muntasha, Lica Torres, Jairo Arcila, &amp; Jhonatan Gasca</span></p>\n<p dir=\"ltr\"><span><strong>Process |</strong> </span><span>Mixed</span></p>\n<p><b id=\"docs-internal-guid-3a63d0be-7fff-abe0-aa59-5ee74a5e9bba\"><span>Variety | </span></b>Mixed</p>",
+      "published_at": "2026-06-04T09:00:06-04:00",
+      "created_at": "2026-06-02T09:42:22-04:00",
+      "updated_at": "2026-06-16T05:29:53-04:00",
+      "vendor": "Black & White Coffee Roasters",
+      "product_type": "Retail SO",
+      "tags": [
+        "Blend",
+        "Bottomless",
+        "funky",
+        "lighter",
+        "retail"
+      ],
+      "variants": [
+        {
+          "id": 53353905062201,
+          "title": "12oz",
+          "option1": "12oz",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-FUT-SS12",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "28.00",
+          "grams": 354,
+          "compare_at_price": "0.00",
+          "position": 1,
+          "product_id": 10224257499449,
+          "created_at": "2026-06-02T09:42:22-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 53353905094969,
+          "title": "2lb",
+          "option1": "2lb",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-FUT-SS02",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "72.00",
+          "grams": 939,
+          "compare_at_price": "0.00",
+          "position": 2,
+          "product_id": 10224257499449,
+          "created_at": "2026-06-02T09:42:22-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 53353905127737,
+          "title": "5lb",
+          "option1": "5lb",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-FUT-SS05",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "175.00",
+          "grams": 2311,
+          "compare_at_price": "0.00",
+          "position": 3,
+          "product_id": 10224257499449,
+          "created_at": "2026-06-02T09:42:22-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 53659623555385,
+          "created_at": "2026-06-02T15:46:42-04:00",
+          "position": 1,
+          "updated_at": "2026-06-02T15:46:43-04:00",
+          "product_id": 10224257499449,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/TheFutureSummerSlush_onlineCard_4x_72c778a9-04d9-4cc7-abd5-a4932cfca67d.png?v=1780429603",
+          "width": 712,
+          "height": 712
+        },
+        {
+          "id": 53663204802873,
+          "created_at": "2026-06-03T15:54:15-04:00",
+          "position": 2,
+          "updated_at": "2026-06-03T15:54:17-04:00",
+          "product_id": 10224257499449,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/TheFutureSummerSlush_whitebackground.jpg?v=1780516457",
+          "width": 2048,
+          "height": 2048
+        }
+      ],
+      "options": [
+        {
+          "name": "Size",
+          "position": 1,
+          "values": [
+            "12oz",
+            "2lb",
+            "5lb"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10218012344633,
+      "title": "Unblended Young Producers Project - Instant Coffee",
+      "handle": "unblended-young-producers-project-instant-coffee",
+      "body_html": "<p><strong>SPECIALTY INSTANT COFFEE</strong></p>\n<p><strong>ORIGIN | Antioquia, Cauca, Huila, and Quindio Colombia</strong></p>\n<p><strong>NOTES | strawberry, mango, chocolate</strong></p>\n<p>We took some of our favorite single origin coffees and made them into instant coffee! We put as much care into our instant coffee as we do our roasting and produce everything in house. </p>\n<p>Take our instant and add hot water for instant coffee or even milk for an instant latte.  </p>\n<p>This item comes with 6 pouches that make 1 - 8oz cup each</p>\n<p class=\"font_8\"> </p>\n<p class=\"font_8\"><strong>Description of Coffee | </strong></p>\n<p dir=\"ltr\"><strong>GET TO KNOW THE PROJECT | </strong><span>As a concept, Unblended exists to make coffee farming an exciting and meaningful industry for young producers in Colombia (and hopefully, all over the coffee-growing world). As green buyers, they partner with established coffee producers at home (see: Sebastian Ramirez) and connect them to movers and shakers in the roasting industry in the US, helping to forge more meaningful relationships between producers and patrons.</span><b></b></p>\n<p dir=\"ltr\"><span>To further this initiative, Unblended has spearheaded the Young Producer Program in Colombia: a cooperative program that pairs seasoned producers with young mentees who are pursuing their passion for specialty coffee. This initiative allows young producers to learn from and experiment with successful coffee farmers, blending their small, experimental batches with larger lots from the mentors' farms, which ensures those experimental lots have a home.</span><b></b></p>\n<p dir=\"ltr\"><span><strong>TRUST THE PROCESS |</strong> </span><span>This blend is composed of several lots from both young producers and storied coffee farmers alike, each of which underwent various iterations of experimental processing methods.</span><b></b></p>\n<p dir=\"ltr\"><span><strong>TAKE A SIP |</strong> </span><span>By using several lots at very specific percentages, the folks at Unblended hope to balance fermentation impact and complexity with sweetness and approachability. The result is a cup that's both fruity and sweet, like summer strawberries, as well as round and smooth, like craft chocolate. Tropical notes, like mango, hint at some of those lots which underwent more extensive fermentation. Complex but still crowd-pleasing, this blend is a celebration of the excellence that already exists in specialty coffee production in Colombia, and also an enthusiastic high five to the next generation of producers in that region</span></p>\n<p><strong>Producers |</strong> <meta charset=\"utf-8\"><span>YCA | Young Producers Project</span></p>\n<p><strong>Process |</strong> various</p>\n<p><strong>Variety |</strong> <meta charset=\"utf-8\"><span>Castillo, Caturra, Colombia</span></p>",
+      "published_at": "2026-06-01T11:59:05-04:00",
+      "created_at": "2026-05-28T11:45:22-04:00",
+      "updated_at": "2026-06-16T05:29:53-04:00",
+      "vendor": "Black & White Coffee Roasters",
+      "product_type": "Instant Coffee",
+      "tags": [
+        "retail"
+      ],
+      "variants": [
+        {
+          "id": 53337847267641,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-YPP-UNIN",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "18.50",
+          "grams": 54,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 10218012344633,
+          "created_at": "2026-05-28T11:45:22-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 53312365920569,
+          "created_at": "2026-04-01T13:00:34-04:00",
+          "position": 1,
+          "updated_at": "2026-04-01T13:00:35-04:00",
+          "product_id": 10218012344633,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/UnblendedYoungProducers_onlinecard_4x_f7712372-0b94-4116-9c6e-217ed99f9c29.png?v=1775062835",
+          "width": 712,
+          "height": 712
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10173726753081,
+      "title": "Oscar Hernandez - Grand Reserve DRD",
+      "handle": "r-oscar-hernandez-grand-reserve-drd",
+      "body_html": "<p dir=\"ltr\"><strong>MEET THE PRODUCER | </strong><span>Established by patriarch Ricardo Hernández in 1952, Los Nogales is a storied coffee farm located on the hills of Pitalito. Here, the Hernandez family have spent decades striving to combine tradition with innovation in order to produce some of the best specialty coffee in Huila. Ricardo and his wife, Concepción, welcomed eight children in that very countryside while building their dream—but it was the baby of the family, Ricaurte Hernández, who stood out as the one destined to take over the family business. Ricaurte was a born entrepreneur, in love with the land and obsessed with innovation. Together with his wife, Suldery, he set about building a bonafide coffee empire in Huila—one he hoped his own children would love and shepherd someday.</span></p>\n<p dir=\"ltr\"><span>Today, the farm is stewarded by Oscar Hernández, a third generation producer who is following in his grandfather's footsteps and championing his father's efforts. Like his dad, Oscar remains dedicated to modernization and innovative processing techniques. His own background in environmental management has led Oscar to emphasize sustainable farming practices at Los Nogales as well, helping to transform the farm into a modern, sustainable coffee powerhouse that will stand ready for the next generation of capable Hernández hands.</span></p>\n<p dir=\"ltr\"><strong>TRUST THE PROCESS | </strong><span>Originally coined by the Hartman family in Panama about 10 years ago, DRD stands for “dark-room dried,” and it refers to the process of drying coffee very slowly in a UV-free environment, often with tight temperature and humidity controls. The result is a naturally processed coffee that could almost be mistaken for a washed lot at the cupping table, and it’s quite an impressive feat for the funk masters at Nogales!</span><b></b></p>\n<p dir=\"ltr\"><strong>TAKE A SIP | </strong><span>Boasting complex florals and a vibrant acidity, this coffee showcases variety characteristics while keeping the processing influence subtle. You can taste the play between the two as stone fruit, like peaches, and tropical fruit, like pineapple. The finish is long and tea-like, reminding us of oolong.</span><b></b></p>\n<p dir=\"ltr\"><strong>Origin | </strong><span>Bruselas, Huila, Colombia</span></p>\n<p dir=\"ltr\"><strong>Producer | </strong><span>Oscar </span><span>Hernández</span></p>\n<p dir=\"ltr\"><span><strong>Farm |</strong> </span><span>Los Nogales</span></p>\n<p dir=\"ltr\"><span><strong>Process |</strong> </span><span>Cold Room Natural</span></p>\n<p dir=\"ltr\"><span><strong>Variety |</strong> </span><span>Gesha</span></p>\n<p><b id=\"docs-internal-guid-08871d33-7fff-9125-476a-ce5ad72ee13a\"><span>Elevation | </span></b>1750 MASL</p>",
+      "published_at": "2026-05-29T11:06:00-04:00",
+      "created_at": "2026-04-14T10:14:51-04:00",
+      "updated_at": "2026-06-16T05:29:53-04:00",
+      "vendor": "Black & White Coffee Roasters",
+      "product_type": "Retail SO",
+      "tags": [
+        "Colombia",
+        "Natural"
+      ],
+      "variants": [
+        {
+          "id": 52130789425465,
+          "title": "100g",
+          "option1": "100g",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-OsH-GR10",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "16.00",
+          "grams": 100,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 10173726753081,
+          "created_at": "2026-04-14T10:14:51-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 52130789458233,
+          "title": "12oz",
+          "option1": "12oz",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-OsH-GR12",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "35.00",
+          "grams": 354,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 10173726753081,
+          "created_at": "2026-04-14T10:14:51-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 52130789491001,
+          "title": "2lb",
+          "option1": "2lb",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-OsH-GR02",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "85.00",
+          "grams": 939,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 10173726753081,
+          "created_at": "2026-04-14T10:14:51-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        },
+        {
+          "id": 52130789523769,
+          "title": "5lb",
+          "option1": "5lb",
+          "option2": null,
+          "option3": null,
+          "sku": "BWSO-OsH-GR05",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "221.00",
+          "grams": 2311,
+          "compare_at_price": null,
+          "position": 4,
+          "product_id": 10173726753081,
+          "created_at": "2026-04-14T10:14:51-04:00",
+          "updated_at": "2026-06-16T05:29:53-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 53375495012665,
+          "created_at": "2026-04-14T10:15:56-04:00",
+          "position": 1,
+          "updated_at": "2026-04-14T10:16:15-04:00",
+          "product_id": 10173726753081,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/OscarHernandezGrandReserveDRD_onlinecards_4x_3c2511c3-6210-401d-8bfb-1ac00679e28e.png?v=1776176175",
+          "width": 712,
+          "height": 712
+        },
+        {
+          "id": 53375493767481,
+          "created_at": "2026-04-14T10:15:45-04:00",
+          "position": 2,
+          "updated_at": "2026-04-14T10:16:15-04:00",
+          "product_id": 10173726753081,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/2988/2574/files/OscarHernandez_GrandReserveDRD_whitebackground.jpg?v=1776176175",
+          "width": 2048,
+          "height": 2048
+        }
+      ],
+      "options": [
+        {
+          "name": "Size",
+          "position": 1,
+          "values": [
+            "100g",
+            "12oz",
+            "2lb",
+            "5lb"
+          ]
+        }
+      ]
+    }
+  ]
+}

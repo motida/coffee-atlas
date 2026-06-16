@@ -11,6 +11,7 @@ EXPECTED_TABLES = [
     "dist_trade_routes",
     "dist_certifications",
     "shop_shops",
+    "prod_products",
     "edges_variety_flavor",
     "edges_country_variety",
     "edges_region_variety",
@@ -21,6 +22,14 @@ EXPECTED_TABLES = [
     "edges_processing_flavor",
     "edges_country_region",
     "edges_region_farm",
+    "edges_product_variety",
+    "edges_product_region",
+    "edges_product_country",
+    "edges_product_flavor",
+    "edges_product_roast",
+    "edges_shop_product",
+    "edges_roaster_product",
+    "edges_shop_roaster",
     "ontology_triples",
 ]
 

@@ -6,11 +6,12 @@
 
 <http://coffeeatlas.org/ontology> a owl:Ontology ;
     rdfs:label "Coffee Atlas Ontology" ;
-    rdfs:comment "Master ontology for the Coffee Atlas knowledge graph. Imports domain modules for varieties, origins, processing, roasting, flavor, distribution, and shops." ;
+    rdfs:comment "Master ontology for the Coffee Atlas knowledge graph. Imports domain modules for varieties, origins, processing, roasting, flavor, distribution, shops, and products." ;
     owl:imports <http://coffeeatlas.org/ontology/varieties> ,
                 <http://coffeeatlas.org/ontology/origins> ,
                 <http://coffeeatlas.org/ontology/processing> ,
                 <http://coffeeatlas.org/ontology/roasting> ,
                 <http://coffeeatlas.org/ontology/flavor> ,
                 <http://coffeeatlas.org/ontology/distribution> ,
-                <http://coffeeatlas.org/ontology/shops> .
+                <http://coffeeatlas.org/ontology/shops> ,
+                <http://coffeeatlas.org/ontology/products> .

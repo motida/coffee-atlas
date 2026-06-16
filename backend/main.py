@@ -16,6 +16,7 @@ from backend.routers import (
     flavor,
     distribution,
     shops,
+    products,
     graph,
     search,
 )
@@ -51,6 +52,7 @@ app.include_router(roasting.router)
 app.include_router(flavor.router)
 app.include_router(distribution.router)
 app.include_router(shops.router)
+app.include_router(products.router)
 app.include_router(graph.router)
 app.include_router(search.router)
 

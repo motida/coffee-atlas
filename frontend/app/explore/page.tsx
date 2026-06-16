@@ -15,9 +15,10 @@ const ENTITY_TYPES = [
   { id: "processing", label: "Processing" },
   { id: "shop", label: "Shops" },
   { id: "roast_profile", label: "Roasts" },
+  { id: "product", label: "Products" },
 ] as const;
 
-const SEMANTIC_TYPES = new Set(["variety", "flavor", "shop", "roast_profile"]);
+const SEMANTIC_TYPES = new Set(["variety", "flavor", "shop", "roast_profile", "product"]);
 
 // Species is a variety-only structured field, not a free-text term — filtering
 // by it scopes results to varieties of that species.
@@ -30,6 +31,7 @@ const TYPE_LINK: Record<string, (id: string) => string> = {
   region: (id) => `/explore/regions/${id}`,
   processing: (id) => `/explore/processing/${id}`,
   shop: (id) => `/explore/shops/${id}`,
+  product: (id) => `/explore/products/${id}`,
 };
 
 const TYPE_BADGE: Record<string, string> = {
@@ -40,6 +42,7 @@ const TYPE_BADGE: Record<string, string> = {
   processing: "bg-sky-100 text-sky-800",
   shop: "bg-coffee-200 text-coffee-900",
   roast_profile: "bg-orange-100 text-orange-800",
+  product: "bg-indigo-100 text-indigo-800",
 };
 
 const titleCase = (s: string) =>

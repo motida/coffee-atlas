@@ -13,9 +13,10 @@ from each profile's suitability rule; the property graph below stitches
 them together with the edges above into a single connected graph that links
 the geographic hierarchy to the variety/flavor/processing/roasting clusters.
 
-Edges still blocked on data we don't yet have: shop -> variety (shop data
-carries no variety references) and processing -> flavor (no source linking
-the two).
+The products domain (see backend.ingest.product_edges, invoked here) brings
+shops and roasters into the graph and, via shop -> product -> variety, finally
+populates shop -> variety — which used to be blocked for lack of any link
+between shop data and varieties.
 
 A DuckPGQ PROPERTY GRAPH is defined for parity with the architecture
 spec, but the HTTP endpoints do not depend on it — they query the edge
@@ -29,6 +30,7 @@ from dataclasses import dataclass
 import duckdb
 
 from backend.db.connection import get_connection
+from backend.ingest.product_edges import resolve_product_edges
 
 VARIETY_FLAVOR_TOP_K: int = 5
 VARIETY_FLAVOR_THRESHOLD: float = 0.4
@@ -39,6 +41,7 @@ class GraphCounts:
     country_region: int
     region_farm: int
     variety_flavor: int
+    product_edges: int
     property_graph_ok: bool
 
 
@@ -120,7 +123,10 @@ CREATE PROPERTY GRAPH coffee_graph
     org_farms,
     flav_attributes,
     proc_methods,
-    roast_profiles
+    roast_profiles,
+    prod_products,
+    roast_roasters,
+    shop_shops
   )
   EDGE TABLES (
     edges_country_region
@@ -146,6 +152,33 @@ CREATE PROPERTY GRAPH coffee_graph
       DESTINATION KEY (method_id) REFERENCES proc_methods (id),
     edges_roast_variety
       SOURCE KEY (profile_id) REFERENCES roast_profiles (id)
+      DESTINATION KEY (variety_id) REFERENCES var_varieties (id),
+    edges_product_variety
+      SOURCE KEY (product_id) REFERENCES prod_products (id)
+      DESTINATION KEY (variety_id) REFERENCES var_varieties (id),
+    edges_product_region
+      SOURCE KEY (product_id) REFERENCES prod_products (id)
+      DESTINATION KEY (region_id) REFERENCES org_regions (id),
+    edges_product_country
+      SOURCE KEY (product_id) REFERENCES prod_products (id)
+      DESTINATION KEY (country_id) REFERENCES org_countries (id),
+    edges_product_flavor
+      SOURCE KEY (product_id) REFERENCES prod_products (id)
+      DESTINATION KEY (flavor_id) REFERENCES flav_attributes (id),
+    edges_product_roast
+      SOURCE KEY (product_id) REFERENCES prod_products (id)
+      DESTINATION KEY (profile_id) REFERENCES roast_profiles (id),
+    edges_roaster_product
+      SOURCE KEY (roaster_id) REFERENCES roast_roasters (id)
+      DESTINATION KEY (product_id) REFERENCES prod_products (id),
+    edges_shop_roaster
+      SOURCE KEY (shop_id) REFERENCES shop_shops (id)
+      DESTINATION KEY (roaster_id) REFERENCES roast_roasters (id),
+    edges_shop_product
+      SOURCE KEY (shop_id) REFERENCES shop_shops (id)
+      DESTINATION KEY (product_id) REFERENCES prod_products (id),
+    edges_shop_variety
+      SOURCE KEY (shop_id) REFERENCES shop_shops (id)
       DESTINATION KEY (variety_id) REFERENCES var_varieties (id)
   )
 """
@@ -179,6 +212,8 @@ def run_graph_stage(
     try:
         cr, rf = populate_geo_edges(conn)
         vf = populate_variety_flavor_edges(conn, top_k=top_k, threshold=threshold)
+        pe = resolve_product_edges(conn)
+        product_edges = sum(pe.__dict__.values())
         ok = create_property_graph(conn)
     finally:
         if owns_conn:
@@ -188,6 +223,7 @@ def run_graph_stage(
         country_region=cr,
         region_farm=rf,
         variety_flavor=vf,
+        product_edges=product_edges,
         property_graph_ok=ok,
     )
 
@@ -198,5 +234,6 @@ if __name__ == "__main__":
         f"country->region: {counts.country_region}, "
         f"region->farm: {counts.region_farm}, "
         f"variety<->flavor: {counts.variety_flavor}, "
+        f"product_edges: {counts.product_edges}, "
         f"property_graph: {'ok' if counts.property_graph_ok else 'skipped'}"
     )
