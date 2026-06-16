@@ -14,6 +14,9 @@ const ENTITY_COLORS: Record<string, string> = {
   flavor: "#f43f5e",
   processing: "#8b5cf6",
   roast_profile: "#b45309",
+  product: "#6366f1",
+  roaster: "#c026d3",
+  shop: "#0891b2",
 };
 
 const EDGE_TYPES: { id: string; label: string }[] = [
@@ -25,6 +28,15 @@ const EDGE_TYPES: { id: string; label: string }[] = [
   { id: "variety_processing", label: "Variety → Processing" },
   { id: "variety_flavor", label: "Variety → Flavor" },
   { id: "roast_variety", label: "Roast → Variety" },
+  { id: "product_variety", label: "Product → Variety" },
+  { id: "product_country", label: "Product → Country" },
+  { id: "product_region", label: "Product → Region" },
+  { id: "product_flavor", label: "Product → Flavor" },
+  { id: "product_roast", label: "Product → Roast" },
+  { id: "roaster_product", label: "Roaster → Product" },
+  { id: "shop_roaster", label: "Shop → Roaster" },
+  { id: "shop_product", label: "Shop → Product" },
+  { id: "shop_variety", label: "Shop → Variety" },
 ];
 
 const ENTITY_DETAIL_URL: Record<string, (id: string) => string | null> = {
@@ -32,12 +44,15 @@ const ENTITY_DETAIL_URL: Record<string, (id: string) => string | null> = {
   flavor: (id) => `/explore/flavors/${id}`,
   country: (id) => `/explore/countries/${id}`,
   region: (id) => `/explore/regions/${id}`,
+  product: (id) => `/explore/products/${id}`,
+  shop: (id) => `/explore/shops/${id}`,
   farm: () => null,
   processing: () => null,
   roast_profile: () => null,
+  roaster: () => null,
 };
 
-const SEED_SEARCH_TYPES = ["variety", "country", "region", "flavor", "roast_profile"];
+const SEED_SEARCH_TYPES = ["variety", "country", "region", "flavor", "roast_profile", "product"];
 
 interface SimNode extends d3.SimulationNodeDatum {
   id: string;
@@ -388,7 +403,7 @@ export default function GraphViewer() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search a variety, country, region, or flavor…"
+            placeholder="Search a variety, country, region, flavor, or product…"
             className="mt-2 w-full rounded border border-coffee-200 px-3 py-1.5 text-sm focus:border-coffee-500 focus:outline-none"
           />
           {searchResults.length > 0 && (

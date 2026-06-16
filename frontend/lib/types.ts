@@ -150,6 +150,25 @@ export interface Shop extends Timestamped {
   description: string | null;
 }
 
+// --- Products ---
+export interface Product extends Timestamped {
+  name: string;
+  roaster_id: string | null;
+  roaster_name: string | null;
+  roast_level: string | null;
+  process: string | null;
+  is_blend: boolean | null;
+  price: number | null;
+  net_weight_grams: number | null;
+  url: string | null;
+  description: string | null;
+}
+
+export interface ProductOrigin {
+  countries: { id: string; name: string }[];
+  regions: { id: string; name: string }[];
+}
+
 // --- Geo properties ---
 export interface CountryGeoProperties {
   id: string;
