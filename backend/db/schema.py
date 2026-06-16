@@ -169,6 +169,24 @@ TABLES: list[str] = [
         updated_at TIMESTAMP DEFAULT current_timestamp
     )
     """,
+    # --- Products domain ---
+    """
+    CREATE TABLE IF NOT EXISTS prod_products (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        roaster_id TEXT REFERENCES roast_roasters(id),
+        roast_level TEXT,
+        process TEXT,
+        is_blend BOOLEAN,
+        price DOUBLE,
+        net_weight_grams INTEGER,
+        url TEXT,
+        description TEXT,
+        description_embedding FLOAT[3072],
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
     # --- Edge tables (for DuckPGQ property graph) ---
     """
     CREATE TABLE IF NOT EXISTS edges_variety_flavor (
@@ -258,6 +276,81 @@ TABLES: list[str] = [
         id TEXT PRIMARY KEY,
         region_id TEXT REFERENCES org_regions(id),
         farm_id TEXT REFERENCES org_farms(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    # --- Product edge tables ---
+    """
+    CREATE TABLE IF NOT EXISTS edges_product_variety (
+        id TEXT PRIMARY KEY,
+        product_id TEXT REFERENCES prod_products(id),
+        variety_id TEXT REFERENCES var_varieties(id),
+        share DOUBLE,
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_product_region (
+        id TEXT PRIMARY KEY,
+        product_id TEXT REFERENCES prod_products(id),
+        region_id TEXT REFERENCES org_regions(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_product_country (
+        id TEXT PRIMARY KEY,
+        product_id TEXT REFERENCES prod_products(id),
+        country_id TEXT REFERENCES org_countries(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_product_flavor (
+        id TEXT PRIMARY KEY,
+        product_id TEXT REFERENCES prod_products(id),
+        flavor_id TEXT REFERENCES flav_attributes(id),
+        strength DOUBLE,
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_product_roast (
+        id TEXT PRIMARY KEY,
+        product_id TEXT REFERENCES prod_products(id),
+        profile_id TEXT REFERENCES roast_profiles(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_shop_product (
+        id TEXT PRIMARY KEY,
+        shop_id TEXT REFERENCES shop_shops(id),
+        product_id TEXT REFERENCES prod_products(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_roaster_product (
+        id TEXT PRIMARY KEY,
+        roaster_id TEXT REFERENCES roast_roasters(id),
+        product_id TEXT REFERENCES prod_products(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_shop_roaster (
+        id TEXT PRIMARY KEY,
+        shop_id TEXT REFERENCES shop_shops(id),
+        roaster_id TEXT REFERENCES roast_roasters(id),
         created_at TIMESTAMP DEFAULT current_timestamp,
         updated_at TIMESTAMP DEFAULT current_timestamp
     )
