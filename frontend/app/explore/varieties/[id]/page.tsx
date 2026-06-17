@@ -10,6 +10,8 @@ import {
   Field,
   Section,
 } from "@/components/explore/EntityPage";
+import { AddCuppingNote } from "@/components/account/AddCuppingNote";
+import { FavoriteButton } from "@/components/account/FavoriteButton";
 import { useEntityDetail } from "@/lib/hooks";
 import type { FlavorAttribute, Variety } from "@/lib/types";
 
@@ -39,6 +41,12 @@ export default function VarietyPage({ params }: { params: { id: string } }) {
       type="Variety"
       title={variety.name}
       subtitle={[variety.species, variety.genetic_group].filter(Boolean).join(" · ") || undefined}
+      actions={
+        <>
+          <FavoriteButton entityType="variety" entityId={params.id} />
+          <AddCuppingNote entityType="variety" entityId={params.id} />
+        </>
+      }
     >
       <Section title="Agronomic profile">
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
