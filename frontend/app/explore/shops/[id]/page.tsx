@@ -11,6 +11,7 @@ import {
   ProductCard,
   Section,
 } from "@/components/explore/EntityPage";
+import { FavoriteButton } from "@/components/account/FavoriteButton";
 import { useEntityDetail } from "@/lib/hooks";
 import type { NearbyShop, Product, Shop } from "@/lib/types";
 
@@ -45,6 +46,7 @@ export default function ShopPage({ params }: { params: { id: string } }) {
       type="Shop"
       title={shop.name}
       subtitle={[shop.city, shop.country].filter(Boolean).join(", ") || undefined}
+      actions={<FavoriteButton entityType="shop" entityId={params.id} />}
     >
       <Section title="Details">
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">

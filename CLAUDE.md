@@ -12,7 +12,9 @@ Coffee Atlas is a full-stack geospatial application that maps the global coffee 
 
 - **Backend:** FastAPI (Python 3.14+)
 - **Frontend:** Next.js 14+ (App Router, TypeScript, Tailwind CSS)
-- **Database:** DuckDB (single-file today; Hive-partitioned Parquet export planned)
+- **Database:** DuckDB (single-file today; Hive-partitioned Parquet export planned) — the **read-only content store**
+- **User data store:** managed **Postgres** (provider-agnostic via `DATABASE_URL`) for everything user-owned (accounts, favorites, cupping notes). Separate from DuckDB because the content DB ships read-only into an ephemeral Space and can't take request-time writes. Accessed with psycopg 3 (sync) + a connection pool; raw SQL, no ORM. See `backend/db/pg.py` and `backend/db/pg_schema.py` (`usr_*` tables).
+- **Auth:** custom in FastAPI — bcrypt password hashing + signed JWT in an **httpOnly cookie** (`backend/services/auth.py`). No third-party provider.
 - **Graph Layer:** DuckPGQ extension is the target; **parked** on the current DuckDB build (the community `duckpgq` extension fails to load), so graph endpoints run BFS over relational edge tables
 - **Vector Search:** DuckDB VSS extension with HNSW indexing planned; semantic search runs an exact cosine scan over stored Gemini embeddings today (`gemini-embedding-001`, 3072 dims)
 - **Maps:** MapLibre GL JS (react-map-gl wrapper) with OpenFreeMap tiles
@@ -303,7 +305,25 @@ GET  /api/v1/graph/traverse              # Graph traversal (start_id, max_depth,
 GET  /api/v1/graph/path                  # Shortest path between two entities
 GET  /api/v1/search/semantic             # Semantic similarity search across all entities
 GET  /api/v1/search/text                 # Full-text search
+POST /api/v1/auth/register               # Create account, set session cookie
+POST /api/v1/auth/login                  # Log in, set session cookie
+POST /api/v1/auth/logout                 # Clear session cookie
+GET  /api/v1/auth/me                     # Current user (401 if not signed in)
+GET  /api/v1/account/favorites           # User's saved entities (?entity_type=)
+POST /api/v1/account/favorites           # Save an entity (idempotent; validates vs DuckDB)
+DELETE /api/v1/account/favorites/{id}    # Remove a saved entity (ownership-scoped)
+GET  /api/v1/account/notes               # User's cupping notes (?entity_type=&entity_id=)
+POST /api/v1/account/notes               # Add a cupping note (product/variety only)
+PATCH /api/v1/account/notes/{id}         # Update a cupping note (ownership-scoped)
+DELETE /api/v1/account/notes/{id}        # Delete a cupping note (ownership-scoped)
 ```
+
+> **Auth + activity (Postgres-backed).** `/auth/*` and `/account/*` live in
+> Postgres, not DuckDB. `/account/*` routes require the session cookie
+> (`get_current_user`) and are scoped `WHERE user_id = %s`. Write routes validate
+> the referenced `entity_id` exists in DuckDB (`require_entity`) before writing —
+> `entity_type` is resolved to a DuckDB table via the whitelists in
+> `backend/routers/_activity_entities.py`.
 
 ### Query Patterns
 - All list endpoints support `?limit=`, `?offset=`, `?sort=`, `?filter[field]=value`
@@ -364,8 +384,16 @@ GET  /api/v1/search/text                 # Full-text search
 ## Environment Variables
 
 ```env
-# Database
+# Database (read-only content store)
 DUCKDB_PATH=./data/coffee_atlas.duckdb
+
+# User data store (Postgres). Empty → content-only (auth/account disabled).
+DATABASE_URL=                      # postgresql://user:pass@host:5432/dbname
+
+# Auth (custom JWT-in-cookie). JWT_SECRET required when DATABASE_URL is set.
+JWT_SECRET=                        # python -c "import secrets;print(secrets.token_urlsafe(48))"
+COOKIE_SECURE=true                 # false for local http dev
+# JWT_ALGORITHM=HS256, ACCESS_TOKEN_TTL_MINUTES=10080, COOKIE_NAME=ca_session, COOKIE_SAMESITE=lax
 
 # APIs
 GEMINI_API_KEY=...

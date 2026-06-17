@@ -265,3 +265,36 @@ export interface SearchResult {
   description: string | null;
   similarity: number | null;
 }
+
+// --- Users & activity ---
+export interface User extends Timestamped {
+  email: string;
+  display_name: string | null;
+  is_active: boolean;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest extends LoginRequest {
+  display_name?: string | null;
+}
+
+export interface Favorite {
+  id: string;
+  user_id: string;
+  entity_type: string;
+  entity_id: string;
+  created_at: string;
+}
+
+export interface CuppingNote extends Timestamped {
+  user_id: string;
+  entity_type: string;
+  entity_id: string;
+  notes: string;
+  score: number | null;
+  brew_method: string | null;
+}

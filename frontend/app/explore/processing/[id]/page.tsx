@@ -14,6 +14,7 @@ import {
   Field,
   Section,
 } from "@/components/explore/EntityPage";
+import { FavoriteButton } from "@/components/account/FavoriteButton";
 import { useEntityDetail } from "@/lib/hooks";
 import { titleCase } from "@/lib/text";
 import type { ProcessingFlavorLink, ProcessingMethod, Variety } from "@/lib/types";
@@ -89,6 +90,7 @@ export default function ProcessingPage({ params }: { params: { id: string } }) {
       type="Processing method"
       title={method.name}
       subtitle={method.category ? titleCase(method.category) : undefined}
+      actions={<FavoriteButton entityType="processing" entityId={params.id} />}
     >
       <Section title="Process characteristics">
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">

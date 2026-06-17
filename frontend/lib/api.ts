@@ -1,14 +1,18 @@
 import type {
   Country,
+  CuppingNote,
+  Favorite,
   FlavorAttribute,
   FlavorWheelData,
   GeoJSONFeatureCollection,
   CountryGeoProperties,
+  LoginRequest,
   NearbyShop,
   ProcessingFlavorLink,
   ProcessingMethod,
   Product,
   ProductOrigin,
+  RegisterRequest,
   Region,
   RegionGeoProperties,
   Roaster,
@@ -18,6 +22,7 @@ import type {
   TradeRoute,
   TradeRouteGeoProperties,
   TraversalResult,
+  User,
   Variety,
 } from "./types";
 
@@ -27,10 +32,17 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
   const url = `${API_BASE}/api/v1${endpoint}`;
   const res = await fetch(url, {
     headers: { "Content-Type": "application/json" },
+    // Send/receive the httpOnly session cookie on every request. The JWT is
+    // never JS-readable (no Authorization header), which is the point.
+    credentials: "include",
     ...options,
   });
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
+  }
+  // 204 No Content (e.g. logout, delete) has no body to parse.
+  if (res.status === 204) {
+    return undefined as T;
   }
   return res.json();
 }
@@ -190,3 +202,55 @@ export const searchText = (
   fetchAPI<SearchResult[]>(
     buildSearchUrl("/search/text", query, limit, entityTypes, species),
   );
+
+// --- Auth ---
+const jsonBody = (body: unknown): RequestInit => ({
+  method: "POST",
+  body: JSON.stringify(body),
+});
+
+export const register = (body: RegisterRequest) =>
+  fetchAPI<User>("/auth/register", jsonBody(body));
+
+export const login = (body: LoginRequest) => fetchAPI<User>("/auth/login", jsonBody(body));
+
+export const logout = () => fetchAPI<void>("/auth/logout", { method: "POST" });
+
+export const getMe = () => fetchAPI<User>("/auth/me");
+
+// --- Account: favorites ---
+export const getFavorites = (entityType?: string) => {
+  const qs = entityType ? `?entity_type=${encodeURIComponent(entityType)}` : "";
+  return fetchAPI<Favorite[]>(`/account/favorites${qs}`);
+};
+
+export const addFavorite = (entityType: string, entityId: string) =>
+  fetchAPI<Favorite>("/account/favorites", jsonBody({ entity_type: entityType, entity_id: entityId }));
+
+export const removeFavorite = (id: string) =>
+  fetchAPI<void>(`/account/favorites/${id}`, { method: "DELETE" });
+
+// --- Account: cupping notes ---
+export const getNotes = (entityType?: string, entityId?: string) => {
+  const params = new URLSearchParams();
+  if (entityType) params.set("entity_type", entityType);
+  if (entityId) params.set("entity_id", entityId);
+  const qs = params.toString();
+  return fetchAPI<CuppingNote[]>(`/account/notes${qs ? `?${qs}` : ""}`);
+};
+
+export interface NoteInput {
+  entity_type: string;
+  entity_id: string;
+  notes: string;
+  score?: number | null;
+  brew_method?: string | null;
+}
+
+export const addNote = (body: NoteInput) => fetchAPI<CuppingNote>("/account/notes", jsonBody(body));
+
+export const updateNote = (id: string, body: Partial<Omit<NoteInput, "entity_type" | "entity_id">>) =>
+  fetchAPI<CuppingNote>(`/account/notes/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+
+export const deleteNote = (id: string) =>
+  fetchAPI<void>(`/account/notes/${id}`, { method: "DELETE" });

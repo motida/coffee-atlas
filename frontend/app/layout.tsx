@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
+import { AuthNav } from "@/components/AuthNav";
+import { AuthProvider } from "@/lib/auth-context";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://motidav-coffee-atlas-web.hf.space";
@@ -47,40 +49,43 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-coffee-50 text-gray-900">
-        <nav className="border-b border-coffee-200 bg-white">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-            <Link href="/" className="text-xl font-bold text-coffee-800">
-              Coffee Atlas
-            </Link>
-            <div className="flex gap-6">
-              <Link
-                href="/"
-                className="text-sm font-medium text-gray-600 hover:text-coffee-700"
-              >
-                Map
+        <AuthProvider>
+          <nav className="border-b border-coffee-200 bg-white">
+            <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+              <Link href="/" className="text-xl font-bold text-coffee-800">
+                Coffee Atlas
               </Link>
-              <Link
-                href="/explore"
-                className="text-sm font-medium text-gray-600 hover:text-coffee-700"
-              >
-                Explore
-              </Link>
-              <Link
-                href="/flavor"
-                className="text-sm font-medium text-gray-600 hover:text-coffee-700"
-              >
-                Flavor
-              </Link>
-              <Link
-                href="/graph"
-                className="text-sm font-medium text-gray-600 hover:text-coffee-700"
-              >
-                Graph
-              </Link>
+              <div className="flex items-center gap-6">
+                <Link
+                  href="/"
+                  className="text-sm font-medium text-gray-600 hover:text-coffee-700"
+                >
+                  Map
+                </Link>
+                <Link
+                  href="/explore"
+                  className="text-sm font-medium text-gray-600 hover:text-coffee-700"
+                >
+                  Explore
+                </Link>
+                <Link
+                  href="/flavor"
+                  className="text-sm font-medium text-gray-600 hover:text-coffee-700"
+                >
+                  Flavor
+                </Link>
+                <Link
+                  href="/graph"
+                  className="text-sm font-medium text-gray-600 hover:text-coffee-700"
+                >
+                  Graph
+                </Link>
+                <AuthNav />
+              </div>
             </div>
-          </div>
-        </nav>
-        <main>{children}</main>
+          </nav>
+          <main>{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );

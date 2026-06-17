@@ -9,7 +9,9 @@ Two free Docker Spaces, one per service:
 
 DuckDB is read-only at runtime, so the lack of persistent disk on the free tier
 is fine: the database file is built locally, committed via git-lfs, and shipped
-inside the image.
+inside the image. User-owned data (accounts, favorites, cupping notes) needs a
+concurrent-write, persistent store, so it lives in an external managed Postgres
+instead — see [User accounts & data](#user-accounts--data-postgres).
 
 ---
 
@@ -56,6 +58,14 @@ For each Space (`coffee-atlas-api` and `coffee-atlas-web`):
   bundled DB already holds the entity embeddings — this key is for embedding the
   query, not the stored rows — so it's also needed if you ever re-run the
   embeddings stage inside the Space.
+- `DATABASE_URL` (secret) — Postgres connection string for user accounts and
+  activity (see [User accounts & data](#user-accounts--data-postgres) below).
+  Leave unset to run the API content-only (auth/account routes disabled).
+- `JWT_SECRET` (secret) — signing key for session tokens. Generate with
+  `python -c "import secrets;print(secrets.token_urlsafe(48))"`. Required
+  whenever `DATABASE_URL` is set.
+- `COOKIE_SECURE` (variable, optional) — defaults to `true`. Keep `true` in
+  production (cookies only sent over HTTPS); the `*.hf.space` domain is HTTPS.
 
 **`coffee-atlas-web`** → Settings → Variables and secrets:
 
@@ -92,6 +102,41 @@ HF_USER=... ./deploy/huggingface/deploy.sh web      # frontend only
 
 Staging clones live under `deploy/huggingface/.staging/` and are reused on
 subsequent runs (incremental rsync + git push).
+
+---
+
+## User accounts & data (Postgres)
+
+User-owned data (accounts, saved favorites, cupping notes) **cannot** live in
+the DuckDB file: that file ships read-only inside the image and is rebuilt on
+every deploy, so any request-time write would be lost. Instead it lives in a
+**managed Postgres** reached at runtime via `DATABASE_URL` — entirely
+independent of `deploy.sh` and the git-lfs flow.
+
+1. **Provision Postgres.** Any provider works (the code is provider-agnostic):
+   - [Neon](https://neon.tech) — pairs tightest with a Vercel frontend; use the
+     pooled (`-pooler`) connection string.
+   - [Supabase](https://supabase.com) — use the connection string from
+     Project Settings → Database.
+2. **Set the two secrets** on the api Space (above): `DATABASE_URL` and
+   `JWT_SECRET`. They're runtime secrets — *not* build-time variables.
+3. **Tables auto-create on boot.** The app's lifespan runs `create_pg_tables`
+   (idempotent `CREATE TABLE IF NOT EXISTS` for the `usr_*` tables) on startup,
+   so there's no separate migration step for V1.
+
+The same `DATABASE_URL` + `JWT_SECRET` go in your local `.env` for development
+(with `COOKIE_SECURE=false` for local http). A local Postgres works too:
+
+```sh
+docker run -e POSTGRES_PASSWORD=pw -p 5432:5432 postgres:16
+# DATABASE_URL=postgresql://postgres:pw@localhost:5432/postgres
+```
+
+> **CORS note.** Because the browser talks only to the frontend (which proxies
+> `/api/v1/*` to the API server-side), the session cookie is first-party and
+> `SameSite=Lax` suffices. If you ever point the browser directly at the API
+> host, add that exact origin to `allow_origins` in `backend/main.py` and switch
+> the cookie to `SameSite=None; Secure` — never use `"*"` with credentials.
 
 ---
 
