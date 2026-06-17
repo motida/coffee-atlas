@@ -49,6 +49,29 @@ def verify_password(password: str, password_hash: str) -> bool:
     return bcrypt.checkpw(_pw_bytes(password), password_hash.encode("utf-8"))
 
 
+# A 256-bit (32-byte) key is the floor for HS256; ``secrets.token_urlsafe(48)``
+# yields ~64 chars. Length is a pragmatic proxy for entropy.
+JWT_SECRET_MIN_LENGTH = 32
+
+
+def validate_jwt_secret() -> None:
+    """Fail fast unless ``JWT_SECRET`` is set to a strong value.
+
+    HS256 signs every session token with this secret as the HMAC key, so an
+    empty or guessable secret lets anyone forge a valid session for any user.
+    Called at startup when the Postgres-backed auth/account routes are active —
+    the app refuses to boot rather than silently run forgeable auth.
+    """
+    if len(settings.JWT_SECRET) < JWT_SECRET_MIN_LENGTH:
+        raise RuntimeError(
+            "JWT_SECRET must be set to a strong random value of at least "
+            f"{JWT_SECRET_MIN_LENGTH} characters when the user/account features "
+            "are enabled (DATABASE_URL is set): an empty or weak secret lets "
+            "anyone forge session tokens. Generate one with:\n"
+            '  python -c "import secrets; print(secrets.token_urlsafe(48))"'
+        )
+
+
 def create_access_token(user_id: str) -> str:
     """Mint a signed JWT whose subject is the user id."""
     now = datetime.now(UTC)

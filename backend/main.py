@@ -25,6 +25,7 @@ from backend.routers import (
     graph,
     search,
 )
+from backend.services.auth import validate_jwt_secret
 
 
 @asynccontextmanager
@@ -38,6 +39,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # still boots (content-only) and auth/account routes 500 on use.
     pg_enabled = bool(settings.DATABASE_URL)
     if pg_enabled:
+        # Refuse to boot with a forgeable (empty/weak) JWT secret.
+        validate_jwt_secret()
         pool = init_pool()
         with pool.connection() as pg:
             create_pg_tables(pg)
