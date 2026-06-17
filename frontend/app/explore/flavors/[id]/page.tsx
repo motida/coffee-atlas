@@ -1,39 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getFlavorAttribute, graphTraverse } from "@/lib/api";
-import { EntityCard, EntityPage, Field, Section } from "@/components/explore/EntityPage";
+import {
+  CardGrid,
+  EntityCard,
+  EntityDetailLoader,
+  EntityPage,
+  Field,
+  Section,
+} from "@/components/explore/EntityPage";
+import { useEntityDetail } from "@/lib/hooks";
 import type { FlavorAttribute, GraphNode } from "@/lib/types";
 
 export default function FlavorPage({ params }: { params: { id: string } }) {
-  const [attribute, setAttribute] = useState<FlavorAttribute | null>(null);
   const [varieties, setVarieties] = useState<GraphNode[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { entity: attribute, error } = useEntityDetail<FlavorAttribute>(
+    params.id,
+    getFlavorAttribute,
+    (id) => {
+      graphTraverse(id, 1)
+        .then((res) => setVarieties(res.nodes.filter((n) => n.entity_type === "variety")))
+        .catch(() => setVarieties([]));
+    },
+  );
 
-  useEffect(() => {
-    getFlavorAttribute(params.id)
-      .then(setAttribute)
-      .catch((e) => setError(String(e)));
-    graphTraverse(params.id, 1)
-      .then((res) =>
-        setVarieties(res.nodes.filter((n) => n.entity_type === "variety")),
-      )
-      .catch(() => setVarieties([]));
-  }, [params.id]);
-
-  if (error) {
+  if (error || !attribute) {
     return (
-      <EntityPage type="Flavor" title="Not found">
-        <p className="text-sm text-red-600">{error}</p>
-      </EntityPage>
-    );
-  }
-
-  if (!attribute) {
-    return (
-      <EntityPage type="Flavor" title="Loading…">
-        <p className="text-sm text-gray-500">Loading flavor attribute…</p>
-      </EntityPage>
+      <EntityDetailLoader type="Flavor" error={error} loadingLabel="Loading flavor attribute…" />
     );
   }
 
@@ -63,11 +57,11 @@ export default function FlavorPage({ params }: { params: { id: string } }) {
         count={varieties.length}
         empty="No varieties linked to this flavor yet."
       >
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+        <CardGrid>
           {varieties.map((v) => (
             <EntityCard key={v.id} href={`/explore/varieties/${v.id}`} title={v.label} />
           ))}
-        </div>
+        </CardGrid>
       </Section>
     </EntityPage>
   );

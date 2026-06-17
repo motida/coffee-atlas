@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   getProcessingMethod,
   getProcessingMethodFlavor,
   getProcessingMethodVarieties,
 } from "@/lib/api";
-import { EntityCard, EntityPage, Field, Section } from "@/components/explore/EntityPage";
+import {
+  CardGrid,
+  EntityCard,
+  EntityDetailLoader,
+  EntityPage,
+  Field,
+  Section,
+} from "@/components/explore/EntityPage";
+import { useEntityDetail } from "@/lib/hooks";
 import { titleCase } from "@/lib/text";
 import type { ProcessingFlavorLink, ProcessingMethod, Variety } from "@/lib/types";
 
@@ -33,7 +41,7 @@ function FlavorGroup({
         </span>
         <span className="text-xs text-gray-400">({flavors.length})</span>
       </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+      <CardGrid>
         {flavors.map((f) => (
           <EntityCard
             key={f.id}
@@ -42,42 +50,34 @@ function FlavorGroup({
             subtitle={[f.category, f.subcategory].filter(Boolean).join(" · ") || undefined}
           />
         ))}
-      </div>
+      </CardGrid>
     </div>
   );
 }
 
 export default function ProcessingPage({ params }: { params: { id: string } }) {
-  const [method, setMethod] = useState<ProcessingMethod | null>(null);
   const [flavors, setFlavors] = useState<ProcessingFlavorLink[]>([]);
   const [varieties, setVarieties] = useState<Variety[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { entity: method, error } = useEntityDetail<ProcessingMethod>(
+    params.id,
+    getProcessingMethod,
+    (id) => {
+      getProcessingMethodFlavor(id)
+        .then(setFlavors)
+        .catch(() => setFlavors([]));
+      getProcessingMethodVarieties(id)
+        .then(setVarieties)
+        .catch(() => setVarieties([]));
+    },
+  );
 
-  useEffect(() => {
-    getProcessingMethod(params.id)
-      .then(setMethod)
-      .catch((e) => setError(String(e)));
-    getProcessingMethodFlavor(params.id)
-      .then(setFlavors)
-      .catch(() => setFlavors([]));
-    getProcessingMethodVarieties(params.id)
-      .then(setVarieties)
-      .catch(() => setVarieties([]));
-  }, [params.id]);
-
-  if (error) {
+  if (error || !method) {
     return (
-      <EntityPage type="Processing method" title="Not found">
-        <p className="text-sm text-red-600">{error}</p>
-      </EntityPage>
-    );
-  }
-
-  if (!method) {
-    return (
-      <EntityPage type="Processing method" title="Loading…">
-        <p className="text-sm text-gray-500">Loading processing method…</p>
-      </EntityPage>
+      <EntityDetailLoader
+        type="Processing method"
+        error={error}
+        loadingLabel="Loading processing method…"
+      />
     );
   }
 
@@ -129,7 +129,7 @@ export default function ProcessingPage({ params }: { params: { id: string } }) {
         count={varieties.length}
         empty="No varieties linked to this method yet."
       >
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+        <CardGrid>
           {varieties.map((v) => (
             <EntityCard
               key={v.id}
@@ -138,7 +138,7 @@ export default function ProcessingPage({ params }: { params: { id: string } }) {
               subtitle={[v.species, v.genetic_group].filter(Boolean).join(" · ") || undefined}
             />
           ))}
-        </div>
+        </CardGrid>
       </Section>
     </EntityPage>
   );
