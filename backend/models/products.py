@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel
+
+from backend.models._base import ReadModel
 
 
 class ProductBase(BaseModel):
@@ -15,8 +15,5 @@ class ProductBase(BaseModel):
     description: str | None = None
 
 
-class ProductRead(ProductBase):
-    id: str
+class ProductRead(ProductBase, ReadModel):
     roaster_name: str | None = None  # joined from roast_roasters
-    created_at: datetime
-    updated_at: datetime

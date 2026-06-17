@@ -3,30 +3,23 @@ from typing import Any
 import duckdb
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from backend.db.connection import fetchall_dicts, get_db
+from backend.db.columns import PRODUCT_COLS, VARIETY_COLS
+from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
 from backend.models.flavor import FlavorAttributeRead
 from backend.models.products import ProductRead
 from backend.models.varieties import VarietyRead
+from backend.routers._helpers import require_entity
 
 router = APIRouter(prefix="/api/v1/products", tags=["products"])
 
-# Product columns excluding the embedding vector, aliased to p for the join.
-_PRODUCT_COLS = (
-    "id, name, roaster_id, roast_level, process, is_blend, price, "
-    "net_weight_grams, url, description, created_at, updated_at"
-)
-_VARIETY_COLS = (
-    "id, name, species, genetic_group, description, yield_potential, "
-    "optimal_altitude_min, optimal_altitude_max, bean_size, cherry_color, "
-    "stature, disease_resistance, created_at, updated_at"
-)
+# Flavor columns excluding the embedding vector.
 _FLAVOR_COLS = (
     "id, name, category, subcategory, description, "
     "intensity_reference, sensory_reference, parent_id, created_at, updated_at"
 )
 
 _SELECT = (
-    f"SELECT {', '.join(f'p.{c}' for c in _PRODUCT_COLS.split(', '))}, r.name AS roaster_name "
+    f"SELECT {', '.join(f'p.{c}' for c in PRODUCT_COLS.split(', '))}, r.name AS roaster_name "
     "FROM prod_products p LEFT JOIN roast_roasters r ON p.roaster_id = r.id"
 )
 
@@ -54,16 +47,10 @@ def list_products(
 
 @router.get("/{product_id}", response_model=ProductRead)
 def get_product(product_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = db.execute(f"{_SELECT} WHERE p.id = ?", [product_id]).fetchone()
-    if not row:
+    row = fetchone_dict(db.execute(f"{_SELECT} WHERE p.id = ?", [product_id]))
+    if row is None:
         raise HTTPException(status_code=404, detail="Product not found")
-    columns = [desc[0] for desc in db.description]
-    return dict(zip(columns, row))
-
-
-def _require_product(db: duckdb.DuckDBPyConnection, product_id: str) -> None:
-    if not db.execute("SELECT 1 FROM prod_products WHERE id = ?", [product_id]).fetchone():
-        raise HTTPException(status_code=404, detail="Product not found")
+    return row
 
 
 @router.get("/{product_id}/varieties", response_model=list[VarietyRead])
@@ -71,8 +58,8 @@ def get_product_varieties(
     product_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 ) -> list[dict[str, Any]]:
     """Varieties this product consists of (single-origin: one; blend: several)."""
-    _require_product(db, product_id)
-    cols = ", ".join(f"v.{c}" for c in _VARIETY_COLS.split(", "))
+    require_entity(db, "prod_products", product_id, "Product")
+    cols = ", ".join(f"v.{c}" for c in VARIETY_COLS.split(", "))
     return fetchall_dicts(
         db.execute(
             f"""
@@ -90,7 +77,7 @@ def get_product_flavors(
     product_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 ) -> list[dict[str, Any]]:
     """Flavor attributes the product's tasting notes mention."""
-    _require_product(db, product_id)
+    require_entity(db, "prod_products", product_id, "Product")
     cols = ", ".join(f"f.{c}" for c in _FLAVOR_COLS.split(", "))
     return fetchall_dicts(
         db.execute(
@@ -109,7 +96,7 @@ def get_product_origin(
     product_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 ) -> dict[str, list[dict[str, Any]]]:
     """Origin countries and regions named by the product."""
-    _require_product(db, product_id)
+    require_entity(db, "prod_products", product_id, "Product")
     countries = fetchall_dicts(
         db.execute(
             """

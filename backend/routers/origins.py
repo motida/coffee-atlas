@@ -1,9 +1,10 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 import duckdb
 
-from backend.db.connection import fetchall_dicts, get_db
+from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
+from backend.db.geojson import feature_collection, point_feature
 from backend.models.origins import CountryRead, RegionRead
 
 router = APIRouter(prefix="/api/v1/origins", tags=["origins"])
@@ -28,15 +29,8 @@ def get_origins_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str
             "FROM org_countries WHERE latitude IS NOT NULL"
         )
     )
-    features = [
-        {
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
-            "properties": row,
-        }
-        for row in rows
-    ]
-    return {"type": "FeatureCollection", "features": features}
+    features = [point_feature(row["longitude"], row["latitude"], row) for row in rows]
+    return feature_collection(features)
 
 
 @router.get("/regions/geo")
@@ -52,34 +46,21 @@ def get_regions_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str
             """
         )
     )
-    features = [
-        {
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]},
-            "properties": row,
-        }
-        for row in rows
-    ]
-    return {"type": "FeatureCollection", "features": features}
+    features = [point_feature(row["longitude"], row["latitude"], row) for row in rows]
+    return feature_collection(features)
 
 
 @router.get("/regions/{region_id}", response_model=RegionRead)
 def get_region(region_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = db.execute("SELECT * FROM org_regions WHERE id = ?", [region_id]).fetchone()
-    if not row:
-        from fastapi import HTTPException
-
+    row = fetchone_dict(db.execute("SELECT * FROM org_regions WHERE id = ?", [region_id]))
+    if row is None:
         raise HTTPException(status_code=404, detail="Region not found")
-    columns = [desc[0] for desc in db.description]
-    return dict(zip(columns, row))
+    return row
 
 
 @router.get("/{origin_id}", response_model=CountryRead)
 def get_origin(origin_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = db.execute("SELECT * FROM org_countries WHERE id = ?", [origin_id]).fetchone()
-    if not row:
-        from fastapi import HTTPException
-
+    row = fetchone_dict(db.execute("SELECT * FROM org_countries WHERE id = ?", [origin_id]))
+    if row is None:
         raise HTTPException(status_code=404, detail="Origin not found")
-    columns = [desc[0] for desc in db.description]
-    return dict(zip(columns, row))
+    return row

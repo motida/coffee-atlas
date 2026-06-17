@@ -36,20 +36,43 @@ TEXT_SOURCES: list[tuple[str, str, str, str | None]] = [
     ("product", "prod_products", "name", "description"),
 ]
 
-# Semantic-search sources: (entity_type, table, label_col, desc_col_or_null,
-# embedding_col) — every table the embeddings stage populates.
+# The embedding column each entity type ranks against. Types absent here
+# (country, region) have no embeddings and so never take part in semantic search.
+EMBEDDING_COLS: dict[str, str] = {
+    "variety": "name_embedding",
+    "flavor": "name_embedding",
+    "processing": "description_embedding",
+    "shop": "description_embedding",
+    "roast_profile": "description_embedding",
+    "product": "description_embedding",
+}
+
+# Semantic-search sources derive from TEXT_SOURCES — the same tuples plus the
+# embedding column. Order is irrelevant; semantic results are re-sorted by
+# similarity below.
 SEMANTIC_SOURCES: list[tuple[str, str, str, str | None, str]] = [
-    ("variety", "var_varieties", "name", "description", "name_embedding"),
-    ("flavor", "flav_attributes", "name", "description", "name_embedding"),
-    ("processing", "proc_methods", "name", "description", "description_embedding"),
-    ("roast_profile", "roast_profiles", "name", "description", "description_embedding"),
-    ("shop", "shop_shops", "name", "description", "description_embedding"),
-    ("product", "prod_products", "name", "description", "description_embedding"),
+    (*src, EMBEDDING_COLS[src[0]]) for src in TEXT_SOURCES if src[0] in EMBEDDING_COLS
 ]
 
 
 def _per_source_limit(limit: int, n_sources: int) -> int:
     return max(5, (limit + n_sources - 1) // n_sources)
+
+
+def _select_sources[S: tuple](
+    sources: list[S], species: str | None, entity_types: list[str]
+) -> list[S]:
+    """Narrow a source list by the query filters.
+
+    ``species`` is a variety-only attribute, so requesting one scopes the whole
+    search to varieties, overriding any ``entity_types`` selection.
+    """
+    if species is not None:
+        return [s for s in sources if s[0] == "variety"]
+    if entity_types:
+        wanted = set(entity_types)
+        return [s for s in sources if s[0] in wanted]
+    return sources
 
 
 @router.get("/text", response_model=list[SearchResult])
@@ -60,15 +83,7 @@ def text_search(
     species: str | None = Query(None, description="Filter varieties by species (Arabica/Robusta)"),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> list[SearchResult]:
-    # species is a variety-only attribute, so asking for one scopes the whole
-    # search to varieties — overriding any other entity_types selection.
-    if species is not None:
-        sources = [s for s in TEXT_SOURCES if s[0] == "variety"]
-    elif entity_types:
-        wanted = set(entity_types)
-        sources = [s for s in TEXT_SOURCES if s[0] in wanted]
-    else:
-        sources = TEXT_SOURCES
+    sources = _select_sources(TEXT_SOURCES, species, entity_types)
     if not sources:
         return []
 
@@ -121,14 +136,7 @@ def semantic_search(
             query=query, limit=limit, entity_types=entity_types, species=species, db=db
         )
 
-    # species is variety-only, so it scopes the whole search to varieties.
-    if species is not None:
-        sources = [s for s in SEMANTIC_SOURCES if s[0] == "variety"]
-    elif entity_types:
-        wanted = set(entity_types)
-        sources = [s for s in SEMANTIC_SOURCES if s[0] in wanted]
-    else:
-        sources = SEMANTIC_SOURCES
+    sources = _select_sources(SEMANTIC_SOURCES, species, entity_types)
     if not sources:
         return []
 

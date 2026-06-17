@@ -13,21 +13,18 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 import duckdb
 
-from backend.db.connection import fetchall_dicts, get_db
+from backend.db.columns import VARIETY_COLS
+from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
 from backend.models.processing import ProcessingMethodRead
 from backend.models.varieties import VarietyRead
+from backend.routers._helpers import require_entity
 
 router = APIRouter(prefix="/api/v1/processing", tags=["processing"])
 
-# Explicit column lists: never ship the 3072-float embedding columns to clients.
+# Explicit column list: never ship the 3072-float embedding columns to clients.
 _METHOD_COLS = (
     "id, name, category, description, "
     "fermentation_duration, drying_duration, created_at, updated_at"
-)
-_VARIETY_COLS = (
-    "id, name, species, genetic_group, description, yield_potential, "
-    "optimal_altitude_min, optimal_altitude_max, bean_size, cherry_color, "
-    "stature, disease_resistance, created_at, updated_at"
 )
 
 
@@ -54,13 +51,12 @@ def list_methods(
 
 @router.get("/methods/{method_id}", response_model=ProcessingMethodRead)
 def get_method(method_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = db.execute(
-        f"SELECT {_METHOD_COLS} FROM proc_methods WHERE id = ?", [method_id]
-    ).fetchone()
-    if not row:
+    row = fetchone_dict(
+        db.execute(f"SELECT {_METHOD_COLS} FROM proc_methods WHERE id = ?", [method_id])
+    )
+    if row is None:
         raise HTTPException(status_code=404, detail="Processing method not found")
-    columns = [desc[0] for desc in db.description]
-    return dict(zip(columns, row))
+    return row
 
 
 @router.get("/methods/{method_id}/varieties", response_model=list[VarietyRead])
@@ -68,12 +64,11 @@ def get_method_varieties(
     method_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 ) -> list[dict[str, Any]]:
     """Varieties observed prepared with this processing method."""
-    if not db.execute("SELECT 1 FROM proc_methods WHERE id = ?", [method_id]).fetchone():
-        raise HTTPException(status_code=404, detail="Processing method not found")
+    require_entity(db, "proc_methods", method_id, "Processing method")
     return fetchall_dicts(
         db.execute(
             f"""
-            SELECT {", ".join(f"v.{c}" for c in _VARIETY_COLS.split(", "))}
+            SELECT {", ".join(f"v.{c}" for c in VARIETY_COLS.split(", "))}
             FROM var_varieties v
             JOIN edges_variety_processing e ON e.variety_id = v.id
             WHERE e.method_id = ?
@@ -89,8 +84,7 @@ def get_method_flavor(
     method_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 ) -> list[dict[str, Any]]:
     """Flavor attributes this method enhances or diminishes."""
-    if not db.execute("SELECT 1 FROM proc_methods WHERE id = ?", [method_id]).fetchone():
-        raise HTTPException(status_code=404, detail="Processing method not found")
+    require_entity(db, "proc_methods", method_id, "Processing method")
     return fetchall_dicts(
         db.execute(
             """

@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Query
 import duckdb
 
 from backend.db.connection import fetchall_dicts, get_db
+from backend.db.geojson import feature_collection, linestring_feature
 from backend.models.distribution import CertificationRead, ImporterRead, TradeRouteRead
 
 router = APIRouter(prefix="/api/v1/distribution", tags=["distribution"])
@@ -91,16 +92,12 @@ def get_trade_routes_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dic
         )
     )
     features = [
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "LineString",
-                "coordinates": [
-                    [row["exporter_lon"], row["exporter_lat"]],
-                    [row["importer_lon"], row["importer_lat"]],
-                ],
-            },
-            "properties": {
+        linestring_feature(
+            [
+                [row["exporter_lon"], row["exporter_lat"]],
+                [row["importer_lon"], row["importer_lat"]],
+            ],
+            {
                 "id": row["id"],
                 "exporter_id": row["exporter_id"],
                 "exporter_name": row["exporter_name"],
@@ -109,7 +106,7 @@ def get_trade_routes_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dic
                 "annual_volume": row["annual_volume"],
                 "year": row["year"],
             },
-        }
+        )
         for row in rows
     ]
-    return {"type": "FeatureCollection", "features": features}
+    return feature_collection(features)
