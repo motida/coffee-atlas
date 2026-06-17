@@ -72,6 +72,7 @@ deploy_api() {
     rsync -a --delete \
         --exclude '.git/' \
         --exclude '__pycache__/' \
+        --exclude 'data/' \
         "$REPO_ROOT/ontology/"  "$stage/ontology/"
     cp "$REPO_ROOT/pyproject.toml" "$stage/pyproject.toml"
     cp "$REPO_ROOT/uv.lock"        "$stage/uv.lock"
