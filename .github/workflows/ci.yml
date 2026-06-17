@@ -65,3 +65,69 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  deploy-api:
+    name: Deploy api Space to Hugging Face
+    needs: [backend] # gate the deploy on backend lint/types/tests passing
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so the change-detection diff below works
+
+      - name: Decide whether to deploy
+        id: decide
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HF_TOKEN:-}" ]; then
+            echo "::notice::HF_TOKEN secret not set — skipping api Space deploy. Add it under Settings → Secrets and variables → Actions."
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          base='${{ github.event.before }}'
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Only deploy when something the Space actually ships changed.
+          if git diff --name-only "$base" '${{ github.sha }}' \
+               | grep -Eq '^(backend/|ontology/|pyproject\.toml|uv\.lock|deploy/huggingface/api/)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No api-relevant changes in this push — skipping HF deploy."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install uv
+        if: steps.decide.outputs.run == 'true'
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Assemble Space layout (code only — the bundled DB stays on the Space)
+        if: steps.decide.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/hf-api"
+          mkdir -p "$stage"
+          rsync -a --exclude '__pycache__/' --exclude '*.pyc' --exclude '.pytest_cache/' \
+            backend/ "$stage/backend/"
+          # Exclude data/ (gitignored ontology scratch DuckDB) and any *.duckdb so a
+          # dirty checkout can never try to LFS-push a DB with a non-LFS deploy token.
+          rsync -a --exclude '__pycache__/' --exclude 'data/' --exclude '*.duckdb' \
+            ontology/ "$stage/ontology/"
+          cp pyproject.toml uv.lock "$stage/"
+          cp deploy/huggingface/api/Dockerfile     "$stage/Dockerfile"
+          cp deploy/huggingface/api/README.md      "$stage/README.md"
+          cp deploy/huggingface/api/.gitattributes "$stage/.gitattributes"
+          echo "STAGE=$stage" >> "$GITHUB_ENV"
+
+      - name: Upload to the Space (preserves data/coffee_atlas.duckdb)
+        if: steps.decide.outputs.run == 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_API_SPACE: ${{ vars.HF_API_SPACE || 'motidav/coffee-atlas-api' }}
+        run: |
+          uv run --no-project --with 'huggingface_hub>=0.25' \
+            python deploy/huggingface/push_api_space.py

@@ -6,7 +6,11 @@
 #   1. Create a Space named "coffee-atlas-api"  (SDK: Docker, hardware: CPU basic)
 #   2. Create a Space named "coffee-atlas-web"  (SDK: Docker, hardware: CPU basic)
 #   3. On the api Space → Settings → Variables and secrets:
-#        GEMINI_API_KEY  (secret) — only needed if you re-run embeddings on the Space
+#        GEMINI_API_KEY  (secret) — required at runtime for /api/v1/search/semantic
+#                        to embed the query and do real vector search. Without it,
+#                        that endpoint silently falls back to plain text (LIKE)
+#                        search. (The bundled DB already has the entity embeddings;
+#                        this key embeds the incoming query, not the stored rows.)
 #   4. On the web Space → Settings → Variables and secrets:
 #        BACKEND_URL  (variable) = https://<HF_USER>-coffee-atlas-api.hf.space
 #   5. Install git-lfs locally:  brew install git-lfs && git lfs install
@@ -68,6 +72,7 @@ deploy_api() {
     rsync -a --delete \
         --exclude '.git/' \
         --exclude '__pycache__/' \
+        --exclude 'data/' \
         "$REPO_ROOT/ontology/"  "$stage/ontology/"
     cp "$REPO_ROOT/pyproject.toml" "$stage/pyproject.toml"
     cp "$REPO_ROOT/uv.lock"        "$stage/uv.lock"
