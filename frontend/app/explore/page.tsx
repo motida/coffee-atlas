@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { getVarieties, searchSemantic, searchText } from "@/lib/api";
+import { ENTITY_CONFIG, entityHref } from "@/lib/entity-config";
+import { titleCase } from "@/lib/text";
 import type { SearchResult } from "@/lib/types";
 
 type Mode = "text" | "semantic";
@@ -23,30 +25,6 @@ const SEMANTIC_TYPES = new Set(["variety", "flavor", "shop", "roast_profile", "p
 // Species is a variety-only structured field, not a free-text term — filtering
 // by it scopes results to varieties of that species.
 const SPECIES_OPTIONS = ["Arabica", "Robusta"] as const;
-
-const TYPE_LINK: Record<string, (id: string) => string> = {
-  variety: (id) => `/explore/varieties/${id}`,
-  flavor: (id) => `/explore/flavors/${id}`,
-  country: (id) => `/explore/countries/${id}`,
-  region: (id) => `/explore/regions/${id}`,
-  processing: (id) => `/explore/processing/${id}`,
-  shop: (id) => `/explore/shops/${id}`,
-  product: (id) => `/explore/products/${id}`,
-};
-
-const TYPE_BADGE: Record<string, string> = {
-  variety: "bg-amber-100 text-amber-800",
-  flavor: "bg-rose-100 text-rose-800",
-  country: "bg-emerald-100 text-emerald-800",
-  region: "bg-teal-100 text-teal-800",
-  processing: "bg-sky-100 text-sky-800",
-  shop: "bg-coffee-200 text-coffee-900",
-  roast_profile: "bg-orange-100 text-orange-800",
-  product: "bg-indigo-100 text-indigo-800",
-};
-
-const titleCase = (s: string) =>
-  s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
 const SEMANTIC_HINTS = [
   "fruity floral light roast",
@@ -278,13 +256,13 @@ export default function ExplorePage() {
 
       <ul className="grid grid-cols-1 gap-2">
         {results.map((r) => {
-          const href = TYPE_LINK[r.entity_type]?.(r.id);
+          const href = entityHref(r.entity_type, r.id);
           const label =
             r.entity_type === "region" ? titleCase(r.label) : r.label;
           const card = (
             <div className="flex items-start gap-3 rounded-lg border border-coffee-200 bg-white px-4 py-3 transition hover:border-coffee-400 hover:bg-coffee-50">
               <span
-                className={`mt-0.5 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${TYPE_BADGE[r.entity_type] ?? "bg-gray-100 text-gray-700"}`}
+                className={`mt-0.5 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${ENTITY_CONFIG[r.entity_type]?.badge ?? "bg-gray-100 text-gray-700"}`}
               >
                 {r.entity_type}
               </span>

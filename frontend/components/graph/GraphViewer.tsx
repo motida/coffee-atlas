@@ -4,20 +4,8 @@ import * as d3 from "d3";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { graphTraverse, searchText } from "@/lib/api";
+import { ENTITY_CONFIG, entityColor, entityHref } from "@/lib/entity-config";
 import type { SearchResult } from "@/lib/types";
-
-const ENTITY_COLORS: Record<string, string> = {
-  variety: "#d4832d",
-  country: "#10b981",
-  region: "#14b8a6",
-  farm: "#f59e0b",
-  flavor: "#f43f5e",
-  processing: "#8b5cf6",
-  roast_profile: "#b45309",
-  product: "#6366f1",
-  roaster: "#c026d3",
-  shop: "#0891b2",
-};
 
 const EDGE_TYPES: { id: string; label: string }[] = [
   { id: "country_region", label: "Country → Region" },
@@ -38,19 +26,6 @@ const EDGE_TYPES: { id: string; label: string }[] = [
   { id: "shop_product", label: "Shop → Product" },
   { id: "shop_variety", label: "Shop → Variety" },
 ];
-
-const ENTITY_DETAIL_URL: Record<string, (id: string) => string | null> = {
-  variety: (id) => `/explore/varieties/${id}`,
-  flavor: (id) => `/explore/flavors/${id}`,
-  country: (id) => `/explore/countries/${id}`,
-  region: (id) => `/explore/regions/${id}`,
-  product: (id) => `/explore/products/${id}`,
-  shop: (id) => `/explore/shops/${id}`,
-  farm: () => null,
-  processing: () => null,
-  roast_profile: () => null,
-  roaster: () => null,
-};
 
 const SEED_SEARCH_TYPES = ["variety", "country", "region", "flavor", "roast_profile", "product"];
 
@@ -317,7 +292,7 @@ export default function GraphViewer() {
 
     allNodes
       .select("circle")
-      .attr("fill", (d) => ENTITY_COLORS[d.entity_type] ?? "#475569");
+      .attr("fill", (d) => entityColor(d.entity_type));
 
     allNodes
       .select("text")
@@ -385,11 +360,9 @@ export default function GraphViewer() {
     };
   }, []);
 
-  const detailHref = (() => {
-    if (!selectedNode) return null;
-    const builder = ENTITY_DETAIL_URL[selectedNode.entity_type];
-    return builder ? builder(selectedNode.id) : null;
-  })();
+  const detailHref = selectedNode
+    ? entityHref(selectedNode.entity_type, selectedNode.id)
+    : null;
 
   return (
     <div className="relative h-full w-full">
@@ -460,7 +433,7 @@ export default function GraphViewer() {
             Legend
           </div>
           <div className="mt-2 grid grid-cols-2 gap-1.5">
-            {Object.entries(ENTITY_COLORS).map(([type, color]) => (
+            {Object.entries(ENTITY_CONFIG).map(([type, { color }]) => (
               <div
                 key={type}
                 className="flex items-center gap-1.5 text-xs text-gray-700"

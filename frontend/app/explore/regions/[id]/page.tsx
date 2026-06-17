@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { getOrigin, getRegion, graphTraverse } from "@/lib/api";
 import { EntityPage, Field, Section } from "@/components/explore/EntityPage";
+import { titleCase } from "@/lib/text";
 import type { Country, GraphNode, Region } from "@/lib/types";
-
-const titleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
 export default function RegionPage({ params }: { params: { id: string } }) {
   const [region, setRegion] = useState<Region | null>(null);

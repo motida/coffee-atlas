@@ -8,9 +8,8 @@ import {
   getProductVarieties,
 } from "@/lib/api";
 import { EntityCard, EntityPage, Field, Section } from "@/components/explore/EntityPage";
+import { titleCase } from "@/lib/text";
 import type { FlavorAttribute, Product, ProductOrigin, Variety } from "@/lib/types";
-
-const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const [product, setProduct] = useState<Product | null>(null);

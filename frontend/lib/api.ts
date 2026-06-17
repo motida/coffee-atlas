@@ -1,11 +1,10 @@
 import type {
-  Certification,
   Country,
   FlavorAttribute,
   FlavorWheelData,
   GeoJSONFeatureCollection,
   CountryGeoProperties,
-  Importer,
+  NearbyShop,
   ProcessingFlavorLink,
   ProcessingMethod,
   Product,
@@ -77,13 +76,6 @@ export const getProcessingMethodVarieties = (id: string) =>
 export const getProcessingMethodFlavor = (id: string) =>
   fetchAPI<ProcessingFlavorLink[]>(`/processing/methods/${id}/flavor`);
 
-// --- Roasting ---
-export const getRoastProfiles = (limit = 20, offset = 0) =>
-  fetchAPI(`/roasting/profiles?limit=${limit}&offset=${offset}`);
-
-export const getRoastProfile = (id: string) =>
-  fetchAPI(`/roasting/profiles/${id}`);
-
 // --- Flavor ---
 export const getFlavorWheel = () => fetchAPI<FlavorWheelData>(`/flavor/wheel`);
 
@@ -91,14 +83,6 @@ export const getFlavorAttribute = (id: string) =>
   fetchAPI<FlavorAttribute>(`/flavor/attributes/${id}`);
 
 // --- Distribution ---
-export const getImporters = (limit = 20, offset = 0) =>
-  fetchAPI<Importer[]>(`/distribution/importers?limit=${limit}&offset=${offset}`);
-
-export const getCertifications = (limit = 20, offset = 0) =>
-  fetchAPI<Certification[]>(
-    `/distribution/certifications?limit=${limit}&offset=${offset}`,
-  );
-
 export const getTradeRoutes = (limit = 100, offset = 0) =>
   fetchAPI<TradeRoute[]>(
     `/distribution/trade-routes?limit=${limit}&offset=${offset}`,
@@ -127,7 +111,7 @@ export const getShopsGeo = (
 };
 
 export const getNearbyShops = (lat: number, lng: number, radiusKm = 5) =>
-  fetchAPI<(Shop & { distance_km: number })[]>(
+  fetchAPI<NearbyShop[]>(
     `/shops/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`,
   );
 

@@ -3,11 +3,7 @@
 import { useEffect, useState } from "react";
 import { getNearbyShops, getShop, getShopProducts } from "@/lib/api";
 import { EntityCard, EntityPage, Field, Section } from "@/components/explore/EntityPage";
-import type { Product, Shop } from "@/lib/types";
-
-interface NearbyShop extends Shop {
-  distance_km: number;
-}
+import type { NearbyShop, Product, Shop } from "@/lib/types";
 
 export default function ShopPage({ params }: { params: { id: string } }) {
   const [shop, setShop] = useState<Shop | null>(null);
@@ -22,9 +18,7 @@ export default function ShopPage({ params }: { params: { id: string } }) {
         if (s.latitude !== null && s.longitude !== null) {
           getNearbyShops(s.latitude, s.longitude, 5)
             .then((all) =>
-              setNearby(
-                (all as NearbyShop[]).filter((x) => x.id !== s.id).slice(0, 12),
-              ),
+              setNearby(all.filter((x) => x.id !== s.id).slice(0, 12)),
             )
             .catch(() => setNearby([]));
         }

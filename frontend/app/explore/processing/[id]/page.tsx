@@ -7,10 +7,8 @@ import {
   getProcessingMethodVarieties,
 } from "@/lib/api";
 import { EntityCard, EntityPage, Field, Section } from "@/components/explore/EntityPage";
+import { titleCase } from "@/lib/text";
 import type { ProcessingFlavorLink, ProcessingMethod, Variety } from "@/lib/types";
-
-const titleCase = (s: string) =>
-  s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
 function FlavorGroup({
   label,

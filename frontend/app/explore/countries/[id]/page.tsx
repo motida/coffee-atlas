@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getOrigin, graphTraverse } from "@/lib/api";
 import { EntityCard, EntityPage, Field, Section } from "@/components/explore/EntityPage";
+import { titleCase } from "@/lib/text";
 import type { Country, GraphNode } from "@/lib/types";
 
 export default function CountryPage({ params }: { params: { id: string } }) {
@@ -62,7 +63,7 @@ export default function CountryPage({ params }: { params: { id: string } }) {
             <EntityCard
               key={r.id}
               href={`/explore/regions/${r.id}`}
-              title={r.label.replace(/\b\w/g, (c) => c.toUpperCase())}
+              title={titleCase(r.label)}
             />
           ))}
         </div>
