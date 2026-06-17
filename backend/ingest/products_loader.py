@@ -196,6 +196,16 @@ def _canon_name(name: str) -> str:
     return " ".join(toks) or _norm_name(name)
 
 
+# Shopify `vendor` abbreviations → canonical roaster display name. Applied to the
+# resolved roaster name BEFORE dedup, so the node both displays a friendly name
+# and a future re-scrape maps the abbreviation to the same canonical row instead
+# of spawning a separate one (e.g. birdrockcoffee.com's vendor "BRCR Roasting").
+# Keyed by _norm_name(vendor).
+_VENDOR_ALIASES: dict[str, str] = {
+    "brcr roasting": "Bird Rock Coffee Roasters",
+}
+
+
 def _roaster_name_by_site(coffee_records: list[dict[str, Any]]) -> dict[str, str]:
     """Per site, the roaster name = modal vendor among its coffee products.
 
@@ -254,6 +264,7 @@ def load_products(
             continue  # skip before registering a roaster, so no product-less roaster node
         site = rec.get("site") or ""
         roaster_name = site_roaster.get(site) or _name_from_domain(site)
+        roaster_name = _VENDOR_ALIASES.get(_norm_name(roaster_name), roaster_name)
         canon = _canon_name(roaster_name)
         roaster_id = canon_to_id.get(canon)
         if roaster_id is None:
