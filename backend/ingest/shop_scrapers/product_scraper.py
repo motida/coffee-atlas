@@ -97,7 +97,8 @@ PROCESSES: dict[str, str] = {
 # purpose: "filter" is omitted because it collides with filter-roast coffee.
 _NON_COFFEE = re.compile(
     r"\b(gift\s*card|grinder|kettle|dripper|carafe|mug|tumbler|t-?shirt|apparel|"
-    r"tote|beanie|hat|sticker|book|hoodie|crewneck|subscription)\b",
+    r"tote|beanie|hat|sticker|book|hoodie|crewneck|subscription|"
+    r"vinyl|records?|albums?|wearables?)\b",
     re.I,
 )
 

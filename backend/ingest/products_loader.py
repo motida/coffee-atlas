@@ -79,12 +79,24 @@ _COFFEE_DRINK = re.compile(r"\bcold\s*brew\b", re.I)
 
 # Non-coffee product_type categories. These disqualify UNLESS the type string
 # also mentions coffee (some stores file a coffee under "...,Gifts" collections).
+# Roaster storefronts often double as record shops / merch stores (e.g.
+# tandemcoffee.com files 159 records under "Vinyl" and 25 items under
+# "Wearables"); the merchant's own product_type is the decisive signal.
 _NON_COFFEE_TYPE = re.compile(
     r"\b(tea|machine|grinder|equipment|brewers?|brewing|gear|accessor\w*|"
-    r"drinkware|merch\w*|apparel|logoware|supplies|warehouse|event|ticket|"
-    r"subscription|carbon\s*offset|alt\s*beverage|cleaning|gifts?)\b",
+    r"drinkware|merch\w*|apparel|wearables?|logoware|supplies|warehouse|event|ticket|"
+    r"subscription|carbon\s*offset|alt\s*beverage|cleaning|gifts?|"
+    r"vinyl|records?|albums?|music|cds?|media|kits?|books?)\b",
     re.I,
 )
+
+# Unambiguous non-coffee category TAGS. Record-shop / merch storefronts tag
+# items 'vinyl' / 'merch' even when product_type is blank (tandemcoffee.com has
+# 23 records with no product_type but a 'vinyl' tag). Kept deliberately narrow —
+# unlike product_type, tags also carry coffee collections (e.g. the same records
+# are tagged 'meta-related-collection-coffees'), so this must not screen on
+# 'gifts'/'subscription'/etc. that legitimately tag a coffee.
+_NON_COFFEE_TAG = re.compile(r"\b(vinyl|merch\w*|wearables?)\b", re.I)
 
 
 @dataclass
@@ -136,7 +148,17 @@ def classify_coffee(title: str, product_type: str | None, tags: list[str]) -> bo
     if _NON_COFFEE_BEVERAGE.search(title) and not _COFFEE_DRINK.search(title):
         return False
     pt = product_type or ""
-    if pt and _NON_COFFEE_TYPE.search(pt) and not re.search(r"coffee", pt, re.I):
+    # An explicit coffee product_type is a strong positive — trust it over the
+    # tag/type screens below. Stores mis-tag real coffee 'merch' (Cat & Cloud's
+    # "Instant Coffee 6 Pack", product_type "Coffee", carries a 'merch' tag), and
+    # some file a coffee under a "...,Gifts" collection type.
+    if pt and re.search(r"coffee", pt, re.I):
+        return True
+    # A 'vinyl'/'merch' category tag is decisive when product_type doesn't claim
+    # coffee (records with no product_type but a 'vinyl' tag).
+    if any(_NON_COFFEE_TAG.search(t) for t in tags):
+        return False
+    if pt and _NON_COFFEE_TYPE.search(pt):
         return False
     return True
 
@@ -219,6 +241,15 @@ _VENDOR_ALIASES: dict[str, str] = {
     "brcr roasting": "Bird Rock Coffee Roasters",
 }
 
+# Sites whose Shopify `vendor` field is NOT the roaster name, so the modal-vendor
+# attribution can't recover it. catandcloud.com files each coffee's tasting notes
+# as the vendor ("Lavender • Raspberry • Green Tea") and only puts "Cat & Cloud"
+# on merch — so once merch is filtered out, no product names the roaster. Keyed
+# by the www-stripped domain (see _name_from_domain); the override always wins.
+_SITE_ROASTER_OVERRIDES: dict[str, str] = {
+    "catandcloud.com": "Cat & Cloud",
+}
+
 
 def _roaster_name_by_site(coffee_records: list[dict[str, Any]]) -> dict[str, str]:
     """Per site, the roaster name = modal vendor among its coffee products.
@@ -277,7 +308,8 @@ def load_products(
         if not title:
             continue  # skip before registering a roaster, so no product-less roaster node
         site = rec.get("site") or ""
-        roaster_name = site_roaster.get(site) or _name_from_domain(site)
+        domain = _name_from_domain(site)
+        roaster_name = _SITE_ROASTER_OVERRIDES.get(domain) or site_roaster.get(site) or domain
         roaster_name = _VENDOR_ALIASES.get(_norm_name(roaster_name), roaster_name)
         canon = _canon_name(roaster_name)
         roaster_id = canon_to_id.get(canon)
