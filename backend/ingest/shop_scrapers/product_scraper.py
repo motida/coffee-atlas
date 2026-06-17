@@ -2,17 +2,21 @@
 
 Most specialty roasters run Shopify, which exposes a public ``/products.json``
 endpoint returning structured product data (title, body_html, tags, vendor,
-variants[].price/grams). That is the primary source here; a JSON-LD
-``@type: Product`` extractor is the fallback for non-Shopify sites.
+variants[].price/grams). That is the primary source here. The rest run
+WooCommerce, whose public Store API (``/wp-json/wc/store/v1/products``) returns
+a JSON array with comparable fields; that is the second structured source.
+A JSON-LD ``@type: Product`` extractor is the last-resort fallback for sites on
+neither platform.
 
 This stage only *fetches and normalizes* into ``ScrapedProduct`` records — it
 does not touch the database. Resolving the scraped text to graph entities
 (variety / origin / flavor / roast) and writing edges is the products_loader's
 job (it needs the populated org_*/var_*/flav_* tables).
 
-The pure extraction functions (extract_shopify, extract_jsonld, dedupe_products
-and the _detect_* helpers) are unit-tested against a saved fixture
-(tests/backend/fixtures/blackwhite_products.json) so the parsing logic is
+The pure extraction functions (extract_shopify, extract_woocommerce,
+extract_jsonld, dedupe_products and the _detect_* helpers) are unit-tested
+against saved fixtures (tests/backend/fixtures/{blackwhite_products,
+ritual_woocommerce,barrington_woocommerce}.json) so the parsing logic is
 exercised without hitting live sites.
 
 Resumable via a JSONL log at data/cache/product_scrape/<run_id>.jsonl — re-runs
@@ -43,6 +47,8 @@ USER_AGENT = "coffee-atlas-bot/0.1 (+https://huggingface.co/spaces/motidav/coffe
 REQUEST_TIMEOUT = 15.0
 MAX_DESCRIPTION_LEN = 1200
 SHOPIFY_PAGE_SIZE = 250  # Shopify's max page size for /products.json
+WOO_PRODUCTS_PATH = "/wp-json/wc/store/v1/products"  # WooCommerce Store API (public)
+WOO_PAGE_SIZE = 100  # the Store API's max per_page
 CACHE_DIR = Path("data/cache/product_scrape")
 DEFAULT_SITES_FILE = Path("data/raw/roaster_sites.txt")
 
@@ -104,6 +110,25 @@ _JSONLD_RE = re.compile(
     re.I | re.S,
 )
 
+# WooCommerce's raw `weight` omits the unit (it's store-configured), so net
+# weight is read from `formatted_weight` ("1.5 lbs"). Unit → grams.
+_WEIGHT_RE = re.compile(r"([\d.]+)\s*(lbs?|pounds?|ounces?|oz|kilograms?|kg|grams?|g)\b", re.I)
+_WEIGHT_TO_GRAMS: dict[str, float] = {
+    "lb": 453.592,
+    "lbs": 453.592,
+    "pound": 453.592,
+    "pounds": 453.592,
+    "oz": 28.3495,
+    "ounce": 28.3495,
+    "ounces": 28.3495,
+    "kg": 1000.0,
+    "kilogram": 1000.0,
+    "kilograms": 1000.0,
+    "g": 1.0,
+    "gram": 1.0,
+    "grams": 1.0,
+}
+
 
 @dataclass
 class ScrapedProduct:
@@ -121,7 +146,7 @@ class ScrapedProduct:
     roast_level: str | None = None
     process: str | None = None
     is_blend: bool = False
-    source: str = "shopify"  # "shopify" | "jsonld"
+    source: str = "shopify"  # "shopify" | "woocommerce" | "jsonld"
 
 
 # --------------------------------------------------------------------------
@@ -328,7 +353,7 @@ def _parse_jsonld_product(obj: dict[str, Any], site_url: str) -> ScrapedProduct 
 
 
 def extract_jsonld(html_text: str, site_url: str) -> list[ScrapedProduct]:
-    """Extract @type=Product JSON-LD from a single HTML page (Shopify fallback)."""
+    """Extract @type=Product JSON-LD from a single HTML page (last-resort fallback)."""
     out: list[ScrapedProduct] = []
     for match in _JSONLD_RE.finditer(html_text):
         try:
@@ -339,6 +364,143 @@ def extract_jsonld(html_text: str, site_url: str) -> list[ScrapedProduct]:
             product = _parse_jsonld_product(obj, site_url)
             if product is not None:
                 out.append(product)
+    return out
+
+
+# --- WooCommerce (Store API /wp-json/wc/store/v1/products) ---
+#
+# Shapes differ from Shopify in ways the helpers below absorb: tags/categories
+# are {name,...} objects (not csv strings) and the roast/flavor/origin signal is
+# split across both — one store tags it (Ritual), another files it as categories
+# like "Medium Roast" (Barrington). Prices are integer strings in the currency's
+# minor unit (cents). Net weight comes from `formatted_weight`, since raw
+# `weight` carries no unit.
+
+
+def _woo_names(items: Any) -> list[str]:
+    """Pull the display names out of a WooCommerce tags[] / categories[] array."""
+    out: list[str] = []
+    for item in items or []:
+        if isinstance(item, dict) and (name := (item.get("name") or "").strip()):
+            out.append(unescape(name))
+    return out
+
+
+def _woo_tag_pool(raw: dict[str, Any]) -> list[str]:
+    """Merge tags + categories into one flat list (the Shopify-style tag pool).
+
+    The signal we care about (roast / flavor / origin) lives in `tags` on some
+    stores and `categories` on others, so detection has to see both.
+    """
+    return _woo_names(raw.get("tags")) + _woo_names(raw.get("categories"))
+
+
+def _woo_price(prices: Any) -> float | None:
+    """Price in major units. WooCommerce reports integer strings in the minor
+    unit (cents); for a variable product the "from" price is price_range.min."""
+    if not isinstance(prices, dict):
+        return None
+    price_range = prices.get("price_range")
+    raw = price_range.get("min_amount") if isinstance(price_range, dict) else None
+    if raw is None:
+        raw = prices.get("price")
+    try:
+        minor = float(raw) if raw is not None else None
+    except TypeError, ValueError:
+        return None
+    if not minor or minor <= 0:  # ignore None / $0 placeholders
+        return None
+    unit = prices.get("currency_minor_unit")
+    divisor = 10**unit if isinstance(unit, int) and unit >= 0 else 100
+    return round(minor / divisor, 2)
+
+
+def _woo_grams(formatted_weight: Any) -> int | None:
+    """Parse `formatted_weight` ("1.5 lbs", "12 oz", "250 g") to grams.
+
+    An unrecognized or unit-less value (e.g. WooCommerce's "N/A") yields None
+    rather than a guess — the raw `weight` number can't be trusted without it.
+    """
+    if not isinstance(formatted_weight, str):
+        return None
+    match = _WEIGHT_RE.search(formatted_weight)
+    if not match:
+        return None
+    try:
+        value = float(match.group(1))
+    except ValueError:
+        return None
+    grams = value * _WEIGHT_TO_GRAMS[match.group(2).lower()]
+    return round(grams) if grams > 0 else None
+
+
+def _woo_roast_level(tag_pool: list[str]) -> str | None:
+    """Roast from a tag/category, tolerating the "<level> Roast" category form.
+
+    Matched per-tag (not as a substring search) so a flavor note like "dark
+    chocolate" can't be misread as a dark roast; the trailing "roast" word that
+    stores like Barrington append ("Medium Roast") is stripped before lookup.
+    """
+    for tag in tag_pool:
+        low = tag.strip().lower()
+        candidate = low
+        for suffix in (" roast", "-roast", " roasted"):
+            if low.endswith(suffix):
+                candidate = low[: -len(suffix)].strip()
+                break
+        level = ROAST_LEVELS.get(candidate)
+        if level:
+            return level
+    return None
+
+
+def _woo_roaster(brands: Any, site_url: str) -> str:
+    if isinstance(brands, list):
+        for brand in brands:
+            if isinstance(brand, dict) and (name := (brand.get("name") or "").strip()):
+                return unescape(name)
+    return _roaster_from_site(site_url)
+
+
+def parse_woocommerce_product(raw: dict[str, Any], site_url: str) -> ScrapedProduct | None:
+    """Normalize one WooCommerce Store API product. Returns None for non-coffee."""
+    title = unescape((raw.get("name") or "").strip())
+    if not title:
+        return None
+    tag_pool = _woo_tag_pool(raw)
+    if not looks_like_coffee(title, None, tag_pool):
+        return None
+
+    # Process is exact-matched against tags (clean) but also word-searched in the
+    # title, where stores like Barrington encode it ("Las Lajas Honey"). Roast is
+    # NOT searched in free text: "french" is a roast key a "French press" mention
+    # would trip, so it's read only from the tag/category pool.
+    process = detect_process(tag_pool) or _search_text(title, PROCESSES)
+
+    return ScrapedProduct(
+        roaster=_woo_roaster(raw.get("brands"), site_url),
+        title=title,
+        url=_safe_url(raw.get("permalink"), site_url),
+        description=_clean_html(raw.get("description") or raw.get("short_description")),
+        tags=tag_pool,
+        product_type=raw.get("type") or None,
+        channel=_channel(None, tag_pool),
+        price=_woo_price(raw.get("prices")),
+        net_weight_grams=_woo_grams(raw.get("formatted_weight")),
+        roast_level=_woo_roast_level(tag_pool),
+        process=process,
+        is_blend=is_blend(title, None, tag_pool),
+        source="woocommerce",
+    )
+
+
+def extract_woocommerce(payload: list[dict[str, Any]], site_url: str) -> list[ScrapedProduct]:
+    """Normalize a WooCommerce Store API products array into ScrapedProduct records."""
+    out: list[ScrapedProduct] = []
+    for raw in payload or []:
+        product = parse_woocommerce_product(raw, site_url)
+        if product is not None:
+            out.append(product)
     return out
 
 
@@ -406,6 +568,36 @@ async def _fetch_shopify(
     return raw[:max_products], last_status
 
 
+async def _fetch_woocommerce(
+    client: httpx.AsyncClient, site_url: str, max_products: int
+) -> tuple[list[dict[str, Any]], int | None]:
+    """Page through the WooCommerce Store API. Returns (raw_products, last_status).
+
+    Returns an empty list (not an error) for non-WooCommerce sites — the path
+    404s or serves an HTML page, both of which fall through to the next source.
+    """
+    raw: list[dict[str, Any]] = []
+    page = 1
+    last_status: int | None = None
+    while len(raw) < max_products:
+        url = f"{site_url}{WOO_PRODUCTS_PATH}?per_page={WOO_PAGE_SIZE}&page={page}"
+        resp = await client.get(url, timeout=REQUEST_TIMEOUT, follow_redirects=True)
+        last_status = resp.status_code
+        if resp.status_code >= 400 or "json" not in resp.headers.get("content-type", ""):
+            break
+        try:
+            batch = resp.json()
+        except ValueError, json.JSONDecodeError:
+            break
+        if not isinstance(batch, list) or not batch:
+            break
+        raw.extend(batch)
+        if len(batch) < WOO_PAGE_SIZE:  # last page
+            break
+        page += 1
+    return raw[:max_products], last_status
+
+
 async def scrape_site(
     client: httpx.AsyncClient,
     site_url: str,
@@ -425,7 +617,18 @@ async def scrape_site(
             products = dedupe_products(extract_shopify({"products": raw}, site_url))
             return SiteResult(site_url, "ok", products, _ms(started))
 
-        # No Shopify catalog — fall back to JSON-LD on the homepage.
+        # No Shopify catalog — try the WooCommerce Store API next.
+        try:
+            woo_raw, _ = await _fetch_woocommerce(client, site_url, max_products)
+        except (httpx.HTTPError, OSError) as e:
+            return SiteResult(
+                site_url, "fetch_error", [], _ms(started), f"{type(e).__name__}: {e}"[:200]
+            )
+        if woo_raw:
+            products = dedupe_products(extract_woocommerce(woo_raw, site_url))
+            return SiteResult(site_url, "ok", products, _ms(started))
+
+        # Neither structured catalog — fall back to JSON-LD on the homepage.
         try:
             resp = await client.get(site_url, timeout=REQUEST_TIMEOUT, follow_redirects=True)
         except (httpx.HTTPError, OSError) as e:
