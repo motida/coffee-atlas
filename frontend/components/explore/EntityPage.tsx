@@ -92,3 +92,32 @@ export function EntityCard({ href, title, subtitle }: EntityCardProps) {
     </Link>
   );
 }
+
+interface EntityDetailLoaderProps {
+  type: string;
+  error: string | null;
+  loadingLabel: string;
+}
+
+/** The shared not-found / loading state every entity detail page renders while
+ *  its main entity is unresolved. */
+export function EntityDetailLoader({ type, error, loadingLabel }: EntityDetailLoaderProps) {
+  return (
+    <EntityPage type={type} title={error ? "Not found" : "Loading…"}>
+      {error ? (
+        <p className="text-sm text-red-600">{error}</p>
+      ) : (
+        <p className="text-sm text-gray-500">{loadingLabel}</p>
+      )}
+    </EntityPage>
+  );
+}
+
+/** Responsive 1/2/3-column grid used for related-entity card lists. */
+export function CardGrid({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+      {children}
+    </div>
+  );
+}
