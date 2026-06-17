@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- [Python 3.14+](https://www.python.org/) (3.14.5 pinned via `.python-version`)
+- [Python 3.14+](https://www.python.org/) (3.14.6 pinned via `.python-version`)
 - [uv](https://docs.astral.sh/uv/) — Python package manager
 - [Node.js 20+](https://nodejs.org/)
 - [pyenv](https://github.com/pyenv/pyenv) (recommended for Python version management)
@@ -29,11 +29,23 @@ cp .env.example .env
 #   GEMINI_API_KEY — for embeddings and semantic search
 ```
 
-## 3. Initialize the database
+## 3. Initialize and seed the database
+
+The fastest path is the one-shot bootstrap — it installs deps, validates the
+ontology, creates the tables, exports triples, and runs the ingest pipeline:
 
 ```bash
-uv run python -m backend.db.schema
+just bootstrap
 ```
+
+To only create the (empty) tables without loading any data:
+
+```bash
+uv run python -m backend.db.schema   # or: just db-create
+```
+
+Bootstrap runs every stage except the network-heavy `shops`/`products`; see
+[Data Sources & Pipeline](DATA.md) for running those individually.
 
 ## 4. Run
 
