@@ -10,6 +10,7 @@ import {
   Field,
   Section,
 } from "@/components/explore/EntityPage";
+import { FavoriteButton } from "@/components/account/FavoriteButton";
 import { useEntityDetail } from "@/lib/hooks";
 import type { FlavorAttribute, GraphNode } from "@/lib/types";
 
@@ -36,6 +37,7 @@ export default function FlavorPage({ params }: { params: { id: string } }) {
       type="Flavor"
       title={attribute.name}
       subtitle={[attribute.category, attribute.subcategory].filter(Boolean).join(" · ") || undefined}
+      actions={<FavoriteButton entityType="flavor" entityId={params.id} />}
     >
       <Section title="Reference">
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">

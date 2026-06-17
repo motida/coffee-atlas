@@ -16,6 +16,8 @@ import {
   Field,
   Section,
 } from "@/components/explore/EntityPage";
+import { AddCuppingNote } from "@/components/account/AddCuppingNote";
+import { FavoriteButton } from "@/components/account/FavoriteButton";
 import { useEntityDetail } from "@/lib/hooks";
 import { titleCase } from "@/lib/text";
 import type { FlavorAttribute, Product, ProductOrigin, Variety } from "@/lib/types";
@@ -52,6 +54,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       type="Product"
       title={product.name}
       subtitle={[product.roaster_name, kind].filter(Boolean).join(" · ") || undefined}
+      actions={
+        <>
+          <FavoriteButton entityType="product" entityId={params.id} />
+          <AddCuppingNote entityType="product" entityId={params.id} />
+        </>
+      }
     >
       <Section title="Details">
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">

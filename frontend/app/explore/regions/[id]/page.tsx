@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getOrigin, getRegion, graphTraverse } from "@/lib/api";
 import { EntityDetailLoader, EntityPage, Field, Section } from "@/components/explore/EntityPage";
+import { FavoriteButton } from "@/components/account/FavoriteButton";
 import { useEntityDetail } from "@/lib/hooks";
 import { titleCase } from "@/lib/text";
 import type { Country, GraphNode, Region } from "@/lib/types";
@@ -39,7 +40,12 @@ export default function RegionPage({ params }: { params: { id: string } }) {
       : null;
 
   return (
-    <EntityPage type="Region" title={titleCase(region.name)} subtitle={country?.name}>
+    <EntityPage
+      type="Region"
+      title={titleCase(region.name)}
+      subtitle={country?.name}
+      actions={<FavoriteButton entityType="region" entityId={params.id} />}
+    >
       <Section title="Geography">
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Field label="Altitude" value={altitude} />

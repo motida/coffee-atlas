@@ -10,6 +10,7 @@ import {
   Field,
   Section,
 } from "@/components/explore/EntityPage";
+import { FavoriteButton } from "@/components/account/FavoriteButton";
 import { useEntityDetail } from "@/lib/hooks";
 import type { Product, Roaster } from "@/lib/types";
 
@@ -30,7 +31,12 @@ export default function RoasterPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <EntityPage type="Roaster" title={roaster.name} subtitle={roaster.location ?? undefined}>
+    <EntityPage
+      type="Roaster"
+      title={roaster.name}
+      subtitle={roaster.location ?? undefined}
+      actions={<FavoriteButton entityType="roaster" entityId={params.id} />}
+    >
       <Section title="Details">
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Field label="Location" value={roaster.location} />

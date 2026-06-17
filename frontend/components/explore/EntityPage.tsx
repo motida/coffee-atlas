@@ -6,9 +6,11 @@ interface EntityPageProps {
   title: string;
   subtitle?: string;
   children: ReactNode;
+  /** Optional top-right header slot (e.g. favorite / cupping-note controls). */
+  actions?: ReactNode;
 }
 
-export function EntityPage({ type, title, subtitle, children }: EntityPageProps) {
+export function EntityPage({ type, title, subtitle, children, actions }: EntityPageProps) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-6">
@@ -20,11 +22,16 @@ export function EntityPage({ type, title, subtitle, children }: EntityPageProps)
         </Link>
       </div>
       <header className="mb-8 border-b border-coffee-200 pb-4">
-        <div className="text-xs uppercase tracking-wide text-coffee-600">
-          {type}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-coffee-600">{type}</div>
+            <h1 className="mt-1 text-3xl font-bold text-coffee-900">{title}</h1>
+            {subtitle && <p className="mt-1 text-sm text-gray-600">{subtitle}</p>}
+          </div>
+          {actions && (
+            <div className="relative flex shrink-0 items-center gap-2">{actions}</div>
+          )}
         </div>
-        <h1 className="mt-1 text-3xl font-bold text-coffee-900">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-gray-600">{subtitle}</p>}
       </header>
       <div className="space-y-8">{children}</div>
     </div>

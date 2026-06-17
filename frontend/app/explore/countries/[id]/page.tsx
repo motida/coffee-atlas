@@ -10,6 +10,7 @@ import {
   Field,
   Section,
 } from "@/components/explore/EntityPage";
+import { FavoriteButton } from "@/components/account/FavoriteButton";
 import { useEntityDetail } from "@/lib/hooks";
 import { titleCase } from "@/lib/text";
 import type { Country, GraphNode } from "@/lib/types";
@@ -31,7 +32,12 @@ export default function CountryPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <EntityPage type="Country" title={country.name} subtitle={country.iso_code ?? undefined}>
+    <EntityPage
+      type="Country"
+      title={country.name}
+      subtitle={country.iso_code ?? undefined}
+      actions={<FavoriteButton entityType="country" entityId={params.id} />}
+    >
       <Section title="Production">
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Field label="ISO code" value={country.iso_code} />
