@@ -156,8 +156,44 @@ def read_scraped(path: str | Path) -> list[dict[str, Any]]:
 
 
 def _norm_name(name: str) -> str:
-    """Case/whitespace-insensitive key for roaster-name matching."""
+    """Case/whitespace-insensitive key (used for per-site vendor grouping)."""
     return re.sub(r"\s+", " ", name).strip().casefold()
+
+
+# Generic words a roaster's name may or may not carry — stripped (from the end,
+# plus a leading "the") to derive an identity key. Lets "Stumptown Coffee",
+# "Stumptown Coffee Roasters" and "The Stumptown Roastery" collapse to one node.
+_GENERIC_ROASTER_WORDS = frozenset(
+    {
+        "coffee",
+        "coffees",
+        "roaster",
+        "roasters",
+        "roastery",
+        "roasteries",
+        "roasting",
+        "company",
+        "co",
+        "lab",
+        "labs",
+        "specialty",
+    }
+)
+
+
+def _canon_name(name: str) -> str:
+    """Aggressive identity key for roaster dedup matching.
+
+    Case-folds, drops punctuation, removes a leading "the" and any trailing
+    generic coffee words. Conservative: never strips the final token, so two
+    genuinely distinct names aren't merged into an empty key.
+    """
+    toks = re.sub(r"[^a-z0-9 ]+", " ", name.casefold()).split()
+    if toks[:1] == ["the"]:
+        toks = toks[1:]
+    while len(toks) > 1 and toks[-1] in _GENERIC_ROASTER_WORDS:
+        toks.pop()
+    return " ".join(toks) or _norm_name(name)
 
 
 def _roaster_name_by_site(coffee_records: list[dict[str, Any]]) -> dict[str, str]:
@@ -199,12 +235,16 @@ def load_products(
     site_roaster = _roaster_name_by_site(coffee)
 
     # Build roaster + product rows keyed by deterministic id (dedupes repeats).
-    # Reuse an existing roaster row when the name already exists (e.g. from the
-    # roasting seed) so we don't create a duplicate node under a fresh id.
-    existing_roasters = {
-        _norm_name(name): rid
-        for rid, name in conn.execute("SELECT id, name FROM roast_roasters").fetchall()
-    }
+    # Reuse an existing roaster row whose canonical name matches (e.g. the
+    # roasting seed's "Stumptown Coffee Roasters" vs a scraped "Stumptown
+    # Coffee") so we don't create a duplicate node under a fresh id. Oldest row
+    # wins ownership of a canonical key, and new roasters are registered as we
+    # go so two sites for the same roaster collapse within a single batch.
+    canon_to_id: dict[str, str] = {}
+    for rid, name in conn.execute(
+        "SELECT id, name FROM roast_roasters ORDER BY created_at"
+    ).fetchall():
+        canon_to_id.setdefault(_canon_name(name), rid)
 
     roasters: dict[str, tuple[str, str, str | None]] = {}  # id -> (id, name, website)
     products: dict[str, tuple[Any, ...]] = {}
@@ -214,9 +254,11 @@ def load_products(
             continue  # skip before registering a roaster, so no product-less roaster node
         site = rec.get("site") or ""
         roaster_name = site_roaster.get(site) or _name_from_domain(site)
-        roaster_id = existing_roasters.get(_norm_name(roaster_name)) or _uid(
-            "roaster", roaster_name
-        )
+        canon = _canon_name(roaster_name)
+        roaster_id = canon_to_id.get(canon)
+        if roaster_id is None:
+            roaster_id = _uid("roaster", roaster_name)
+            canon_to_id[canon] = roaster_id
         roasters[roaster_id] = (roaster_id, roaster_name, site or None)
 
         product_id = _uid("product", site, title)

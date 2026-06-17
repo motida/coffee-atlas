@@ -127,6 +127,59 @@ def test_roaster_reuse_is_case_insensitive(db):
     assert rows[0][0] == "seed-verve"
 
 
+def test_roaster_dedup_strips_generic_suffix(db):
+    # The Stumptown bug: a seeded "Stumptown Coffee Roasters" must absorb a
+    # scraped "Stumptown Coffee" rather than spawn a second node.
+    db.execute(
+        "INSERT INTO roast_roasters (id, name) VALUES ('seed-stump', 'Stumptown Coffee Roasters')"
+    )
+    load_products(
+        [
+            _rec(
+                "https://www.stumptowncoffee.com",
+                "Stumptown Coffee",
+                "Hair Bender",
+                "Coffee",
+                price=18.0,
+            )
+        ],
+        db,
+    )
+    rows = db.execute("SELECT id FROM roast_roasters WHERE name ILIKE 'stumptown%'").fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == "seed-stump"
+    assert (
+        db.execute("SELECT COUNT(*) FROM prod_products WHERE roaster_id = 'seed-stump'").fetchone()[
+            0
+        ]
+        == 1
+    )
+
+
+def test_roaster_dedup_strips_leading_the(db):
+    db.execute("INSERT INTO roast_roasters (id, name) VALUES ('seed-cc', 'The Coffee Collective')")
+    load_products(
+        [_rec("https://coffeecollective.dk", "Coffee Collective", "Kieni", "Coffee", price=20.0)],
+        db,
+    )
+    rows = db.execute(
+        "SELECT id FROM roast_roasters WHERE name ILIKE '%coffee collective%'"
+    ).fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == "seed-cc"
+
+
+def test_canon_name_unit():
+    from backend.ingest.products_loader import _canon_name
+
+    assert _canon_name("Stumptown Coffee") == _canon_name("Stumptown Coffee Roasters")
+    assert _canon_name("The Coffee Collective") == _canon_name("Coffee Collective")
+    assert _canon_name("Black & White Coffee Roasters") == "black white"
+    assert _canon_name("Onyx Coffee Lab") == "onyx"
+    assert _canon_name("Verve Coffee") != _canon_name("Onyx Coffee Lab")  # stay distinct
+    assert _canon_name("Coffee") == "coffee"  # never collapses to empty
+
+
 def test_classify_keeps_filter_roast_coffee():
     # "Filter" is a roast designation, not equipment — must survive.
     assert classify_coffee("Ethiopia Guji Filter", "Coffee", []) is True
