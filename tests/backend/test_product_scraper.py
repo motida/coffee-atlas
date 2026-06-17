@@ -104,6 +104,9 @@ def test_non_coffee_filtered():
     assert looks_like_coffee("Hario V60 Grinder", "Equipment", []) is False
     assert looks_like_coffee("Coffee Atlas Gift Card", None, []) is False
     assert looks_like_coffee("Logo Mug", "Merch", ["apparel"]) is False
+    # Record-shop / merch storefronts: the product_type in the haystack drops them.
+    assert looks_like_coffee("Radiohead - OK Computer", "Vinyl", ["vinyl"]) is False
+    assert looks_like_coffee("Tandem Pennant", "Wearables", []) is False
 
 
 def test_detectors_units():
