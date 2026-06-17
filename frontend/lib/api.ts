@@ -11,6 +11,7 @@ import type {
   ProductOrigin,
   Region,
   RegionGeoProperties,
+  Roaster,
   SearchResult,
   Shop,
   ShopGeoProperties,
@@ -135,6 +136,9 @@ export const getProductFlavors = (id: string) =>
 
 export const getProductOrigin = (id: string) =>
   fetchAPI<ProductOrigin>(`/products/${id}/origin`);
+
+// --- Roasters ---
+export const getRoaster = (id: string) => fetchAPI<Roaster>(`/roasting/roasters/${id}`);
 
 // --- Graph ---
 export const graphTraverse = (

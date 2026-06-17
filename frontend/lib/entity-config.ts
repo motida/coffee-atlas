@@ -44,7 +44,11 @@ export const ENTITY_CONFIG: Record<string, EntityConfig> = {
     badge: "bg-indigo-100 text-indigo-800",
     href: (id) => `/explore/products/${id}`,
   },
-  roaster: { color: "#c026d3" },
+  roaster: {
+    color: "#c026d3",
+    badge: "bg-fuchsia-100 text-fuchsia-800",
+    href: (id) => `/explore/roasters/${id}`,
+  },
   shop: {
     color: "#0891b2",
     badge: "bg-coffee-200 text-coffee-900",

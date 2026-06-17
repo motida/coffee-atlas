@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   getProduct,
@@ -54,7 +55,21 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     >
       <Section title="Details">
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <Field label="Roaster" value={product.roaster_name} />
+          {product.roaster_name && product.roaster_id ? (
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-gray-500">Roaster</dt>
+              <dd className="mt-0.5 text-sm">
+                <Link
+                  href={`/explore/roasters/${product.roaster_id}`}
+                  className="text-amber-700 underline"
+                >
+                  {product.roaster_name}
+                </Link>
+              </dd>
+            </div>
+          ) : (
+            <Field label="Roaster" value={product.roaster_name} />
+          )}
           <Field label="Roast level" value={product.roast_level} />
           <Field label="Process" value={product.process} />
           <Field label="Type" value={kind} />
