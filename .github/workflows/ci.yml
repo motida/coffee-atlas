@@ -113,7 +113,10 @@ jobs:
           mkdir -p "$stage"
           rsync -a --exclude '__pycache__/' --exclude '*.pyc' --exclude '.pytest_cache/' \
             backend/ "$stage/backend/"
-          rsync -a --exclude '__pycache__/' ontology/ "$stage/ontology/"
+          # Exclude data/ (gitignored ontology scratch DuckDB) and any *.duckdb so a
+          # dirty checkout can never try to LFS-push a DB with a non-LFS deploy token.
+          rsync -a --exclude '__pycache__/' --exclude 'data/' --exclude '*.duckdb' \
+            ontology/ "$stage/ontology/"
           cp pyproject.toml uv.lock "$stage/"
           cp deploy/huggingface/api/Dockerfile     "$stage/Dockerfile"
           cp deploy/huggingface/api/README.md      "$stage/README.md"
