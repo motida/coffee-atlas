@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel
+
+from backend.models._base import ReadModel
 
 
 class FlavorAttributeBase(BaseModel):
@@ -13,7 +13,5 @@ class FlavorAttributeBase(BaseModel):
     parent_id: str | None = None
 
 
-class FlavorAttributeRead(FlavorAttributeBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
+class FlavorAttributeRead(FlavorAttributeBase, ReadModel):
+    pass

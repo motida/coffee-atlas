@@ -3,9 +3,12 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 import duckdb
 
-from backend.db.connection import fetchall_dicts, get_db
+from backend.db.columns import PRODUCT_COLS
+from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
+from backend.db.geojson import feature_collection, point_feature
 from backend.models.products import ProductRead
 from backend.models.shops import ShopRead
+from backend.routers._helpers import require_entity
 
 router = APIRouter(prefix="/api/v1/shops", tags=["shops"])
 
@@ -57,17 +60,14 @@ def get_shops_geo(
     params.append(limit)
     rows = fetchall_dicts(db.execute(sql, params))
     features = [
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [row.pop("longitude"), row.pop("latitude")],
-            },
-            "properties": row,
-        }
+        point_feature(
+            row["longitude"],
+            row["latitude"],
+            {k: v for k, v in row.items() if k not in ("longitude", "latitude")},
+        )
         for row in rows
     ]
-    return {"type": "FeatureCollection", "features": features}
+    return feature_collection(features)
 
 
 @router.get("/nearby")
@@ -104,13 +104,12 @@ def get_nearby_shops(
 
 @router.get("/{shop_id}", response_model=ShopRead)
 def get_shop(shop_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = db.execute(
-        f"SELECT {SHOP_PUBLIC_COLS} FROM shop_shops WHERE id = ?", [shop_id]
-    ).fetchone()
-    if not row:
+    row = fetchone_dict(
+        db.execute(f"SELECT {SHOP_PUBLIC_COLS} FROM shop_shops WHERE id = ?", [shop_id])
+    )
+    if row is None:
         raise HTTPException(status_code=404, detail="Shop not found")
-    columns = [desc[0] for desc in db.description]
-    return dict(zip(columns, row))
+    return row
 
 
 @router.get("/{shop_id}/products", response_model=list[ProductRead])
@@ -118,13 +117,8 @@ def get_shop_products(
     shop_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 ) -> list[dict[str, Any]]:
     """Products this shop serves (via the roaster it partners with)."""
-    if not db.execute("SELECT 1 FROM shop_shops WHERE id = ?", [shop_id]).fetchone():
-        raise HTTPException(status_code=404, detail="Shop not found")
-    product_cols = (
-        "id, name, roaster_id, roast_level, process, is_blend, price, "
-        "net_weight_grams, url, description, created_at, updated_at"
-    )
-    cols = ", ".join(f"p.{c}" for c in product_cols.split(", "))
+    require_entity(db, "shop_shops", shop_id, "Shop")
+    cols = ", ".join(f"p.{c}" for c in PRODUCT_COLS.split(", "))
     return fetchall_dicts(
         db.execute(
             f"""
