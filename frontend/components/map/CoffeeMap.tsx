@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Map, {
   Layer,
-  Popup,
   Source,
   type MapLayerMouseEvent,
   type MapRef,
@@ -25,6 +23,15 @@ import type {
   ShopGeoProperties,
   TradeRouteGeoProperties,
 } from "@/lib/types";
+import { MapLegend, MapTradeRoutesToggle } from "./MapOverlays";
+import { MapPopup } from "./MapPopup";
+import {
+  countryPopup,
+  regionPopup,
+  shopPopup,
+  tradeRoutePopup,
+  type PopupState,
+} from "./popups";
 
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 const COUNTRY_LAYER = "countries-layer";
@@ -95,16 +102,6 @@ type AnyGeo = GeoJSONFeatureCollection<
   | ShopGeoProperties
   | TradeRouteGeoProperties
 >;
-
-interface PopupState {
-  longitude: number;
-  latitude: number;
-  title: string;
-  subtitle?: string;
-  link?: string;
-  detailHref?: string;
-  links?: { label: string; href: string }[];
-}
 
 export default function CoffeeMap() {
   const mapRef = useRef<MapRef | null>(null);
@@ -244,65 +241,30 @@ export default function CoffeeMap() {
     }
 
     if (layerId === TRADE_ROUTE_HIT_LAYER) {
-      const props = feature.properties as TradeRouteGeoProperties;
-      setPopup({
-        longitude: e.lngLat.lng,
-        latitude: e.lngLat.lat,
-        title: `${props.exporter_name} → ${props.importer_name}`,
-        subtitle:
-          props.annual_volume != null
-            ? `${props.annual_volume.toLocaleString()} t${props.year ? ` (${props.year})` : ""}`
-            : "green-coffee trade route",
-        links: [
-          {
-            label: props.exporter_name,
-            href: `/explore/countries/${props.exporter_id}`,
-          },
-          {
-            label: props.importer_name,
-            href: `/explore/countries/${props.importer_id}`,
-          },
-        ],
-      });
+      setPopup(
+        tradeRoutePopup(
+          feature.properties as TradeRouteGeoProperties,
+          e.lngLat.lng,
+          e.lngLat.lat,
+        ),
+      );
       return;
     }
 
     const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
 
     if (layerId === SHOP_POINT_LAYER) {
-      const props = feature.properties as ShopGeoProperties;
-      setPopup({
-        longitude: lng,
-        latitude: lat,
-        title: props.name,
-        subtitle: [props.city, props.country].filter(Boolean).join(", ") || undefined,
-        link: props.website ?? undefined,
-        detailHref: `/explore/shops/${props.id}`,
-      });
+      setPopup(shopPopup(feature.properties as ShopGeoProperties, lng, lat));
       return;
     }
 
     if (layerId === COUNTRY_LAYER) {
-      const props = feature.properties as CountryGeoProperties;
-      setPopup({
-        longitude: lng,
-        latitude: lat,
-        title: props.name,
-        subtitle: props.iso_code ?? undefined,
-        detailHref: `/explore/countries/${props.id}`,
-      });
+      setPopup(countryPopup(feature.properties as CountryGeoProperties, lng, lat));
       return;
     }
 
     if (layerId === REGION_LAYER) {
-      const props = feature.properties as RegionGeoProperties;
-      setPopup({
-        longitude: lng,
-        latitude: lat,
-        title: props.name.replace(/\b\w/g, (c) => c.toUpperCase()),
-        subtitle: props.country_name,
-        detailHref: `/explore/regions/${props.id}`,
-      });
+      setPopup(regionPopup(feature.properties as RegionGeoProperties, lng, lat));
     }
   };
 
@@ -482,104 +444,24 @@ export default function CoffeeMap() {
         </Source>
       )}
 
-      {popup && (
-        <Popup
-          longitude={popup.longitude}
-          latitude={popup.latitude}
-          anchor="top"
-          closeOnClick={false}
-          onClose={() => setPopup(null)}
-        >
-          <div className="px-1 py-0.5">
-            <div className="font-semibold text-coffee-900">{popup.title}</div>
-            {popup.subtitle && (
-              <div className="text-xs text-gray-600">{popup.subtitle}</div>
-            )}
-            <div className="mt-1 flex gap-3 text-xs">
-              {popup.detailHref && (
-                <Link
-                  href={popup.detailHref}
-                  className="text-coffee-700 underline"
-                >
-                  details →
-                </Link>
-              )}
-              {popup.link && (
-                <a
-                  href={popup.link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-amber-700 underline"
-                >
-                  website
-                </a>
-              )}
-            </div>
-            {popup.links && (
-              <div className="mt-1 flex flex-wrap gap-3 text-xs">
-                {popup.links.map((l) => (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    className="text-coffee-700 underline"
-                  >
-                    {l.label}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </Popup>
-      )}
+      {popup && <MapPopup popup={popup} onClose={() => setPopup(null)} />}
 
-      <div className="pointer-events-none absolute left-3 top-3 rounded bg-white/90 px-3 py-2 text-xs shadow">
-        {countries && regions ? (
-          <>
-            <div>
-              <span className="inline-block h-2 w-2 rounded-full bg-coffee-800 align-middle" />{" "}
-              {countries.features.length} producing countries
-            </div>
-            <div>
-              <span className="inline-block h-2 w-2 rounded-full bg-amber-600 align-middle" />{" "}
-              {regions.features.length} regions (zoom in)
-            </div>
-            <div className="mt-1 border-t pt-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-[#6f3d18] align-middle" />{" "}
-              {viewState.zoom < SHOPS_MIN_ZOOM
-                ? `coffee shops (zoom ≥${SHOPS_MIN_ZOOM})`
-                : shopsLoading
-                  ? "loading shops…"
-                  : shops
-                    ? `${shops.features.length}${shopsCapped ? "+" : ""} shops in view`
-                    : "no shops loaded"}
-            </div>
-          </>
-        ) : (
-          <span className="text-gray-500">Loading origins…</span>
-        )}
-      </div>
+      <MapLegend
+        countries={countries}
+        regions={regions}
+        shops={shops}
+        shopsLoading={shopsLoading}
+        shopsCapped={shopsCapped}
+        zoom={viewState.zoom}
+        shopsMinZoom={SHOPS_MIN_ZOOM}
+      />
 
-      <div className="absolute right-3 top-3 rounded bg-white/90 px-3 py-2 text-xs shadow">
-        <label className="flex cursor-pointer items-center gap-2">
-          <input
-            type="checkbox"
-            checked={showRoutes}
-            onChange={toggleRoutes}
-            className="accent-amber-600"
-          />
-          <span className="inline-block h-0.5 w-4 rounded bg-amber-500 align-middle" />
-          Trade routes
-        </label>
-        {showRoutes && (
-          <div className="mt-1 text-gray-500">
-            {routesLoading
-              ? "loading…"
-              : routes
-                ? `${routes.features.length} green-coffee flows`
-                : ""}
-          </div>
-        )}
-      </div>
+      <MapTradeRoutesToggle
+        showRoutes={showRoutes}
+        onToggle={toggleRoutes}
+        routesLoading={routesLoading}
+        routes={routes}
+      />
     </Map>
   );
 }
