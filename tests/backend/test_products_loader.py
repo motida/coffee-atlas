@@ -218,6 +218,46 @@ def test_classify_drops_gifts_plural():
     assert classify_coffee("Holiday Gifts", "Gifts", []) is False
 
 
+def test_classify_drops_cafe_supplies_and_merch():
+    for junk in [
+        "Milk Pitcher 500ml",
+        "Bamboo Tongs",
+        "Bar Whisk",
+        "Group Head Brush",
+        "Cup Lids - Hot",
+        "Cup Sleeves",
+        "Cambro Measuring Cup",
+        "Shot Glass",
+        "Rinza Tablets",
+        "Washed Trucker Cap",
+        "Denim Poodle Cap",
+        "Summer Fun Beach Towel",
+        "To-Go Barista Box",
+        "Land Chocolate - 72% El Salvador Dark",
+        "Askinosie Chocolate",
+        "Matcha Latte RTD",
+        "Public Cupping",
+        "The Cupping Table",
+        "Ruby Cupping Spoon",
+    ]:
+        assert classify_coffee(junk, None, []) is False, junk
+
+
+def test_classify_keeps_chocolate_and_horchata_cold_brew():
+    # Non-coffee beverages drop, but a cold brew is a coffee drink — keep it.
+    assert classify_coffee("Chocolate Cold Brew with Oatly", "Coffee", []) is True
+    assert classify_coffee("Horchata Cold Brew with Oatly", None, []) is True
+    assert classify_coffee("Land Drinking Chocolate - Pouch", None, []) is False
+
+
+def test_classify_keeps_coffees_with_collision_words():
+    # Real coffees that contain a substring of a junk term must survive.
+    assert classify_coffee("Brazil | #1 Cup of Excellence", "Coffee", []) is True
+    assert classify_coffee("Honduras Las Capucas", "Coffee", []) is True  # not "cap"
+    assert classify_coffee("El Matazano Pacamara Washed", "Coffee", []) is True  # not "mat"
+    assert classify_coffee("Instant Coffee - Galactic Standard", "Coffee", []) is True
+
+
 def test_empty_records_no_crash(db):
     counts = load_products([], db)
     assert (counts.products, counts.roasters, counts.dropped_non_coffee) == (0, 0, 0)

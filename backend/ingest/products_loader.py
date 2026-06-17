@@ -58,9 +58,20 @@ _NON_COFFEE_TITLE = re.compile(
     r"rocket\s*espresso|v60|"
     r"mug|tumbler|tote|hoodie|t-?shirt|tee|beanie|candle|poster|sticker|"
     r"kanteen|bottle|sock|"
-    r"sampler|bundle|gifts?|sample\s*set|tasting\s*set|cleaning|sets?)\b",
+    r"sampler|bundle|gifts?|sample\s*set|tasting\s*set|cleaning|sets?|"
+    # café supplies, drinkware, apparel, cupping classes, non-coffee beverages
+    r"pitcher|tongs|whisk|brush|funnel|spoon|towel|apron|magnet|opener|cambro|"
+    r"glass\s?ware|shot\s+glass|measuring|lids?|sleeves?|"
+    r"hot\s+cups?|cold\s+cups?|paper\s+cups?|tamp(?:ing)?\s+mat|drip\s+mat|"
+    r"rinza|tablets?|to-?go|cap|hat|crewneck|long\s+sleeve|trucker|keep\s?cup|"
+    r"gift\s+card|e-?gift|matcha|cupping)\b",
     re.I,
 )
+
+# Non-coffee beverages that share a name with a coffee drink: a plain
+# "Chocolate"/"Horchata" item is merch, but a "Chocolate Cold Brew" is coffee.
+_NON_COFFEE_BEVERAGE = re.compile(r"\b(chocolate|horchata)\b", re.I)
+_COFFEE_DRINK = re.compile(r"\bcold\s*brew\b", re.I)
 
 # Non-coffee product_type categories. These disqualify UNLESS the type string
 # also mentions coffee (some stores file a coffee under "...,Gifts" collections).
@@ -120,6 +131,9 @@ def classify_coffee(title: str, product_type: str | None, tags: list[str]) -> bo
     mention coffee — guards stores that file a coffee under e.g. "...,Gifts".
     """
     if _NON_COFFEE_TITLE.search(title):
+        return False
+    # Chocolate/horchata are non-coffee — except as a cold-brew coffee drink.
+    if _NON_COFFEE_BEVERAGE.search(title) and not _COFFEE_DRINK.search(title):
         return False
     pt = product_type or ""
     if pt and _NON_COFFEE_TYPE.search(pt) and not re.search(r"coffee", pt, re.I):
