@@ -59,3 +59,17 @@ def test_token_wrong_secret_rejected() -> None:
 
     with pytest.raises(HTTPException):
         auth._decode_token(token)
+
+
+def test_validate_jwt_secret_passes_with_strong_secret() -> None:
+    # The autouse fixture sets a >= 32 char secret, so this must not raise.
+    auth.validate_jwt_secret()
+
+
+@pytest.mark.parametrize("weak", ["", "short", "x" * 31])
+def test_validate_jwt_secret_rejects_empty_or_weak(
+    monkeypatch: pytest.MonkeyPatch, weak: str
+) -> None:
+    monkeypatch.setattr(settings, "JWT_SECRET", weak)
+    with pytest.raises(RuntimeError):
+        auth.validate_jwt_secret()
