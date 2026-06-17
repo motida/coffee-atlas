@@ -1,31 +1,12 @@
 "use client";
 
 import * as d3 from "d3";
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { graphTraverse, searchText } from "@/lib/api";
-import { ENTITY_CONFIG, entityColor, entityHref } from "@/lib/entity-config";
+import { EDGE_TYPES, GraphControls } from "@/components/graph/GraphControls";
+import { GraphDetailSidebar } from "@/components/graph/GraphDetailSidebar";
+import { entityColor, entityHref } from "@/lib/entity-config";
 import type { SearchResult } from "@/lib/types";
-
-const EDGE_TYPES: { id: string; label: string }[] = [
-  { id: "country_region", label: "Country → Region" },
-  { id: "region_farm", label: "Region → Farm" },
-  { id: "country_variety", label: "Country → Variety" },
-  { id: "region_variety", label: "Region → Variety" },
-  { id: "farm_variety", label: "Farm → Variety" },
-  { id: "variety_processing", label: "Variety → Processing" },
-  { id: "variety_flavor", label: "Variety → Flavor" },
-  { id: "roast_variety", label: "Roast → Variety" },
-  { id: "product_variety", label: "Product → Variety" },
-  { id: "product_country", label: "Product → Country" },
-  { id: "product_region", label: "Product → Region" },
-  { id: "product_flavor", label: "Product → Flavor" },
-  { id: "product_roast", label: "Product → Roast" },
-  { id: "roaster_product", label: "Roaster → Product" },
-  { id: "shop_roaster", label: "Shop → Roaster" },
-  { id: "shop_product", label: "Shop → Product" },
-  { id: "shop_variety", label: "Shop → Variety" },
-];
 
 const SEED_SEARCH_TYPES = ["variety", "country", "region", "flavor", "roast_profile", "product"];
 
@@ -170,6 +151,15 @@ export default function GraphViewer() {
     } finally {
       finishRequest(controller);
     }
+  };
+
+  const toggleEdge = (id: string) => {
+    setEnabledEdgeTypes((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const visibleEdges = useMemo(
@@ -366,123 +356,25 @@ export default function GraphViewer() {
 
   return (
     <div className="relative h-full w-full">
-      {/* Seed + filters panel */}
-      <div className="absolute left-4 top-4 z-10 w-80 overflow-hidden rounded-lg border border-coffee-200 bg-white shadow-sm">
-        <div className="border-b border-coffee-100 p-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-coffee-700">
-            Seed
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search a variety, country, region, flavor, or product…"
-            className="mt-2 w-full rounded border border-coffee-200 px-3 py-1.5 text-sm focus:border-coffee-500 focus:outline-none"
-          />
-          {searchResults.length > 0 && (
-            <div className="mt-2 max-h-64 overflow-y-auto rounded border border-coffee-100">
-              {searchResults.map((r) => (
-                <button
-                  key={`${r.entity_type}-${r.id}`}
-                  onClick={() => seedFromNode(r.id)}
-                  className="block w-full border-b border-coffee-100 px-2 py-1.5 text-left text-sm last:border-0 hover:bg-coffee-50"
-                >
-                  <span className="mr-2 inline-block w-14 text-[10px] uppercase tracking-wide text-coffee-600">
-                    {r.entity_type}
-                  </span>
-                  <span className="text-coffee-900">{r.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="border-b border-coffee-100 p-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-coffee-700">
-            Edges
-          </div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {EDGE_TYPES.map((et) => {
-              const enabled = enabledEdgeTypes.has(et.id);
-              return (
-                <button
-                  key={et.id}
-                  onClick={() =>
-                    setEnabledEdgeTypes((current) => {
-                      const next = new Set(current);
-                      if (next.has(et.id)) next.delete(et.id);
-                      else next.add(et.id);
-                      return next;
-                    })
-                  }
-                  className={`rounded-full px-2 py-0.5 text-xs transition ${
-                    enabled
-                      ? "bg-coffee-200 text-coffee-900"
-                      : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                  }`}
-                >
-                  {et.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="p-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-coffee-700">
-            Legend
-          </div>
-          <div className="mt-2 grid grid-cols-2 gap-1.5">
-            {Object.entries(ENTITY_CONFIG).map(([type, { color }]) => (
-              <div
-                key={type}
-                className="flex items-center gap-1.5 text-xs text-gray-700"
-              >
-                <span
-                  className="h-2.5 w-2.5 rounded-full ring-1 ring-white"
-                  style={{ backgroundColor: color }}
-                />
-                <span className="capitalize">{type.replace("_", " ")}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <GraphControls
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchResults={searchResults}
+        onSeed={seedFromNode}
+        enabledEdgeTypes={enabledEdgeTypes}
+        onToggleEdge={toggleEdge}
+      />
 
       {/* Detail sidebar */}
       {selectedNode && (
-        <div className="absolute right-4 top-4 z-10 w-72 rounded-lg border border-coffee-200 bg-white p-4 shadow-sm">
-          <button
-            onClick={() => setSelectedNode(null)}
-            className="float-right text-xs text-gray-400 hover:text-gray-700"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-          <div className="text-xs uppercase tracking-wide text-coffee-600">
-            {selectedNode.entity_type.replace("_", " ")}
-          </div>
-          <div className="mt-1 text-base font-semibold text-coffee-900">
-            {selectedNode.label}
-          </div>
-          <div className="mt-3 flex flex-col gap-2">
-            <button
-              onClick={() => expandNode(selectedNode.id)}
-              disabled={isLoading}
-              className="rounded bg-coffee-600 px-3 py-1.5 text-sm text-white hover:bg-coffee-700 disabled:opacity-50"
-            >
-              Expand neighbors
-            </button>
-            {detailHref && (
-              <Link
-                href={detailHref}
-                className="rounded border border-coffee-300 px-3 py-1.5 text-center text-sm text-coffee-700 hover:bg-coffee-50"
-              >
-                View details →
-              </Link>
-            )}
-          </div>
-        </div>
+        <GraphDetailSidebar
+          entityType={selectedNode.entity_type}
+          label={selectedNode.label}
+          detailHref={detailHref}
+          isLoading={isLoading}
+          onClose={() => setSelectedNode(null)}
+          onExpand={() => expandNode(selectedNode.id)}
+        />
       )}
 
       {/* Empty state */}
