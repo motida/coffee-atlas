@@ -8,6 +8,7 @@ import {
   EntityDetailLoader,
   EntityPage,
   Field,
+  ProductCard,
   Section,
 } from "@/components/explore/EntityPage";
 import { useEntityDetail } from "@/lib/hooks";
@@ -83,15 +84,13 @@ export default function ShopPage({ params }: { params: { id: string } }) {
       >
         <CardGrid>
           {products.map((p) => (
-            <EntityCard
+            <ProductCard
               key={p.id}
               href={`/explore/products/${p.id}`}
               title={p.name}
-              subtitle={
-                [p.roaster_name, p.price !== null ? `$${p.price}` : null]
-                  .filter(Boolean)
-                  .join(" · ") || undefined
-              }
+              roasterName={p.roaster_name}
+              roasterId={p.roaster_id}
+              price={p.price}
             />
           ))}
         </CardGrid>
