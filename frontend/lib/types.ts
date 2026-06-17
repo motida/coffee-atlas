@@ -150,6 +150,11 @@ export interface Shop extends Timestamped {
   description: string | null;
 }
 
+/** A shop plus its Haversine distance — shape returned by /shops/nearby. */
+export interface NearbyShop extends Shop {
+  distance_km: number;
+}
+
 // --- Products ---
 export interface Product extends Timestamped {
   name: string;
