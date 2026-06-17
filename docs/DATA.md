@@ -11,6 +11,7 @@
 | [FAOSTAT](https://www.fao.org/faostat) | Country-level trade flows |
 | [Overture Maps](https://overturemaps.org) | Coffee shop POI data |
 | Hand-curated roasting seed (`data/raw/roasting_seed.json`) | 11 canonical roast profiles + 10 notable roasters |
+| Roaster product catalogs (Shopify storefront JSON + JSON-LD) | Coffee product listings with tasting notes, scraped from a curated roaster list |
 
 ## Ingest pipeline
 
@@ -19,17 +20,24 @@ must exist before varieties can link to it; coordinates must exist before
 the map can render; embeddings require text fields to be populated.
 
 ```bash
-uv run python -m backend.ingest.pipeline --stage lexicon     # Flavor taxonomy
-uv run python -m backend.ingest.pipeline --stage varieties   # WCR varieties
-uv run python -m backend.ingest.pipeline --stage cqi         # CQI cupping data
-uv run python -m backend.ingest.pipeline --stage geocode     # Geocode origins
-uv run python -m backend.ingest.pipeline --stage shops       # Coffee shops (Overture, S3)
-uv run python -m backend.ingest.pipeline --stage distribution # Certifications, importers, trade routes
-uv run python -m backend.ingest.pipeline --stage roasting    # Roast profiles + suitability edges
-uv run python -m backend.ingest.pipeline --stage embeddings  # Vector embeddings
-uv run python -m backend.ingest.pipeline --stage graph       # Build graph edges
-uv run python -m backend.ingest.pipeline --all               # Run all stages
+uv run python -m backend.ingest.pipeline --stage lexicon                 # Flavor taxonomy
+uv run python -m backend.ingest.pipeline --stage varieties               # WCR varieties
+uv run python -m backend.ingest.pipeline --stage cqi                     # CQI cupping data
+uv run python -m backend.ingest.pipeline --stage processing_descriptions # Curated method descriptions
+uv run python -m backend.ingest.pipeline --stage processing_flavor       # Processing→flavor edges
+uv run python -m backend.ingest.pipeline --stage geocode                 # Geocode origins
+uv run python -m backend.ingest.pipeline --stage shops                   # Coffee shops (Overture, S3)
+uv run python -m backend.ingest.pipeline --stage distribution            # Certifications, importers, trade routes
+uv run python -m backend.ingest.pipeline --stage roasting                # Roast profiles + suitability edges
+uv run python -m backend.ingest.pipeline --stage products                # Scrape roaster product catalogs
+uv run python -m backend.ingest.pipeline --stage embeddings              # Vector embeddings
+uv run python -m backend.ingest.pipeline --stage graph                   # Build graph edges
+uv run python -m backend.ingest.pipeline --all                           # Run all stages
 ```
+
+`pipeline --all` runs every stage. `just bootstrap` / `just ingest-all` run
+every stage **except** the two network-heavy ones (`shops`, `products`) — run
+those explicitly.
 
 The embeddings stage accepts `--tables` to restrict the run to specific
 target tables — useful for embedding one freshly loaded domain:
@@ -82,3 +90,32 @@ Each profile carries a `suitable_for` rule (species list + optional
 `min_optimal_altitude`) that the loader resolves against `var_varieties`
 to derive `edges_roast_variety` (RoastProfile → suitableFor → Variety),
 so run the `varieties` stage first.
+
+## Processing stages
+
+Two small curation stages enrich the processing methods loaded by `cqi`:
+
+- `processing_descriptions` attaches curated prose to each `proc_methods` row.
+- `processing_flavor` seeds `edges_processing_flavor` (ProcessingMethod →
+  enhances/diminishes → FlavorAttribute) from a hand-mapped table, so it must
+  run after `lexicon` and `cqi`.
+
+Both are local and fast, and run as part of `just ingest-all` / `just bootstrap`.
+
+## Products stage
+
+The `products` stage scrapes coffee product catalogs from a curated list of
+specialty roasters (Shopify storefront JSON + embedded JSON-LD), drops
+non-coffee items, and loads the result into `prod_products`. Like `shops`, it
+is **network-heavy and excluded from `just bootstrap`** — run it explicitly:
+
+```bash
+uv run python -m backend.ingest.pipeline --stage products
+```
+
+The scrape is resumable. Product graph edges are **not** built here — the
+`graph` stage resolves them: content edges (product → variety / flavor /
+country / region / roast profile, matched conservatively against the loaded
+entity tables) and structural edges (roaster → product, shop → roaster, and
+shop → product → variety, which finally populates `edges_shop_variety`). Run
+`graph` after both `products` and `shops`.

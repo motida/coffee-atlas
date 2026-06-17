@@ -15,7 +15,7 @@ from typing import Any
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import managed_connection
 
 FLAVOR_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000001")
 DEFAULT_SOURCE = Path("data/raw/scaa_2016_flavor_wheel.json")
@@ -99,11 +99,7 @@ def load_wcr_lexicon(
     source = Path(source_path)
     rows = _build_rows(source)
 
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-
-    try:
+    with managed_connection(db_path, conn) as conn:
         for edge in ("edges_variety_flavor", "edges_processing_flavor", "edges_product_flavor"):
             conn.execute(f"DELETE FROM {edge}")
         conn.execute("DELETE FROM flav_attributes")
@@ -116,9 +112,6 @@ def load_wcr_lexicon(
             """,
             rows,
         )
-    finally:
-        if owns_conn:
-            conn.close()
 
     return len(rows)
 

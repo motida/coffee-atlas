@@ -24,3 +24,34 @@ https://sweetbloomcoffee.com
 https://www.equatorcoffees.com
 https://www.wonderstate.com
 https://www.passengercoffee.com
+
+# Batch 2 — added 2026-06-17. Verified (HTTP 200 + products in /products.json).
+# Includes four roasters previously seeded product-less (Square Mile, Coffee
+# Collective, La Cabra, Heart), which the canonical roaster dedup now folds
+# into their existing nodes rather than duplicating.
+https://tandemcoffee.com
+https://squaremilecoffee.com
+https://hydrangea.coffee
+https://www.origincoffee.co.uk
+https://rubycoffeeroasters.com
+https://assemblycoffee.co.uk
+https://ptscoffee.com
+https://coffeecollective.dk
+https://www.birdrockcoffee.com
+https://templecoffee.com
+https://vigilantecoffee.com
+https://subtext.coffee
+https://joecoffeecompany.com
+https://mostracoffee.com
+https://www.klatchcoffee.com
+https://www.brandywinecoffeeroasters.com
+https://lacabra.com
+https://greatergoodsroasting.com
+https://getprodigal.com
+https://dogwoodcoffee.com
+https://spyhousecoffee.com
+https://www.catandcloud.com
+https://partnerscoffee.com
+https://www.heartroasters.com
+https://devocion.com
+https://roundhillroastery.com

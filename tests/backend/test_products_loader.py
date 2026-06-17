@@ -127,6 +127,85 @@ def test_roaster_reuse_is_case_insensitive(db):
     assert rows[0][0] == "seed-verve"
 
 
+def test_roaster_dedup_strips_generic_suffix(db):
+    # The Stumptown bug: a seeded "Stumptown Coffee Roasters" must absorb a
+    # scraped "Stumptown Coffee" rather than spawn a second node.
+    db.execute(
+        "INSERT INTO roast_roasters (id, name) VALUES ('seed-stump', 'Stumptown Coffee Roasters')"
+    )
+    load_products(
+        [
+            _rec(
+                "https://www.stumptowncoffee.com",
+                "Stumptown Coffee",
+                "Hair Bender",
+                "Coffee",
+                price=18.0,
+            )
+        ],
+        db,
+    )
+    rows = db.execute("SELECT id FROM roast_roasters WHERE name ILIKE 'stumptown%'").fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == "seed-stump"
+    assert (
+        db.execute("SELECT COUNT(*) FROM prod_products WHERE roaster_id = 'seed-stump'").fetchone()[
+            0
+        ]
+        == 1
+    )
+
+
+def test_roaster_dedup_strips_leading_the(db):
+    db.execute("INSERT INTO roast_roasters (id, name) VALUES ('seed-cc', 'The Coffee Collective')")
+    load_products(
+        [_rec("https://coffeecollective.dk", "Coffee Collective", "Kieni", "Coffee", price=20.0)],
+        db,
+    )
+    rows = db.execute(
+        "SELECT id FROM roast_roasters WHERE name ILIKE '%coffee collective%'"
+    ).fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == "seed-cc"
+
+
+def test_vendor_alias_renames_roaster(db):
+    # birdrockcoffee.com's Shopify vendor is the abbreviation "BRCR Roasting";
+    # the alias maps it to the friendly name on load.
+    load_products(
+        [_rec("https://www.birdrockcoffee.com", "BRCR Roasting", "Honduras Las Capucas", "Coffee")],
+        db,
+    )
+    names = {r[0] for r in db.execute("SELECT name FROM roast_roasters").fetchall()}
+    assert names == {"Bird Rock Coffee Roasters"}
+
+
+def test_vendor_alias_reuses_existing_canonical_row(db):
+    # With the friendly name already present, an aliased re-scrape must reuse it
+    # (not spawn a "BRCR Roasting" duplicate).
+    db.execute(
+        "INSERT INTO roast_roasters (id, name) VALUES ('seed-brcr', 'Bird Rock Coffee Roasters')"
+    )
+    load_products(
+        [_rec("https://www.birdrockcoffee.com", "BRCR Roasting", "Honduras Las Capucas", "Coffee")],
+        db,
+    )
+    rows = db.execute("SELECT id FROM roast_roasters WHERE name ILIKE '%bird rock%'").fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == "seed-brcr"
+
+
+def test_canon_name_unit():
+    from backend.ingest.products_loader import _canon_name
+
+    assert _canon_name("Stumptown Coffee") == _canon_name("Stumptown Coffee Roasters")
+    assert _canon_name("The Coffee Collective") == _canon_name("Coffee Collective")
+    assert _canon_name("Black & White Coffee Roasters") == "black white"
+    assert _canon_name("Onyx Coffee Lab") == "onyx"
+    assert _canon_name("Verve Coffee") != _canon_name("Onyx Coffee Lab")  # stay distinct
+    assert _canon_name("Coffee") == "coffee"  # never collapses to empty
+
+
 def test_classify_keeps_filter_roast_coffee():
     # "Filter" is a roast designation, not equipment — must survive.
     assert classify_coffee("Ethiopia Guji Filter", "Coffee", []) is True
@@ -137,6 +216,46 @@ def test_classify_keeps_filter_roast_coffee():
 
 def test_classify_drops_gifts_plural():
     assert classify_coffee("Holiday Gifts", "Gifts", []) is False
+
+
+def test_classify_drops_cafe_supplies_and_merch():
+    for junk in [
+        "Milk Pitcher 500ml",
+        "Bamboo Tongs",
+        "Bar Whisk",
+        "Group Head Brush",
+        "Cup Lids - Hot",
+        "Cup Sleeves",
+        "Cambro Measuring Cup",
+        "Shot Glass",
+        "Rinza Tablets",
+        "Washed Trucker Cap",
+        "Denim Poodle Cap",
+        "Summer Fun Beach Towel",
+        "To-Go Barista Box",
+        "Land Chocolate - 72% El Salvador Dark",
+        "Askinosie Chocolate",
+        "Matcha Latte RTD",
+        "Public Cupping",
+        "The Cupping Table",
+        "Ruby Cupping Spoon",
+    ]:
+        assert classify_coffee(junk, None, []) is False, junk
+
+
+def test_classify_keeps_chocolate_and_horchata_cold_brew():
+    # Non-coffee beverages drop, but a cold brew is a coffee drink — keep it.
+    assert classify_coffee("Chocolate Cold Brew with Oatly", "Coffee", []) is True
+    assert classify_coffee("Horchata Cold Brew with Oatly", None, []) is True
+    assert classify_coffee("Land Drinking Chocolate - Pouch", None, []) is False
+
+
+def test_classify_keeps_coffees_with_collision_words():
+    # Real coffees that contain a substring of a junk term must survive.
+    assert classify_coffee("Brazil | #1 Cup of Excellence", "Coffee", []) is True
+    assert classify_coffee("Honduras Las Capucas", "Coffee", []) is True  # not "cap"
+    assert classify_coffee("El Matazano Pacamara Washed", "Coffee", []) is True  # not "mat"
+    assert classify_coffee("Instant Coffee - Galactic Standard", "Coffee", []) is True
 
 
 def test_empty_records_no_crash(db):

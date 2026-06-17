@@ -29,7 +29,7 @@ from dataclasses import dataclass
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import managed_connection
 from backend.ingest.product_edges import resolve_product_edges
 
 VARIETY_FLAVOR_TOP_K: int = 5
@@ -205,19 +205,12 @@ def run_graph_stage(
     threshold: float = VARIETY_FLAVOR_THRESHOLD,
 ) -> GraphCounts:
     """Populate all derivable edges. Pass `conn` for tests (in-memory DB)."""
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-
-    try:
+    with managed_connection(db_path, conn) as conn:
         cr, rf = populate_geo_edges(conn)
         vf = populate_variety_flavor_edges(conn, top_k=top_k, threshold=threshold)
         pe = resolve_product_edges(conn)
         product_edges = sum(pe.__dict__.values())
         ok = create_property_graph(conn)
-    finally:
-        if owns_conn:
-            conn.close()
 
     return GraphCounts(
         country_region=cr,

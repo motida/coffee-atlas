@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import managed_connection
 
 # Keyed by the coarse category cqi_loader assigns. "other" is left untouched —
 # it's a catch-all with no meaningful single description.
@@ -69,11 +69,7 @@ def load_processing_descriptions(
     matching method (e.g. an origin set with no honey coffees) are reported as
     skipped rather than raising.
     """
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-
-    try:
+    with managed_connection(db_path, conn) as conn:
         methods_updated = 0
         categories_applied = 0
         skipped: list[str] = []
@@ -100,9 +96,6 @@ def load_processing_descriptions(
             categories_applied=categories_applied,
             skipped_categories=skipped,
         )
-    finally:
-        if owns_conn:
-            conn.close()
 
 
 if __name__ == "__main__":

@@ -22,9 +22,11 @@ from pathlib import Path
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import managed_connection
 
-PROC_FLAVOR_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000008")
+# Own namespace, distinct from products (which uses …000008); sharing it would
+# risk edge-id collisions across the two unrelated domains.
+PROC_FLAVOR_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000009")
 DEFAULT_SOURCE = Path("data/raw/processing_flavor_seed.json")
 
 EFFECTS = ("enhances", "diminishes")
@@ -79,11 +81,7 @@ def load_processing_flavor(
     """
     seed = json.loads(Path(source_path).read_text(encoding="utf-8"))
 
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-
-    try:
+    with managed_connection(db_path, conn) as conn:
         conn.execute("DELETE FROM edges_processing_flavor")
 
         edges: dict[str, tuple[str, str, str, str]] = {}
@@ -122,9 +120,6 @@ def load_processing_flavor(
             skipped_methods=skipped_methods,
             skipped_flavors=sorted(skipped_flavors),
         )
-    finally:
-        if owns_conn:
-            conn.close()
 
 
 if __name__ == "__main__":

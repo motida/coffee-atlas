@@ -1,9 +1,9 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 import duckdb
 
-from backend.db.connection import fetchall_dicts, get_db
+from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
 from backend.models.roasting import RoastProfileRead
 
 router = APIRouter(prefix="/api/v1/roasting", tags=["roasting"])
@@ -22,10 +22,7 @@ def list_profiles(
 
 @router.get("/profiles/{profile_id}", response_model=RoastProfileRead)
 def get_profile(profile_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = db.execute("SELECT * FROM roast_profiles WHERE id = ?", [profile_id]).fetchone()
-    if not row:
-        from fastapi import HTTPException
-
+    row = fetchone_dict(db.execute("SELECT * FROM roast_profiles WHERE id = ?", [profile_id]))
+    if row is None:
         raise HTTPException(status_code=404, detail="Roast profile not found")
-    columns = [desc[0] for desc in db.description]
-    return dict(zip(columns, row))
+    return row

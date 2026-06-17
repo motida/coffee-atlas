@@ -42,15 +42,17 @@ ontology-export:
 
 # --- Ingest Pipeline ---
 
-# Run a specific ingest stage (lexicon, varieties, cqi, geocode, shops, distribution, roasting, embeddings, graph)
+# Run a specific ingest stage (lexicon, varieties, cqi, processing_descriptions, processing_flavor, geocode, shops, distribution, roasting, products, embeddings, graph)
 ingest stage:
     uv run python -m backend.ingest.pipeline --stage {{ stage }}
 
-# Run the full ingest pipeline in order (shops excluded: network-heavy, see docs/DATA.md)
+# Run the full ingest pipeline in order (shops + products excluded: network-heavy, see docs/DATA.md)
 ingest-all:
     just ingest lexicon
     just ingest varieties
     just ingest cqi
+    just ingest processing_descriptions
+    just ingest processing_flavor
     just ingest geocode
     just ingest distribution
     just ingest roasting

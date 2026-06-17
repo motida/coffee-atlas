@@ -1,49 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   getProduct,
   getProductFlavors,
   getProductOrigin,
   getProductVarieties,
 } from "@/lib/api";
-import { EntityCard, EntityPage, Field, Section } from "@/components/explore/EntityPage";
+import {
+  CardGrid,
+  EntityCard,
+  EntityDetailLoader,
+  EntityPage,
+  Field,
+  Section,
+} from "@/components/explore/EntityPage";
+import { useEntityDetail } from "@/lib/hooks";
+import { titleCase } from "@/lib/text";
 import type { FlavorAttribute, Product, ProductOrigin, Variety } from "@/lib/types";
 
-const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-
 export default function ProductPage({ params }: { params: { id: string } }) {
-  const [product, setProduct] = useState<Product | null>(null);
   const [varieties, setVarieties] = useState<Variety[]>([]);
   const [flavors, setFlavors] = useState<FlavorAttribute[]>([]);
   const [origin, setOrigin] = useState<ProductOrigin>({ countries: [], regions: [] });
-  const [error, setError] = useState<string | null>(null);
+  const { entity: product, error } = useEntityDetail<Product>(
+    params.id,
+    getProduct,
+    (id) => {
+      getProductVarieties(id)
+        .then(setVarieties)
+        .catch(() => setVarieties([]));
+      getProductFlavors(id)
+        .then(setFlavors)
+        .catch(() => setFlavors([]));
+      getProductOrigin(id)
+        .then(setOrigin)
+        .catch(() => setOrigin({ countries: [], regions: [] }));
+    },
+  );
 
-  useEffect(() => {
-    getProduct(params.id)
-      .then(setProduct)
-      .catch((e) => setError(String(e)));
-    getProductVarieties(params.id).then(setVarieties).catch(() => setVarieties([]));
-    getProductFlavors(params.id).then(setFlavors).catch(() => setFlavors([]));
-    getProductOrigin(params.id)
-      .then(setOrigin)
-      .catch(() => setOrigin({ countries: [], regions: [] }));
-  }, [params.id]);
-
-  if (error) {
-    return (
-      <EntityPage type="Product" title="Not found">
-        <p className="text-sm text-red-600">{error}</p>
-      </EntityPage>
-    );
-  }
-
-  if (!product) {
-    return (
-      <EntityPage type="Product" title="Loading…">
-        <p className="text-sm text-gray-500">Loading product…</p>
-      </EntityPage>
-    );
+  if (error || !product) {
+    return <EntityDetailLoader type="Product" error={error} loadingLabel="Loading product…" />;
   }
 
   const kind = product.is_blend ? "Blend" : "Single origin";
@@ -93,7 +90,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       )}
 
       <Section title="Varieties" count={varieties.length} empty="No varieties linked yet.">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+        <CardGrid>
           {varieties.map((v) => (
             <EntityCard
               key={v.id}
@@ -102,11 +99,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               subtitle={v.species ?? undefined}
             />
           ))}
-        </div>
+        </CardGrid>
       </Section>
 
       <Section title="Origin" count={originCount} empty="No origin matched from the listing.">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+        <CardGrid>
           {origin.countries.map((c) => (
             <EntityCard
               key={c.id}
@@ -123,11 +120,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               subtitle="Region"
             />
           ))}
-        </div>
+        </CardGrid>
       </Section>
 
       <Section title="Flavor notes" count={flavors.length} empty="No flavor notes linked yet.">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+        <CardGrid>
           {flavors.map((f) => (
             <EntityCard
               key={f.id}
@@ -136,7 +133,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               subtitle={[f.category, f.subcategory].filter(Boolean).join(" · ") || undefined}
             />
           ))}
-        </div>
+        </CardGrid>
       </Section>
     </EntityPage>
   );

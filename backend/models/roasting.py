@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel
+
+from backend.models._base import ReadModel
 
 
 class RoastProfileBase(BaseModel):
@@ -13,10 +13,8 @@ class RoastProfileBase(BaseModel):
     description: str | None = None
 
 
-class RoastProfileRead(RoastProfileBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
+class RoastProfileRead(RoastProfileBase, ReadModel):
+    pass
 
 
 class RoasterBase(BaseModel):
@@ -25,7 +23,5 @@ class RoasterBase(BaseModel):
     website: str | None = None
 
 
-class RoasterRead(RoasterBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
+class RoasterRead(RoasterBase, ReadModel):
+    pass

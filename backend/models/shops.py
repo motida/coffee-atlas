@@ -1,7 +1,8 @@
-from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel
+
+from backend.models._base import ReadModel
 
 
 class ShopBase(BaseModel):
@@ -17,10 +18,8 @@ class ShopBase(BaseModel):
     description: str | None = None
 
 
-class ShopRead(ShopBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
+class ShopRead(ShopBase, ReadModel):
+    pass
 
 
 class ShopGeoFeature(BaseModel):

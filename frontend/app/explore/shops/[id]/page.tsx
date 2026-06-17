@@ -2,51 +2,41 @@
 
 import { useEffect, useState } from "react";
 import { getNearbyShops, getShop, getShopProducts } from "@/lib/api";
-import { EntityCard, EntityPage, Field, Section } from "@/components/explore/EntityPage";
-import type { Product, Shop } from "@/lib/types";
-
-interface NearbyShop extends Shop {
-  distance_km: number;
-}
+import {
+  CardGrid,
+  EntityCard,
+  EntityDetailLoader,
+  EntityPage,
+  Field,
+  Section,
+} from "@/components/explore/EntityPage";
+import { useEntityDetail } from "@/lib/hooks";
+import type { NearbyShop, Product, Shop } from "@/lib/types";
 
 export default function ShopPage({ params }: { params: { id: string } }) {
-  const [shop, setShop] = useState<Shop | null>(null);
   const [nearby, setNearby] = useState<NearbyShop[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { entity: shop, error } = useEntityDetail<Shop>(
+    params.id,
+    getShop,
+    (id) => {
+      getShopProducts(id)
+        .then(setProducts)
+        .catch(() => setProducts([]));
+    },
+  );
 
+  // Nearby shops depend on the loaded shop's coordinates.
   useEffect(() => {
-    getShop(params.id)
-      .then((s) => {
-        setShop(s);
-        if (s.latitude !== null && s.longitude !== null) {
-          getNearbyShops(s.latitude, s.longitude, 5)
-            .then((all) =>
-              setNearby(
-                (all as NearbyShop[]).filter((x) => x.id !== s.id).slice(0, 12),
-              ),
-            )
-            .catch(() => setNearby([]));
-        }
-      })
-      .catch((e) => setError(String(e)));
-    getShopProducts(params.id).then(setProducts).catch(() => setProducts([]));
-  }, [params.id]);
+    if (shop && shop.latitude !== null && shop.longitude !== null) {
+      getNearbyShops(shop.latitude, shop.longitude, 5)
+        .then((all) => setNearby(all.filter((x) => x.id !== shop.id).slice(0, 12)))
+        .catch(() => setNearby([]));
+    }
+  }, [shop]);
 
-  if (error) {
-    return (
-      <EntityPage type="Shop" title="Not found">
-        <p className="text-sm text-red-600">{error}</p>
-      </EntityPage>
-    );
-  }
-
-  if (!shop) {
-    return (
-      <EntityPage type="Shop" title="Loading…">
-        <p className="text-sm text-gray-500">Loading shop…</p>
-      </EntityPage>
-    );
+  if (error || !shop) {
+    return <EntityDetailLoader type="Shop" error={error} loadingLabel="Loading shop…" />;
   }
 
   return (
@@ -91,7 +81,7 @@ export default function ShopPage({ params }: { params: { id: string } }) {
         count={products.length}
         empty="No products linked (this shop isn't matched to a roaster we've scraped)."
       >
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+        <CardGrid>
           {products.map((p) => (
             <EntityCard
               key={p.id}
@@ -104,7 +94,7 @@ export default function ShopPage({ params }: { params: { id: string } }) {
               }
             />
           ))}
-        </div>
+        </CardGrid>
       </Section>
 
       <Section
@@ -112,7 +102,7 @@ export default function ShopPage({ params }: { params: { id: string } }) {
         count={nearby.length}
         empty="No nearby shops within 5 km."
       >
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+        <CardGrid>
           {nearby.map((n) => (
             <EntityCard
               key={n.id}
@@ -121,7 +111,7 @@ export default function ShopPage({ params }: { params: { id: string } }) {
               subtitle={`${n.distance_km.toFixed(2)} km${n.city ? ` · ${n.city}` : ""}`}
             />
           ))}
-        </div>
+        </CardGrid>
       </Section>
     </EntityPage>
   );

@@ -24,7 +24,7 @@ from typing import Any
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import deterministic_uuid, managed_connection
 from backend.ingest.products_loader import clear_products
 
 ROAST_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000007")
@@ -38,12 +38,8 @@ class RoastingCounts:
     roast_variety_edges: int
 
 
-def _slug(*parts: str) -> str:
-    return ":".join(p.strip().lower() for p in parts if p)
-
-
 def _uid(*parts: str) -> str:
-    return str(uuid.uuid5(ROAST_NAMESPACE, _slug(*parts)))
+    return deterministic_uuid(ROAST_NAMESPACE, *parts)
 
 
 def _suitability_edges(
@@ -86,11 +82,7 @@ def load_roasting(
 ) -> RoastingCounts:
     seed = json.loads(Path(source_path).read_text(encoding="utf-8"))
 
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-
-    try:
+    with managed_connection(db_path, conn) as conn:
         # The product domain FK-references roast_roasters (prod_products.roaster_id,
         # edges_roaster_product, edges_shop_roaster) and roast_profiles
         # (edges_product_roast), so tear it down first or the deletes below raise
@@ -142,9 +134,6 @@ def load_roasting(
             roasters=len(roaster_rows),
             roast_variety_edges=edges,
         )
-    finally:
-        if owns_conn:
-            conn.close()
 
 
 if __name__ == "__main__":

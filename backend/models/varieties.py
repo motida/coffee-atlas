@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel
+
+from backend.models._base import ReadModel
 
 
 class VarietyBase(BaseModel):
@@ -21,7 +21,5 @@ class VarietyCreate(VarietyBase):
     pass
 
 
-class VarietyRead(VarietyBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
+class VarietyRead(VarietyBase, ReadModel):
+    pass

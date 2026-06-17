@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel
+
+from backend.models._base import ReadModel
 
 
 class CountryBase(BaseModel):
@@ -11,10 +11,8 @@ class CountryBase(BaseModel):
     production_volume: float | None = None
 
 
-class CountryRead(CountryBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
+class CountryRead(CountryBase, ReadModel):
+    pass
 
 
 class RegionBase(BaseModel):
@@ -26,10 +24,8 @@ class RegionBase(BaseModel):
     altitude_max: int | None = None
 
 
-class RegionRead(RegionBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
+class RegionRead(RegionBase, ReadModel):
+    pass
 
 
 class FarmBase(BaseModel):
@@ -42,7 +38,5 @@ class FarmBase(BaseModel):
     owner: str | None = None
 
 
-class FarmRead(FarmBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
+class FarmRead(FarmBase, ReadModel):
+    pass

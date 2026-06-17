@@ -49,3 +49,12 @@ def fetchall_dicts(cursor: duckdb.DuckDBPyConnection) -> list[dict[str, Any]]:
     """Materialize a SELECT result as a list of column→value dicts."""
     columns = [desc[0] for desc in cursor.description]
     return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+
+def fetchone_dict(cursor: duckdb.DuckDBPyConnection) -> dict[str, Any] | None:
+    """Materialize the next SELECT row as a column→value dict, or None if empty."""
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    columns = [desc[0] for desc in cursor.description]
+    return dict(zip(columns, row))

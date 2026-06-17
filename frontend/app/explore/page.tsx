@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { getVarieties, searchSemantic, searchText } from "@/lib/api";
+import { SearchControls, type SearchMode } from "@/components/explore/SearchControls";
+import { SearchResults } from "@/components/explore/SearchResults";
 import type { SearchResult } from "@/lib/types";
-
-type Mode = "text" | "semantic";
 
 const ENTITY_TYPES = [
   { id: "variety", label: "Varieties" },
@@ -20,34 +19,6 @@ const ENTITY_TYPES = [
 
 const SEMANTIC_TYPES = new Set(["variety", "flavor", "shop", "roast_profile", "product"]);
 
-// Species is a variety-only structured field, not a free-text term — filtering
-// by it scopes results to varieties of that species.
-const SPECIES_OPTIONS = ["Arabica", "Robusta"] as const;
-
-const TYPE_LINK: Record<string, (id: string) => string> = {
-  variety: (id) => `/explore/varieties/${id}`,
-  flavor: (id) => `/explore/flavors/${id}`,
-  country: (id) => `/explore/countries/${id}`,
-  region: (id) => `/explore/regions/${id}`,
-  processing: (id) => `/explore/processing/${id}`,
-  shop: (id) => `/explore/shops/${id}`,
-  product: (id) => `/explore/products/${id}`,
-};
-
-const TYPE_BADGE: Record<string, string> = {
-  variety: "bg-amber-100 text-amber-800",
-  flavor: "bg-rose-100 text-rose-800",
-  country: "bg-emerald-100 text-emerald-800",
-  region: "bg-teal-100 text-teal-800",
-  processing: "bg-sky-100 text-sky-800",
-  shop: "bg-coffee-200 text-coffee-900",
-  roast_profile: "bg-orange-100 text-orange-800",
-  product: "bg-indigo-100 text-indigo-800",
-};
-
-const titleCase = (s: string) =>
-  s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-
 const SEMANTIC_HINTS = [
   "fruity floral light roast",
   "chocolate nutty body",
@@ -57,7 +28,7 @@ const SEMANTIC_HINTS = [
 
 export default function ExplorePage() {
   const [query, setQuery] = useState("");
-  const [mode, setMode] = useState<Mode>("text");
+  const [mode, setMode] = useState<SearchMode>("text");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [species, setSpecies] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -66,8 +37,7 @@ export default function ExplorePage() {
   const reqIdRef = useRef(0);
 
   // The species facet only makes sense while varieties are in the result set.
-  const varietyInScope =
-    selectedTypes.size === 0 || selectedTypes.has("variety");
+  const varietyInScope = selectedTypes.size === 0 || selectedTypes.has("variety");
 
   // Drop a stale species filter if the user narrows to non-variety types.
   useEffect(() => {
@@ -165,85 +135,21 @@ export default function ExplorePage() {
         />
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div className="inline-flex overflow-hidden rounded-md border border-coffee-200 text-xs">
-          <button
-            type="button"
-            onClick={() => setMode("text")}
-            className={`px-3 py-1.5 ${mode === "text" ? "bg-coffee-700 text-white" : "bg-white text-coffee-700 hover:bg-coffee-50"}`}
-          >
-            Text
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("semantic")}
-            className={`px-3 py-1.5 ${mode === "semantic" ? "bg-coffee-700 text-white" : "bg-white text-coffee-700 hover:bg-coffee-50"}`}
-          >
-            Semantic
-          </button>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5">
-          {visibleTypes.map((t) => {
-            const active = selectedTypes.has(t.id);
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => toggleType(t.id)}
-                className={`rounded-full border px-3 py-1 text-xs ${
-                  active
-                    ? "border-coffee-700 bg-coffee-700 text-white"
-                    : "border-coffee-200 bg-white text-coffee-700 hover:border-coffee-400"
-                }`}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-          {(selectedTypes.size > 0 || species) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedTypes(new Set());
-                setSpecies(null);
-              }}
-              className="text-xs text-coffee-600 underline hover:text-coffee-800"
-            >
-              clear
-            </button>
-          )}
-        </div>
-
-        {varietyInScope && (
-          <div className="inline-flex items-center gap-1.5">
-            <span className="text-xs text-coffee-600">Species:</span>
-            <div className="inline-flex overflow-hidden rounded-md border border-coffee-200 text-xs">
-              <button
-                type="button"
-                onClick={() => setSpecies(null)}
-                className={`px-2.5 py-1 ${species === null ? "bg-coffee-700 text-white" : "bg-white text-coffee-700 hover:bg-coffee-50"}`}
-              >
-                All
-              </button>
-              {SPECIES_OPTIONS.map((sp) => (
-                <button
-                  key={sp}
-                  type="button"
-                  onClick={() => setSpecies(sp)}
-                  className={`border-l border-coffee-200 px-2.5 py-1 ${species === sp ? "bg-coffee-700 text-white" : "bg-white text-coffee-700 hover:bg-coffee-50"}`}
-                >
-                  {sp}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {loading && (
-          <span className="text-xs text-gray-500">Searching…</span>
-        )}
-      </div>
+      <SearchControls
+        mode={mode}
+        onModeChange={setMode}
+        visibleTypes={visibleTypes}
+        selectedTypes={selectedTypes}
+        onToggleType={toggleType}
+        varietyInScope={varietyInScope}
+        species={species}
+        onSpeciesChange={setSpecies}
+        onClear={() => {
+          setSelectedTypes(new Set());
+          setSpecies(null);
+        }}
+        loading={loading}
+      />
 
       {mode === "semantic" && query.length === 0 && !species && (
         <div className="mb-6 rounded-lg border border-coffee-200 bg-coffee-50 px-4 py-3 text-xs text-coffee-700">
@@ -271,55 +177,10 @@ export default function ExplorePage() {
       )}
 
       {!loading && query.trim().length > 0 && results.length === 0 && !error && (
-        <p className="text-sm text-gray-500">
-          No results for &ldquo;{query}&rdquo;.
-        </p>
+        <p className="text-sm text-gray-500">No results for &ldquo;{query}&rdquo;.</p>
       )}
 
-      <ul className="grid grid-cols-1 gap-2">
-        {results.map((r) => {
-          const href = TYPE_LINK[r.entity_type]?.(r.id);
-          const label =
-            r.entity_type === "region" ? titleCase(r.label) : r.label;
-          const card = (
-            <div className="flex items-start gap-3 rounded-lg border border-coffee-200 bg-white px-4 py-3 transition hover:border-coffee-400 hover:bg-coffee-50">
-              <span
-                className={`mt-0.5 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${TYPE_BADGE[r.entity_type] ?? "bg-gray-100 text-gray-700"}`}
-              >
-                {r.entity_type}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-sm font-medium text-coffee-900">
-                    {label}
-                  </span>
-                  {r.similarity !== null && (
-                    <span className="shrink-0 text-[10px] text-gray-500">
-                      {r.similarity.toFixed(3)}
-                    </span>
-                  )}
-                </div>
-                {r.description && (
-                  <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">
-                    {r.description}
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-          return (
-            <li key={`${r.entity_type}:${r.id}`}>
-              {href ? (
-                <Link href={href} className="block">
-                  {card}
-                </Link>
-              ) : (
-                card
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      <SearchResults results={results} />
     </div>
   );
 }

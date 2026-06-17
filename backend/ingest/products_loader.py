@@ -39,7 +39,11 @@ from urllib.parse import urlparse
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import (
+    deterministic_uuid,
+    managed_connection,
+    normalize_for_dedup,
+)
 
 PRODUCT_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000008")
 DEFAULT_SOURCE = Path("data/cache/product_scrape")  # dir of scraper JSONL logs
@@ -58,9 +62,20 @@ _NON_COFFEE_TITLE = re.compile(
     r"rocket\s*espresso|v60|"
     r"mug|tumbler|tote|hoodie|t-?shirt|tee|beanie|candle|poster|sticker|"
     r"kanteen|bottle|sock|"
-    r"sampler|bundle|gifts?|sample\s*set|tasting\s*set|cleaning|sets?)\b",
+    r"sampler|bundle|gifts?|sample\s*set|tasting\s*set|cleaning|sets?|"
+    # café supplies, drinkware, apparel, cupping classes, non-coffee beverages
+    r"pitcher|tongs|whisk|brush|funnel|spoon|towel|apron|magnet|opener|cambro|"
+    r"glass\s?ware|shot\s+glass|measuring|lids?|sleeves?|"
+    r"hot\s+cups?|cold\s+cups?|paper\s+cups?|tamp(?:ing)?\s+mat|drip\s+mat|"
+    r"rinza|tablets?|to-?go|cap|hat|crewneck|long\s+sleeve|trucker|keep\s?cup|"
+    r"gift\s+card|e-?gift|matcha|cupping)\b",
     re.I,
 )
+
+# Non-coffee beverages that share a name with a coffee drink: a plain
+# "Chocolate"/"Horchata" item is merch, but a "Chocolate Cold Brew" is coffee.
+_NON_COFFEE_BEVERAGE = re.compile(r"\b(chocolate|horchata)\b", re.I)
+_COFFEE_DRINK = re.compile(r"\bcold\s*brew\b", re.I)
 
 # Non-coffee product_type categories. These disqualify UNLESS the type string
 # also mentions coffee (some stores file a coffee under "...,Gifts" collections).
@@ -79,12 +94,8 @@ class ProductCounts:
     dropped_non_coffee: int
 
 
-def _slug(*parts: str) -> str:
-    return ":".join(p.strip().lower() for p in parts if p)
-
-
 def _uid(*parts: str) -> str:
-    return str(uuid.uuid5(PRODUCT_NAMESPACE, _slug(*parts)))
+    return deterministic_uuid(PRODUCT_NAMESPACE, *parts)
 
 
 # Every product-domain table, in FK-safe delete order (everything that
@@ -121,6 +132,9 @@ def classify_coffee(title: str, product_type: str | None, tags: list[str]) -> bo
     """
     if _NON_COFFEE_TITLE.search(title):
         return False
+    # Chocolate/horchata are non-coffee — except as a cold-brew coffee drink.
+    if _NON_COFFEE_BEVERAGE.search(title) and not _COFFEE_DRINK.search(title):
+        return False
     pt = product_type or ""
     if pt and _NON_COFFEE_TYPE.search(pt) and not re.search(r"coffee", pt, re.I):
         return False
@@ -156,8 +170,54 @@ def read_scraped(path: str | Path) -> list[dict[str, Any]]:
 
 
 def _norm_name(name: str) -> str:
-    """Case/whitespace-insensitive key for roaster-name matching."""
-    return re.sub(r"\s+", " ", name).strip().casefold()
+    """Case/whitespace-insensitive key (used for per-site vendor grouping)."""
+    return normalize_for_dedup(name)
+
+
+# Generic words a roaster's name may or may not carry — stripped (from the end,
+# plus a leading "the") to derive an identity key. Lets "Stumptown Coffee",
+# "Stumptown Coffee Roasters" and "The Stumptown Roastery" collapse to one node.
+_GENERIC_ROASTER_WORDS = frozenset(
+    {
+        "coffee",
+        "coffees",
+        "roaster",
+        "roasters",
+        "roastery",
+        "roasteries",
+        "roasting",
+        "company",
+        "co",
+        "lab",
+        "labs",
+        "specialty",
+    }
+)
+
+
+def _canon_name(name: str) -> str:
+    """Aggressive identity key for roaster dedup matching.
+
+    Case-folds, drops punctuation, removes a leading "the" and any trailing
+    generic coffee words. Conservative: never strips the final token, so two
+    genuinely distinct names aren't merged into an empty key.
+    """
+    toks = re.sub(r"[^a-z0-9 ]+", " ", name.casefold()).split()
+    if toks[:1] == ["the"]:
+        toks = toks[1:]
+    while len(toks) > 1 and toks[-1] in _GENERIC_ROASTER_WORDS:
+        toks.pop()
+    return " ".join(toks) or _norm_name(name)
+
+
+# Shopify `vendor` abbreviations → canonical roaster display name. Applied to the
+# resolved roaster name BEFORE dedup, so the node both displays a friendly name
+# and a future re-scrape maps the abbreviation to the same canonical row instead
+# of spawning a separate one (e.g. birdrockcoffee.com's vendor "BRCR Roasting").
+# Keyed by _norm_name(vendor).
+_VENDOR_ALIASES: dict[str, str] = {
+    "brcr roasting": "Bird Rock Coffee Roasters",
+}
 
 
 def _roaster_name_by_site(coffee_records: list[dict[str, Any]]) -> dict[str, str]:
@@ -199,12 +259,16 @@ def load_products(
     site_roaster = _roaster_name_by_site(coffee)
 
     # Build roaster + product rows keyed by deterministic id (dedupes repeats).
-    # Reuse an existing roaster row when the name already exists (e.g. from the
-    # roasting seed) so we don't create a duplicate node under a fresh id.
-    existing_roasters = {
-        _norm_name(name): rid
-        for rid, name in conn.execute("SELECT id, name FROM roast_roasters").fetchall()
-    }
+    # Reuse an existing roaster row whose canonical name matches (e.g. the
+    # roasting seed's "Stumptown Coffee Roasters" vs a scraped "Stumptown
+    # Coffee") so we don't create a duplicate node under a fresh id. Oldest row
+    # wins ownership of a canonical key, and new roasters are registered as we
+    # go so two sites for the same roaster collapse within a single batch.
+    canon_to_id: dict[str, str] = {}
+    for rid, name in conn.execute(
+        "SELECT id, name FROM roast_roasters ORDER BY created_at"
+    ).fetchall():
+        canon_to_id.setdefault(_canon_name(name), rid)
 
     roasters: dict[str, tuple[str, str, str | None]] = {}  # id -> (id, name, website)
     products: dict[str, tuple[Any, ...]] = {}
@@ -214,9 +278,12 @@ def load_products(
             continue  # skip before registering a roaster, so no product-less roaster node
         site = rec.get("site") or ""
         roaster_name = site_roaster.get(site) or _name_from_domain(site)
-        roaster_id = existing_roasters.get(_norm_name(roaster_name)) or _uid(
-            "roaster", roaster_name
-        )
+        roaster_name = _VENDOR_ALIASES.get(_norm_name(roaster_name), roaster_name)
+        canon = _canon_name(roaster_name)
+        roaster_id = canon_to_id.get(canon)
+        if roaster_id is None:
+            roaster_id = _uid("roaster", roaster_name)
+            canon_to_id[canon] = roaster_id
         roasters[roaster_id] = (roaster_id, roaster_name, site or None)
 
         product_id = _uid("product", site, title)
@@ -270,14 +337,8 @@ def load_from_file(
     conn: duckdb.DuckDBPyConnection | None = None,
 ) -> ProductCounts:
     records = read_scraped(source_path)
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-    try:
+    with managed_connection(db_path, conn) as conn:
         return load_products(records, conn)
-    finally:
-        if owns_conn:
-            conn.close()
 
 
 def main() -> None:

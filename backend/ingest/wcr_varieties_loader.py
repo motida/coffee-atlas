@@ -15,7 +15,7 @@ from pathlib import Path
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import managed_connection
 
 VARIETY_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000002")
 DEFAULT_SOURCE = Path("data/raw/wcr_varieties.json")
@@ -66,11 +66,7 @@ def load_wcr_varieties(
     source = Path(source_path)
     rows = _build_rows(source)
 
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-
-    try:
+    with managed_connection(db_path, conn) as conn:
         for edge in (
             "edges_variety_flavor",
             "edges_country_variety",
@@ -93,9 +89,6 @@ def load_wcr_varieties(
             """,
             rows,
         )
-    finally:
-        if owns_conn:
-            conn.close()
 
     return len(rows)
 

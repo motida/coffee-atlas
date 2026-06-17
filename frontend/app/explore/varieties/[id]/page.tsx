@@ -1,38 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getVariety, getVarietyFlavor } from "@/lib/api";
-import { EntityCard, EntityPage, Field, Section } from "@/components/explore/EntityPage";
+import {
+  CardGrid,
+  EntityCard,
+  EntityDetailLoader,
+  EntityPage,
+  Field,
+  Section,
+} from "@/components/explore/EntityPage";
+import { useEntityDetail } from "@/lib/hooks";
 import type { FlavorAttribute, Variety } from "@/lib/types";
 
 export default function VarietyPage({ params }: { params: { id: string } }) {
-  const [variety, setVariety] = useState<Variety | null>(null);
   const [flavors, setFlavors] = useState<FlavorAttribute[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { entity: variety, error } = useEntityDetail<Variety>(
+    params.id,
+    getVariety,
+    (id) => {
+      getVarietyFlavor(id)
+        .then(setFlavors)
+        .catch(() => setFlavors([]));
+    },
+  );
 
-  useEffect(() => {
-    getVariety(params.id)
-      .then(setVariety)
-      .catch((e) => setError(String(e)));
-    getVarietyFlavor(params.id)
-      .then(setFlavors)
-      .catch(() => setFlavors([]));
-  }, [params.id]);
-
-  if (error) {
-    return (
-      <EntityPage type="Variety" title="Not found">
-        <p className="text-sm text-red-600">{error}</p>
-      </EntityPage>
-    );
-  }
-
-  if (!variety) {
-    return (
-      <EntityPage type="Variety" title="Loading…">
-        <p className="text-sm text-gray-500">Loading variety…</p>
-      </EntityPage>
-    );
+  if (error || !variety) {
+    return <EntityDetailLoader type="Variety" error={error} loadingLabel="Loading variety…" />;
   }
 
   const altitude =
@@ -70,7 +64,7 @@ export default function VarietyPage({ params }: { params: { id: string } }) {
         count={flavors.length}
         empty="No flavor attributes linked yet."
       >
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+        <CardGrid>
           {flavors.map((f) => (
             <EntityCard
               key={f.id}
@@ -79,7 +73,7 @@ export default function VarietyPage({ params }: { params: { id: string } }) {
               subtitle={[f.category, f.subcategory].filter(Boolean).join(" · ") || undefined}
             />
           ))}
-        </div>
+        </CardGrid>
       </Section>
     </EntityPage>
   );

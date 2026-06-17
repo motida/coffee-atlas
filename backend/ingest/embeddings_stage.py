@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import managed_connection
 from backend.services.embeddings import Embedder, EmbeddingService
 
 
@@ -97,21 +97,15 @@ def run_embeddings(
         wanted = set(tables)
         targets = [t for t in TARGETS if t.table in wanted]
 
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection()
     if service is None:
         service = EmbeddingService()
 
     results: dict[str, int] = {}
 
-    try:
+    with managed_connection(conn=conn) as conn:
         for target in targets:
             count = _embed_table(conn, service, target)
             results[target.table] = count
-    finally:
-        if owns_conn:
-            conn.close()
 
     return results
 

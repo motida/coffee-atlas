@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel
+
+from backend.models._base import ReadModel
 
 
 class ImporterBase(BaseModel):
@@ -9,11 +9,8 @@ class ImporterBase(BaseModel):
     website: str | None = None
 
 
-class ImporterRead(ImporterBase):
-    id: str
+class ImporterRead(ImporterBase, ReadModel):
     country_name: str | None = None  # joined from org_countries
-    created_at: datetime
-    updated_at: datetime
 
 
 class TradeRouteBase(BaseModel):
@@ -23,12 +20,9 @@ class TradeRouteBase(BaseModel):
     year: int | None = None
 
 
-class TradeRouteRead(TradeRouteBase):
-    id: str
+class TradeRouteRead(TradeRouteBase, ReadModel):
     exporter_name: str | None = None  # joined from org_countries
     importer_name: str | None = None
-    created_at: datetime
-    updated_at: datetime
 
 
 class CertificationBase(BaseModel):
@@ -36,7 +30,5 @@ class CertificationBase(BaseModel):
     description: str | None = None
 
 
-class CertificationRead(CertificationBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
+class CertificationRead(CertificationBase, ReadModel):
+    pass
