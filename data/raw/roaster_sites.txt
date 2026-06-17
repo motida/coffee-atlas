@@ -1,5 +1,6 @@
-# Curated specialty-coffee roasters whose storefronts expose a public Shopify
-# /products.json endpoint. Verified 2026-06-16 (HTTP 200 + products present).
+# Curated specialty-coffee roasters whose storefronts expose a public product
+# catalog — Shopify /products.json or the WooCommerce Store API. The scraper
+# auto-detects the platform per site, so this list need not be sorted by it.
 # Used as the crawl frontier for backend.ingest.shop_scrapers.product_scraper,
 # since shop_shops.roasts_in_house is unpopulated (see memory).
 # Format: one site root per line; blank lines and # comments are ignored.
@@ -55,3 +56,9 @@ https://partnerscoffee.com
 https://www.heartroasters.com
 https://devocion.com
 https://roundhillroastery.com
+
+# WooCommerce — added 2026-06-17. Verified via the public Store API
+# (/wp-json/wc/store/v1/products): HTTP 200 + products present. The first two
+# WooCommerce roasters in the frontier (all of the above are Shopify).
+https://www.ritualcoffee.com
+https://www.barringtoncoffee.com
