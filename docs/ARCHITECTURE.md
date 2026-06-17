@@ -4,13 +4,14 @@
 
 > **Implementation status.** This document describes the target architecture; some
 > pieces are deliberately scoped for later. **Live today:** the FastAPI + DuckDB
-> backend, the ingest pipeline, Gemini embeddings with cosine semantic search over
-> varieties + flavor attributes, the Next.js frontend (map, graph, flavor wheel,
-> explore), and rdflib-based ontology validation + triple export. **Planned:**
-> DuckPGQ property-graph queries (currently BFS over relational edge tables), the
-> HNSW/VSS index (currently a full-table cosine scan), HermiT DL reasoning, the
-> remaining cross-domain edge tables, and Hive-partitioned Parquet export. Sections
-> below flag the gap inline where it matters.
+> backend with all eight domain routers (varieties, origins, processing, roasting,
+> flavor, distribution, shops, products) plus graph and search, the ingest pipeline,
+> Gemini embeddings with cosine semantic search over varieties + flavor attributes,
+> the Next.js frontend (map, graph, flavor wheel, explore), and rdflib-based
+> ontology validation + triple export. **Planned:** DuckPGQ property-graph queries
+> (currently BFS over relational edge tables), the HNSW/VSS index (currently a
+> full-table cosine scan), HermiT DL reasoning, and Hive-partitioned Parquet
+> export. Sections below flag the gap inline where it matters.
 
 ---
 
@@ -44,8 +45,9 @@ The project demonstrates how formal ontology design, graph databases, and vector
 ┌───────────────────────────┼──────────────────────────────────┐
 │                    Backend (FastAPI)                          │
 │  ┌──────────────────────────────────────────────────────┐    │
-│  │  Routers: varieties │ origins │ roasting │ flavor    │    │
-│  │           shops │ graph │ search                     │    │
+│  │  Routers: varieties · origins · processing · roasting│    │
+│  │           flavor · distribution · shops · products   │    │
+│  │           graph · search                             │    │
 │  └──────────────────────┬───────────────────────────────┘    │
 │  ┌──────────┐  ┌────────┴───────┐  ┌────────────────────┐   │
 │  │Embedding │  │  DuckDB Conn   │  │  Geocoding Service │   │
@@ -58,8 +60,9 @@ The project demonstrates how formal ontology design, graph databases, and vector
 │                    DuckDB (Single Process)                    │
 │  ┌─────────────┐  ┌─────┴──────┐  ┌─────────────────────┐   │
 │  │ Relational  │  │  DuckPGQ   │  │  DuckDB VSS         │   │
-│  │ Tables (18) │  │  Property  │  │  HNSW Vector Index  │   │
-│  │ 7 domains   │  │  Graph     │  │  3072-dim embeddings│   │
+│  │ Tables (31) │  │ Property   │  │  Cosine scan today  │   │
+│  │ 8 domains   │  │ Graph      │  │  3072-dim embeddings│   │
+│  │ 13 + 18 edge│  │ (parked)   │  │  (HNSW planned)     │   │
 │  └─────────────┘  └────────────┘  └─────────────────────┘   │
 │                           │                                   │
 │              Parquet (Hive-partitioned by domain)             │
@@ -71,7 +74,7 @@ The project demonstrates how formal ontology design, graph databases, and vector
 │  ┌──────────┐ ┌────────┐ ┌──────────┐ ┌─────────┐           │
 │  │varieties │ │origins │ │processing│ │roasting │           │
 │  ├──────────┤ ├────────┤ ├──────────┤ ├─────────┤           │
-│  │ flavor   │ │distrib.│ │  shops   │ │ master  │           │
+│  │ flavor   │ │distrib.│ │  shops   │ │products │           │
 │  └──────────┘ └────────┘ └──────────┘ └─────────┘           │
 │              Owlready2 + HermiT Reasoner                     │
 └──────────────────────────────────────────────────────────────┘
@@ -94,7 +97,7 @@ layer is the main planned extension — see status note above):
 
 ### Modular Architecture
 
-Seven domain ontologies are developed independently and composed via `owl:imports`:
+Eight domain ontologies are developed independently and composed via `owl:imports`:
 
 ```turtle
 # coffee-atlas-ontology.ttl (master)
@@ -105,7 +108,8 @@ Seven domain ontologies are developed independently and composed via `owl:import
                 <http://coffeeatlas.org/ontology/roasting> ,
                 <http://coffeeatlas.org/ontology/flavor> ,
                 <http://coffeeatlas.org/ontology/distribution> ,
-                <http://coffeeatlas.org/ontology/shops> .
+                <http://coffeeatlas.org/ontology/shops> ,
+                <http://coffeeatlas.org/ontology/products> .
 ```
 
 Each module defines its own class hierarchy, properties, and constraints. Cross-domain relationships (e.g., `ProcessingMethod → enhances → FlavorAttribute`) reference other modules by IRI.
@@ -126,7 +130,7 @@ Type safety propagates from the ontology through every layer.
 
 ## Domain Model
 
-Seven interconnected domains, each with its own database table prefix, router, and Pydantic model:
+Eight interconnected domains, each with its own database table prefix, router, and Pydantic model:
 
 ### Entity Domains
 
@@ -139,6 +143,7 @@ Seven interconnected domains, each with its own database table prefix, router, a
 | **Flavor** | `flav_` | FlavorAttribute, FlavorCategory | WCR Sensory Lexicon (110 attributes) |
 | **Distribution** | `dist_` | Importer, TradeRoute, Certification | ICO, FAOSTAT |
 | **Shops** | `shop_` | CoffeeShop, Roastery, BrewMethod | Overture Maps POI |
+| **Products** | `prod_` | CoffeeProduct (single-origin / blend) | Scraped roaster catalogs (Shopify + JSON-LD) |
 
 ### Relationship Graph
 
@@ -158,7 +163,14 @@ CoffeeShop ──servesVariety──▶ Variety    ▼
      └──usesRoastProfile──▶ RoastProfile ──enhances/diminishes──▶ FlavorAttribute
 ```
 
-Ten edge tables are defined in the schema to materialize these relationships for graph traversal. Eight are populated from data today: the geographic hierarchy (`edges_country_region`, `edges_region_farm`, built by the graph stage from foreign keys), the semantic `edges_variety_flavor` (top-K embedding similarity, graph stage), the origin↔variety and variety↔processing edges (`edges_country_variety`, `edges_region_variety`, `edges_farm_variety`, `edges_variety_processing`, built by the CQI loader from cupping-sample co-occurrence), and `edges_roast_variety` (built by the roasting loader from each profile's species/altitude suitability rule). The origin→variety and variety→processing edges bridge the geographic hierarchy to the variety/flavor/processing clusters, so traversal spans a **single connected component** rather than two islands. The remaining two (`edges_shop_variety`, `edges_processing_flavor`) are schema-ready and fill in as their source data lands — shop data carries no variety references yet, and no source links processing to flavor. Origin → Variety is split per origin level so each edge gets a real foreign key (no polymorphic IDs):
+Eighteen edge tables materialize these relationships for graph traversal, built by a handful of loaders:
+
+- **Geographic hierarchy & semantics** (graph stage): `edges_country_region` and `edges_region_farm` from foreign keys; `edges_variety_flavor` from top-K embedding similarity.
+- **Cupping co-occurrence** (CQI loader): `edges_country_variety`, `edges_region_variety`, `edges_farm_variety`, and `edges_variety_processing`. Origin → Variety is split per origin level so each edge keeps a real foreign key (no polymorphic IDs).
+- **Curated seeds**: `edges_roast_variety` (roasting loader, from each profile's species/altitude suitability rule) and `edges_processing_flavor` (processing_flavor stage, from a hand-mapped table).
+- **Products domain** (graph stage, after the `products` and `shops` stages run): *content* edges match scraped product text against the loaded entities (`edges_product_variety`, `edges_product_flavor`, `edges_product_country`, `edges_product_region`, `edges_product_roast`); *structural* edges follow the website graph (`edges_roaster_product`, `edges_shop_roaster`, `edges_shop_product`). The last chain, shop → product → variety, finally populates the previously-empty `edges_shop_variety`.
+
+Because origin → variety and the product/shop chains bridge the geographic hierarchy to the variety/flavor/processing/roasting clusters, traversal spans a **single connected component** rather than disconnected islands.
 
 | Edge Table | From | To |
 |-----------|------|-----|
@@ -166,10 +178,20 @@ Ten edge tables are defined in the schema to materialize these relationships for
 | `edges_country_variety` | Country | Variety |
 | `edges_region_variety` | Region | Variety |
 | `edges_farm_variety` | Farm | Variety |
-| `edges_shop_variety` | Shop | Variety |
 | `edges_variety_processing` | Variety | ProcessingMethod |
-| `edges_roast_variety` | RoastProfile | Variety |
 | `edges_processing_flavor` | ProcessingMethod | FlavorAttribute |
+| `edges_roast_variety` | RoastProfile | Variety |
+| `edges_country_region` | Country | Region |
+| `edges_region_farm` | Region | Farm |
+| `edges_product_variety` | CoffeeProduct | Variety |
+| `edges_product_flavor` | CoffeeProduct | FlavorAttribute |
+| `edges_product_country` | CoffeeProduct | Country |
+| `edges_product_region` | CoffeeProduct | Region |
+| `edges_product_roast` | CoffeeProduct | RoastProfile |
+| `edges_roaster_product` | Roaster | CoffeeProduct |
+| `edges_shop_product` | Shop | CoffeeProduct |
+| `edges_shop_roaster` | Shop | Roaster |
+| `edges_shop_variety` | Shop | Variety |
 
 ---
 
@@ -200,13 +222,14 @@ Every table follows consistent conventions:
 
 ### DuckPGQ Property Graph
 
-DuckDB's `pgq` extension overlays a property graph on relational tables. No data duplication — the graph is a **view** over existing tables:
+DuckDB's `pgq` extension is designed to overlay a property graph on relational tables — no data duplication, the graph is a **view** over existing tables. The target definition is below. On the current DuckDB build the community `duckpgq` extension fails to load, so this step is **parked** and the graph endpoints run BFS over the same edge tables instead (`property_graph_ok` is reported as skipped by the graph stage):
 
 ```sql
 CREATE PROPERTY GRAPH coffee_graph
 VERTEX TABLES (
     var_varieties, org_countries, org_regions, org_farms,
-    proc_methods, roast_profiles, flav_attributes, shop_shops
+    proc_methods, roast_profiles, roast_roasters,
+    flav_attributes, shop_shops, prod_products
 )
 EDGE TABLES (
     edges_variety_flavor   (source REFERENCES var_varieties,
@@ -217,11 +240,11 @@ EDGE TABLES (
                             destination REFERENCES var_varieties),
     edges_farm_variety     (source REFERENCES org_farms,
                             destination REFERENCES var_varieties),
-    -- ... 4 more edge tables
+    -- ... 14 more edge tables, including the products domain
 );
 ```
 
-Graph queries run inside DuckDB's SQL engine. No network roundtrips to a separate graph database. ACID guarantees on graph mutations.
+Once the extension is available, graph queries run inside DuckDB's SQL engine — no network roundtrips to a separate graph database, with ACID guarantees on graph mutations.
 
 ### Vector Search with HNSW
 
@@ -276,11 +299,13 @@ Each domain has exactly one router with a dedicated prefix:
 | Router | Prefix | Responsibilities |
 |--------|--------|-----------------|
 | `varieties.py` | `/api/v1/varieties` | List, detail, flavor profile |
-| `origins.py` | `/api/v1/origins` | List, detail, GeoJSON export |
+| `origins.py` | `/api/v1/origins` | List, detail, GeoJSON export (countries + regions) |
+| `processing.py` | `/api/v1/processing` | Methods list/detail, linked varieties + flavors |
 | `roasting.py` | `/api/v1/roasting` | Profiles list and detail |
 | `flavor.py` | `/api/v1/flavor` | Wheel hierarchy, attribute detail |
 | `distribution.py` | `/api/v1/distribution` | Importers, certifications, trade routes + GeoJSON arcs |
-| `shops.py` | `/api/v1/shops` | List, detail, GeoJSON, nearby (Haversine) |
+| `shops.py` | `/api/v1/shops` | List, detail, GeoJSON, nearby (Haversine), products |
+| `products.py` | `/api/v1/products` | List/detail, varieties, flavors, origin |
 | `graph.py` | `/api/v1/graph` | Traverse, shortest path |
 | `search.py` | `/api/v1/search` | Semantic similarity, full-text |
 
@@ -383,13 +408,18 @@ export const getShopsGeo = () => fetchAPI<GeoJSONFeatureCollection>("/shops/geo"
 The ingest pipeline runs in stages, each independently re-runnable:
 
 ```
-Stage 1: lexicon     ─── WCR Sensory Lexicon PDF ──▶ flav_attributes (110 rows)
-Stage 2: varieties   ─── WCR Web Catalog ──────────▶ var_varieties (100+ rows)
-Stage 3: cqi         ─── Kaggle CSV ───────────────▶ org_*, proc_methods (~1,300 rows)
-Stage 4: geocode     ─── Nominatim + ISO centroids ▶ lat/lng on org_countries/regions
-Stage 5: shops       ─── Overture Maps POI ────────▶ shop_shops
-Stage 6: embeddings  ─── Gemini API ────────────────▶ *_embedding columns
-Stage 7: graph       ─── Computed ─────────────────▶ edges_* tables
+Stage  1: lexicon                 ─ WCR Sensory Lexicon PDF ─▶ flav_attributes (110 rows)
+Stage  2: varieties               ─ WCR Web Catalog ─────────▶ var_varieties (100+ rows)
+Stage  3: cqi                     ─ Kaggle CSV ──────────────▶ org_*, proc_methods (~1,300 rows)
+Stage  4: processing_descriptions ─ Curated prose ──────────▶ proc_methods.description
+Stage  5: processing_flavor       ─ Hand-mapped table ──────▶ edges_processing_flavor
+Stage  6: geocode                 ─ Nominatim + ISO centroids ▶ lat/lng on org_countries/regions
+Stage  7: shops                   ─ Overture Maps POI ───────▶ shop_shops   (network; skipped in bootstrap)
+Stage  8: distribution            ─ ICO / FAOSTAT seed ──────▶ dist_*
+Stage  9: roasting                ─ Curated seed JSON ───────▶ roast_profiles, roast_roasters
+Stage 10: products                ─ Roaster catalog scrape ──▶ prod_products (network; skipped in bootstrap)
+Stage 11: embeddings              ─ Gemini API ──────────────▶ *_embedding columns
+Stage 12: graph                   ─ Computed ─────────────────▶ edges_* tables
 ```
 
 Order matters: the flavor taxonomy must exist before varieties can link to it; coordinates must exist before the map can render; embeddings require text fields to be populated.
@@ -406,7 +436,7 @@ uv run python -m backend.ingest.pipeline --stage cqi  # Run one stage
 | Decision | Chosen | Alternative | Rationale |
 |----------|--------|-------------|-----------|
 | Database | DuckDB (embedded) | PostgreSQL | Zero ops, columnar compression, native PGQ + VSS extensions |
-| Graph | DuckPGQ (in-process) | Neo4j | No separate server, ACID, SQL joins with relational data |
+| Graph | DuckPGQ (in-process; BFS fallback today) | Neo4j | No separate server, ACID, SQL joins with relational data |
 | Vector search | DuckDB VSS | Pinecone / Weaviate | Self-contained, no external service dependency |
 | Ontology | OWL 2 DL + HermiT | JSON Schema | Formal reasoning, inferred relationships, consistency proofs |
 | Embeddings | Gemini `gemini-embedding-001` | OpenAI / open-source (e5, BGE) | Generous free tier, 3072 dims, high-quality retrieval |

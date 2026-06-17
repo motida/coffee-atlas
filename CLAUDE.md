@@ -12,11 +12,13 @@ Coffee Atlas is a full-stack geospatial application that maps the global coffee 
 
 - **Backend:** FastAPI (Python 3.14+)
 - **Frontend:** Next.js 14+ (App Router, TypeScript, Tailwind CSS)
-- **Database:** DuckDB with Parquet storage (Hive-partitioned by domain)
-- **Graph Layer:** DuckPGQ extension for graph traversal queries
-- **Vector Search:** DuckDB VSS extension with HNSW indexing (Gemini `gemini-embedding-001`, 3072 dims)
+- **Database:** DuckDB (single-file today; Hive-partitioned Parquet export planned)
+- **Graph Layer:** DuckPGQ extension is the target; **parked** on the current DuckDB build (the community `duckpgq` extension fails to load), so graph endpoints run BFS over relational edge tables
+- **Vector Search:** DuckDB VSS extension with HNSW indexing planned; semantic search runs an exact cosine scan over stored Gemini embeddings today (`gemini-embedding-001`, 3072 dims)
 - **Maps:** MapLibre GL JS (react-map-gl wrapper) with OpenFreeMap tiles
-- **Ontology (design-time):** OWL 2 via Owlready2, validated with HermiT reasoner
+- **Ontology (design-time):** OWL 2 via rdflib (parse + structure validation, triple export); HermiT DL reasoning planned
+
+> **Status note.** This file is the design spec; several pieces above are intentionally scoped for later (DuckPGQ, HNSW/VSS, HermiT, Parquet export). See `docs/ARCHITECTURE.md` for the live-vs-planned breakdown.
 
 ### Project Structure
 
@@ -32,7 +34,8 @@ coffee-atlas/
 │   │   ├── roasting.ttl
 │   │   ├── flavor.ttl
 │   │   ├── distribution.ttl
-│   │   └── shops.ttl
+│   │   ├── shops.ttl
+│   │   └── products.ttl
 │   └── scripts/
 │       ├── validate_ontology.py        # Owlready2 + HermiT consistency check
 │       └── export_triples.py           # Export inferred triples to DuckDB
@@ -48,10 +51,13 @@ coffee-atlas/
 │   ├── routers/
 │   │   ├── varieties.py
 │   │   ├── origins.py
+│   │   ├── processing.py
 │   │   ├── roasting.py
 │   │   ├── flavor.py
+│   │   ├── distribution.py
 │   │   ├── shops.py
-│   │   ├── graph.py                    # Graph traversal endpoints
+│   │   ├── products.py
+│   │   ├── graph.py                    # Graph traversal endpoints (BFS)
 │   │   └── search.py                   # Semantic similarity search
 │   ├── services/
 │   │   ├── embeddings.py               # Gemini embedding generation
@@ -61,7 +67,17 @@ coffee-atlas/
 │       ├── cqi_loader.py               # Coffee Quality Institute data
 │       ├── wcr_varieties_loader.py     # World Coffee Research catalog
 │       ├── wcr_lexicon_loader.py       # WCR Sensory Lexicon
-│       ├── shop_scrapers/              # Specialty shop data collection
+│       ├── processing_descriptions_loader.py  # Curated method prose
+│       ├── processing_flavor_loader.py # Processing→flavor edge seed
+│       ├── distribution_loader.py      # Certifications, importers, trade routes
+│       ├── roasting_loader.py          # Roast profiles + roasters seed
+│       ├── overture_shops_loader.py    # Overture Maps POI (S3)
+│       ├── products_loader.py          # Load scraped roaster products
+│       ├── product_edges.py            # Resolve product/shop/roaster edges
+│       ├── geocode_stage.py            # Geocode origins
+│       ├── embeddings_stage.py         # Gemini embeddings
+│       ├── graph_stage.py              # Build edge tables (BFS-ready)
+│       ├── shop_scrapers/              # Roaster catalog scrapers (Shopify/JSON-LD)
 │       └── pipeline.py                 # Orchestrates full ingest
 ├── frontend/
 │   ├── app/
@@ -97,6 +113,9 @@ coffee-atlas/
 ├── tests/
 │   ├── backend/
 │   └── frontend/
+├── deploy/
+│   └── huggingface/                    # HF Space scaffold (api + web) + deploy.sh
+├── justfile                            # Task runner (just bootstrap, just dev, ...)
 ├── docker-compose.yml
 ├── Dockerfile
 └── .env.example
@@ -146,6 +165,11 @@ Classes: `CoffeeShop`, `Roastery`, `CafeChain`, `BrewMethod`
 Key properties: `locatedAt` (coordinates), `servesVariety`, `roastsInHouse`, `offersBrewMethod`, `sourcesFrom`, `rating`
 Seed data: Google Places API, Yelp Fusion API, or Overture Maps Foundation open data for POI. Filter by coffee-related categories. For specialty focus, consider scraping European Coffee Trip, Sprudge city guides, or specialty coffee directories.
 
+#### 8. Products (`products.ttl`)
+Classes: `CoffeeProduct` (single-origin or blend)
+Key properties: `roastedBy` (→ Roaster), `roastLevel`, `process`, `isBlend`, `price`, `netWeightGrams`, `consistsOf` (→ Variety), `hasFlavor` (→ FlavorAttribute), `fromOrigin` (→ Country/Region)
+Seed data: scraped roaster product catalogs (Shopify storefront JSON + embedded JSON-LD) from a curated roaster list. The scraper drops non-coffee items; the `products` ingest stage is network-heavy and excluded from `just bootstrap` (run explicitly, like `shops`).
+
 ### Cross-Domain Object Properties
 - `Variety → hasFlavor → FlavorAttribute`
 - `Farm → grows → Variety`
@@ -157,6 +181,12 @@ Seed data: Google Places API, Yelp Fusion API, or Overture Maps Foundation open 
 - `CoffeeShop → servesVariety → Variety`
 - `CoffeeShop → usesRoastProfile → RoastProfile`
 - `Country → exportsTo → Country` (via TradeRoute)
+- `CoffeeProduct → consistsOf → Variety`
+- `CoffeeProduct → hasFlavor → FlavorAttribute`
+- `CoffeeProduct → fromOrigin → Country | Region`
+- `CoffeeProduct → hasRoastLevel → RoastProfile`
+- `Roaster → produces → CoffeeProduct`
+- `CoffeeShop → sells → CoffeeProduct` (resolved via shop ↔ roaster domain match)
 
 ### Ontology Validation Workflow
 1. Edit `.ttl` modules in Protégé or by hand
@@ -169,23 +199,39 @@ Seed data: Google Places API, Yelp Fusion API, or Overture Maps Foundation open 
 ## Data Pipeline
 
 ### Ingest Order
-1. **WCR Sensory Lexicon** → parse PDF, populate `flavor_attributes` table (T-Box stable)
-2. **WCR Varieties Catalog** → scrape web catalog, populate `varieties` table
-3. **CQI Database** → download CSV from Kaggle, clean + normalize, populate `coffee_samples`, `origins`, `processing_methods`
-4. **Geocoding** → batch geocode origins (country + region + altitude) via chosen provider, store coordinates
-5. **Shops** → POI data load, filter specialty coffee, geocode, populate `shops`
-6. **Embeddings** → generate Gemini embeddings for variety descriptions, flavor profiles, shop descriptions → store in DuckDB VSS index
-7. **Graph edges** → compute and store edges for DuckPGQ property graph
+
+The `backend.ingest.pipeline` module runs these stages in order (run all with
+`--all`, or one at a time with `--stage <name>`). `just bootstrap` runs the
+local stages; the network-heavy `shops` and `products` stages are run explicitly.
+
+1. `lexicon` — parse WCR Sensory Lexicon, populate `flav_attributes` (T-Box stable)
+2. `varieties` — load WCR Varieties Catalog into `var_varieties`
+3. `cqi` — clean + normalize CQI CSV → `org_*`, `proc_methods`, + cupping-derived edges
+4. `processing_descriptions` — attach curated prose to `proc_methods`
+5. `processing_flavor` — seed `edges_processing_flavor` from a hand-mapped table
+6. `geocode` — batch-geocode origins (Nominatim + ISO centroids), store coordinates
+7. `shops` — Overture Maps POI load → `shop_shops` *(network; skipped in bootstrap)*
+8. `distribution` — certifications, importers, trade routes → `dist_*`
+9. `roasting` — roast profiles + roasters seed → `roast_profiles`, `roast_roasters`, `edges_roast_variety`
+10. `products` — scrape roaster catalogs → `prod_products` *(network; skipped in bootstrap)*
+11. `embeddings` — generate Gemini embeddings → `*_embedding` columns (cosine scan today)
+12. `graph` — compute and store all `edges_*` tables (incl. product/shop edges; DuckPGQ graph parked)
 
 ### DuckDB Schema Conventions
-- All tables prefixed by domain: `var_`, `org_`, `proc_`, `roast_`, `flav_`, `dist_`, `shop_`
+- All tables prefixed by domain: `var_`, `org_`, `proc_`, `roast_`, `flav_`, `dist_`, `shop_`, `prod_` (plus `edges_*` join tables)
 - `_id` columns are UUIDs (text)
 - `_embedding` columns are `FLOAT[3072]` for Gemini `gemini-embedding-001` embeddings
 - `created_at` and `updated_at` timestamps on all tables
 - Parquet export: Hive partitioned by domain under `data/parquet/domain=xxx/`
 
 ### DuckPGQ Property Graph
-Define a property graph over the relational tables:
+
+> **Parked.** The community `duckpgq` extension fails to load on the current
+> DuckDB build, so this property graph is the design target, not the live path.
+> The graph stage attempts it and reports `property_graph_ok` as skipped; graph
+> endpoints traverse the `edges_*` tables with BFS in SQL instead.
+
+Target definition over the relational tables:
 
 ```sql
 CREATE PROPERTY GRAPH coffee_graph
@@ -196,8 +242,10 @@ VERTEX TABLES (
     org_farms,
     proc_methods,
     roast_profiles,
+    roast_roasters,
     flav_attributes,
-    shop_shops
+    shop_shops,
+    prod_products
 )
 EDGE TABLES (
     edges_variety_flavor  (source KEY (variety_id) REFERENCES var_varieties (id),
@@ -222,20 +270,36 @@ EDGE TABLES (
 
 ```
 GET  /api/v1/varieties                   # List/filter varieties
-GET  /api/v1/varieties/{id}              # Variety detail + connected graph
+GET  /api/v1/varieties/{id}              # Variety detail
 GET  /api/v1/varieties/{id}/flavor       # Flavor profile for a variety
-GET  /api/v1/origins                     # List origins (countries/regions)
-GET  /api/v1/origins/{id}                # Origin detail + farms + varieties grown
-GET  /api/v1/origins/geo                 # GeoJSON feature collection for map
+GET  /api/v1/origins                     # List origin countries
+GET  /api/v1/origins/{id}                # Country detail
+GET  /api/v1/origins/geo                 # Countries GeoJSON for map
+GET  /api/v1/origins/regions/geo         # Regions GeoJSON for map
+GET  /api/v1/origins/regions/{id}        # Region detail
+GET  /api/v1/processing/methods          # List/filter processing methods
+GET  /api/v1/processing/methods/{id}     # Processing method detail
+GET  /api/v1/processing/methods/{id}/varieties  # Varieties prepared with a method
+GET  /api/v1/processing/methods/{id}/flavor     # Flavors a method enhances/diminishes
 GET  /api/v1/roasting/profiles           # List roast profiles
 GET  /api/v1/roasting/profiles/{id}      # Roast profile detail
 GET  /api/v1/flavor/wheel                # Full flavor wheel hierarchy (JSON tree)
-GET  /api/v1/flavor/attributes/{id}      # Attribute detail + linked varieties
+GET  /api/v1/flavor/attributes/{id}      # Attribute detail
+GET  /api/v1/distribution/importers      # List green-coffee importers
+GET  /api/v1/distribution/certifications # List certifications
+GET  /api/v1/distribution/trade-routes   # List trade routes
+GET  /api/v1/distribution/trade-routes/geo  # Trade routes as GeoJSON LineStrings
 GET  /api/v1/shops                       # List/filter shops
 GET  /api/v1/shops/geo                   # GeoJSON for map layer
-GET  /api/v1/shops/{id}                  # Shop detail + what they serve/source
+GET  /api/v1/shops/{id}                  # Shop detail
 GET  /api/v1/shops/nearby                # Nearby shops (lat/lng + radius)
-GET  /api/v1/graph/traverse              # Graph traversal (start_node, depth, edge_types)
+GET  /api/v1/shops/{id}/products         # Products the shop's roaster sells
+GET  /api/v1/products                    # List products (filter: roaster_id, is_blend)
+GET  /api/v1/products/{id}               # Product detail (with roaster name)
+GET  /api/v1/products/{id}/varieties     # Varieties a product consists of
+GET  /api/v1/products/{id}/flavors       # Flavor attributes in the tasting notes
+GET  /api/v1/products/{id}/origin        # Origin countries and regions named
+GET  /api/v1/graph/traverse              # Graph traversal (start_id, max_depth, edge_types)
 GET  /api/v1/graph/path                  # Shortest path between two entities
 GET  /api/v1/search/semantic             # Semantic similarity search across all entities
 GET  /api/v1/search/text                 # Full-text search
@@ -314,24 +378,47 @@ FRONTEND_PORT=3000
 # Feature flags
 ENABLE_EMBEDDINGS=true
 ENABLE_GRAPH=true
+
+# Ingest options (read at ingest time; optional)
+OVERTURE_RELEASE=2026-04-15.0      # Overture release for the shops stage
+OVERTURE_BBOX=                     # xmin,ymin,xmax,ymax to scope the shops scrape
 ```
+
+### Deployment
+
+The hosted demo is split across two providers (not the local `docker-compose`):
+
+- **Frontend → Vercel**, auto-deployed from `main` (root directory `frontend/`).
+- **API → Hugging Face Space** (`motidav-coffee-atlas-api`). Backend *code*
+  auto-deploys on push to `main` via CI; *data/DB* changes ship via
+  `deploy/huggingface/deploy.sh`. Both frontends proxy `/api/v1/*` to the Space.
+
+Next.js rewrites are baked at build time, so the backend URL is passed via the
+Dockerfile `BACKEND_URL` ARG (a runtime env var won't override the built
+manifest). See `deploy/huggingface/DEPLOY.md`.
 
 ---
 
 ## Bootstrap Sequence
 
-When starting fresh, execute in this order:
+The fastest path is `just bootstrap` (install → validate ontology → create
+tables → export triples → `just ingest-all`). To run it by hand:
 
-1. `cd ontology && python scripts/validate_ontology.py` — confirm ontology consistency
-2. `cd backend && python -m db.schema` — create DuckDB tables
-3. `cd backend && python -m ingest.pipeline --stage lexicon` — load flavor taxonomy
-4. `cd backend && python -m ingest.pipeline --stage varieties` — load WCR varieties
-5. `cd backend && python -m ingest.pipeline --stage cqi` — load CQI cupping data
-6. `cd backend && python -m ingest.pipeline --stage geocode` — geocode all origins
-7. `cd backend && python -m ingest.pipeline --stage embeddings` — generate vector embeddings
-8. `cd backend && python -m ingest.pipeline --stage graph` — build DuckPGQ edges
-9. `uvicorn backend.main:app --reload` — start API
-10. `cd frontend && npm run dev` — start Next.js
+1. `just ontology-validate` — confirm ontology parses (rdflib structure check)
+2. `just db-create` — create DuckDB tables (`python -m backend.db.schema`)
+3. `just ontology-export` — export T-Box triples into `ontology_triples`
+4. `just ingest-all` — runs the local stages in order: `lexicon`, `varieties`,
+   `cqi`, `processing_descriptions`, `processing_flavor`, `geocode`,
+   `distribution`, `roasting`, `embeddings`, `graph`
+5. The network-heavy stages stay out of `ingest-all` — run them explicitly:
+   `just ingest shops` then `just ingest products`, followed by a
+   `just ingest graph` re-run to resolve the product/shop/roaster edges
+6. `just dev-backend` — start the API (`uvicorn backend.main:app --reload`)
+7. `just dev-frontend` — start Next.js (`cd frontend && npm run dev`)
+
+> Note: `just ingest-all` runs every stage except the two network-heavy ones
+> (`shops`, `products`). `python -m backend.ingest.pipeline --all` runs all 12,
+> including those two.
 
 ---
 
