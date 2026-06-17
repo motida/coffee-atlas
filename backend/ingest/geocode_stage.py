@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import managed_connection
 from backend.services.geocoding import (
     Geocoder,
     NominatimGeocoder,
@@ -87,22 +87,16 @@ def run_geocode(
     region_limit: int | None = None,
 ) -> GeocodeCounts:
     """Run both geocode passes. Pass `geocoder` to inject a fake in tests."""
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-
-    owns_geocoder = geocoder is None
-    if geocoder is None:
-        geocoder = NominatimGeocoder()
-
-    try:
-        c_ok, c_miss = geocode_countries(conn)
-        r_ok, r_miss = geocode_regions(conn, geocoder, limit=region_limit)
-    finally:
-        if owns_geocoder and isinstance(geocoder, NominatimGeocoder):
-            geocoder.close()
-        if owns_conn:
-            conn.close()
+    with managed_connection(db_path, conn) as conn:
+        owns_geocoder = geocoder is None
+        if geocoder is None:
+            geocoder = NominatimGeocoder()
+        try:
+            c_ok, c_miss = geocode_countries(conn)
+            r_ok, r_miss = geocode_regions(conn, geocoder, limit=region_limit)
+        finally:
+            if owns_geocoder and isinstance(geocoder, NominatimGeocoder):
+                geocoder.close()
 
     return GeocodeCounts(
         countries_resolved=c_ok,

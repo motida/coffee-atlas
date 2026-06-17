@@ -37,7 +37,7 @@ from dataclasses import dataclass
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import managed_connection
 
 OVERTURE_RELEASE = os.environ.get("OVERTURE_RELEASE", "2026-04-15.0")
 OVERTURE_BUCKET = "overturemaps-us-west-2"
@@ -147,14 +147,10 @@ def load_overture_shops(
     bboxes are left untouched. Pass `bboxes` (multiple regions in one S3 scan)
     or `bbox` (single region, backward-compat).
     """
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-
     if bboxes is None:
         bboxes = [bbox] if bbox is not None else [_resolve_bbox()]
 
-    try:
+    with managed_connection(db_path, conn) as conn:
         _ensure_extensions(conn)
 
         if files is None:
@@ -196,9 +192,6 @@ def load_overture_shops(
         row = conn.execute("SELECT COUNT(*) FROM shop_shops").fetchone()
         assert row is not None
         inserted = int(row[0])
-    finally:
-        if owns_conn:
-            conn.close()
 
     return ShopIngestCounts(fetched=fetched, inserted=inserted)
 
