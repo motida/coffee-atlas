@@ -93,6 +93,54 @@ export function EntityCard({ href, title, subtitle }: EntityCardProps) {
   );
 }
 
+interface ProductCardProps {
+  /** Product detail href — the whole card navigates here. */
+  href: string;
+  title: string;
+  roasterName?: string | null;
+  /** When set, the roaster name renders as a link to its detail page. */
+  roasterId?: string | null;
+  price?: number | null;
+}
+
+/** Product card whose body links to the product, but whose roaster name is a
+ *  separate link to the roaster. Uses the stretched-link pattern (the card's
+ *  ::after overlay) so the two targets don't nest anchors. */
+export function ProductCard({ href, title, roasterName, roasterId, price }: ProductCardProps) {
+  const priceText = price !== null && price !== undefined ? `$${price}` : null;
+  return (
+    <div className="relative rounded-lg border border-coffee-200 bg-white px-4 py-3 transition hover:border-coffee-400 hover:bg-coffee-50">
+      <Link
+        href={href}
+        className="text-sm font-medium text-coffee-900 after:absolute after:inset-0"
+      >
+        {title}
+      </Link>
+      {(roasterName || priceText) && (
+        <div className="mt-0.5 text-xs text-gray-500">
+          {roasterName &&
+            (roasterId ? (
+              <Link
+                href={`/explore/roasters/${roasterId}`}
+                className="relative z-10 hover:text-amber-700 hover:underline"
+              >
+                {roasterName}
+              </Link>
+            ) : (
+              roasterName
+            ))}
+          {priceText && (
+            <>
+              {roasterName ? " · " : ""}
+              {priceText}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface EntityDetailLoaderProps {
   type: string;
   error: string | null;

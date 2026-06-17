@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 import duckdb
 
 from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
-from backend.models.roasting import RoastProfileRead
+from backend.models.roasting import RoasterRead, RoastProfileRead
 
 router = APIRouter(prefix="/api/v1/roasting", tags=["roasting"])
 
@@ -25,4 +25,23 @@ def get_profile(profile_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
     row = fetchone_dict(db.execute("SELECT * FROM roast_profiles WHERE id = ?", [profile_id]))
     if row is None:
         raise HTTPException(status_code=404, detail="Roast profile not found")
+    return row
+
+
+@router.get("/roasters", response_model=list[RoasterRead])
+def list_roasters(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: duckdb.DuckDBPyConnection = Depends(get_db),
+) -> list[dict[str, Any]]:
+    return fetchall_dicts(
+        db.execute("SELECT * FROM roast_roasters ORDER BY name LIMIT ? OFFSET ?", [limit, offset])
+    )
+
+
+@router.get("/roasters/{roaster_id}", response_model=RoasterRead)
+def get_roaster(roaster_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
+    row = fetchone_dict(db.execute("SELECT * FROM roast_roasters WHERE id = ?", [roaster_id]))
+    if row is None:
+        raise HTTPException(status_code=404, detail="Roaster not found")
     return row

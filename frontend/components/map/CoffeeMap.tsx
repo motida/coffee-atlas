@@ -105,7 +105,11 @@ type AnyGeo = GeoJSONFeatureCollection<
 
 export default function CoffeeMap() {
   const mapRef = useRef<MapRef | null>(null);
-  const [viewState, setViewState] = useState(loadInitialView);
+  // The map is uncontrolled — MapLibre owns the camera so React stays out of the
+  // per-frame pan/zoom loop. We only track `zoom` (refreshed on moveEnd) for the
+  // legend's "zoom in for shops" label; the camera position is never read back.
+  const [initialView] = useState(loadInitialView);
+  const [zoom, setZoom] = useState(initialView.zoom);
   const [countries, setCountries] =
     useState<GeoJSONFeatureCollection<CountryGeoProperties> | null>(null);
   const [regions, setRegions] =
@@ -158,6 +162,7 @@ export default function CoffeeMap() {
 
   const handleMoveEnd = useCallback(
     (evt: ViewStateChangeEvent) => {
+      setZoom(evt.viewState.zoom);
       if (typeof window !== "undefined") {
         try {
           const { latitude, longitude, zoom } = evt.viewState;
@@ -271,8 +276,7 @@ export default function CoffeeMap() {
   return (
     <Map
       ref={mapRef}
-      {...viewState}
-      onMove={(evt) => setViewState(evt.viewState)}
+      initialViewState={initialView}
       onMoveEnd={handleMoveEnd}
       onLoad={fetchShops}
       mapStyle={MAP_STYLE}
@@ -452,7 +456,7 @@ export default function CoffeeMap() {
         shops={shops}
         shopsLoading={shopsLoading}
         shopsCapped={shopsCapped}
-        zoom={viewState.zoom}
+        zoom={zoom}
         shopsMinZoom={SHOPS_MIN_ZOOM}
       />
 
