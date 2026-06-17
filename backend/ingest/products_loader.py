@@ -39,7 +39,11 @@ from urllib.parse import urlparse
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import (
+    deterministic_uuid,
+    managed_connection,
+    normalize_for_dedup,
+)
 
 PRODUCT_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000008")
 DEFAULT_SOURCE = Path("data/cache/product_scrape")  # dir of scraper JSONL logs
@@ -90,12 +94,8 @@ class ProductCounts:
     dropped_non_coffee: int
 
 
-def _slug(*parts: str) -> str:
-    return ":".join(p.strip().lower() for p in parts if p)
-
-
 def _uid(*parts: str) -> str:
-    return str(uuid.uuid5(PRODUCT_NAMESPACE, _slug(*parts)))
+    return deterministic_uuid(PRODUCT_NAMESPACE, *parts)
 
 
 # Every product-domain table, in FK-safe delete order (everything that
@@ -171,7 +171,7 @@ def read_scraped(path: str | Path) -> list[dict[str, Any]]:
 
 def _norm_name(name: str) -> str:
     """Case/whitespace-insensitive key (used for per-site vendor grouping)."""
-    return re.sub(r"\s+", " ", name).strip().casefold()
+    return normalize_for_dedup(name)
 
 
 # Generic words a roaster's name may or may not carry — stripped (from the end,
@@ -337,14 +337,8 @@ def load_from_file(
     conn: duckdb.DuckDBPyConnection | None = None,
 ) -> ProductCounts:
     records = read_scraped(source_path)
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-    try:
+    with managed_connection(db_path, conn) as conn:
         return load_products(records, conn)
-    finally:
-        if owns_conn:
-            conn.close()
 
 
 def main() -> None:

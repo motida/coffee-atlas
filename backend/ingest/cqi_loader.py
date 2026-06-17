@@ -16,7 +16,7 @@ from pathlib import Path
 import duckdb
 import polars as pl
 
-from backend.db.connection import get_connection
+from backend.ingest._common import deterministic_uuid, managed_connection
 
 ORIGIN_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000003")
 PROC_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000004")
@@ -89,14 +89,6 @@ class IngestCounts:
 
     def total(self) -> int:
         return self.countries + self.regions + self.farms + self.methods
-
-
-def _slug(*parts: str) -> str:
-    return ":".join(p.strip().lower() for p in parts if p)
-
-
-def _uid(namespace: uuid.UUID, *parts: str) -> str:
-    return str(uuid.uuid5(namespace, _slug(*parts)))
 
 
 def _resolve_variety(raw: str, name_to_id: dict[str, str]) -> str | None:
@@ -224,26 +216,26 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
         country = _clean(row.get("country"))
         if not country:
             continue
-        country_id = _uid(ORIGIN_NAMESPACE, "country", country)
+        country_id = deterministic_uuid(ORIGIN_NAMESPACE, "country", country)
         countries.setdefault(country_id, (country_id, country))
 
         region = _clean(row.get("region"))
         region_id: str | None = None
         if region:
-            region_id = _uid(ORIGIN_NAMESPACE, "region", country, region)
+            region_id = deterministic_uuid(ORIGIN_NAMESPACE, "region", country, region)
             regions.setdefault(region_id, (region_id, region, country_id))
 
         farm = _clean(row.get("farm"))
         farm_id: str | None = None
         if farm:
             altitude = _parse_altitude(row.get("altitude"))
-            farm_id = _uid(ORIGIN_NAMESPACE, "farm", country, region or "", farm)
+            farm_id = deterministic_uuid(ORIGIN_NAMESPACE, "farm", country, region or "", farm)
             farms.setdefault(farm_id, (farm_id, farm, region_id, altitude))
 
         method = _clean(row.get("processing"))
         method_id: str | None = None
         if method:
-            method_id = _uid(PROC_NAMESPACE, "method", method)
+            method_id = deterministic_uuid(PROC_NAMESPACE, "method", method)
             category = PROCESSING_CATEGORIES.get(method.lower(), "other")
             methods.setdefault(method_id, (method_id, method, category))
 
@@ -254,18 +246,18 @@ def _build_rows(df: pl.DataFrame, name_to_id: dict[str, str]) -> _BuiltRows:
                 if variety_raw.strip().lower() not in VARIETY_BLACKLIST:
                     unmatched += 1
             else:
-                cv_id = _uid(EDGE_NAMESPACE, "cv", country_id, variety_id)
+                cv_id = deterministic_uuid(EDGE_NAMESPACE, "cv", country_id, variety_id)
                 cv_edges.setdefault(cv_id, (cv_id, country_id, variety_id))
                 if region_id is not None:
-                    rv_id = _uid(EDGE_NAMESPACE, "rv", region_id, variety_id)
+                    rv_id = deterministic_uuid(EDGE_NAMESPACE, "rv", region_id, variety_id)
                     rv_edges.setdefault(rv_id, (rv_id, region_id, variety_id))
                 if farm_id is not None:
-                    fv_id = _uid(EDGE_NAMESPACE, "fv", farm_id, variety_id)
+                    fv_id = deterministic_uuid(EDGE_NAMESPACE, "fv", farm_id, variety_id)
                     fv_edges.setdefault(fv_id, (fv_id, farm_id, variety_id))
                 # variety <-> processing co-occurrence: this sample's variety was
                 # prepared with this processing method.
                 if method_id is not None:
-                    vp_id = _uid(EDGE_NAMESPACE, "vp", variety_id, method_id)
+                    vp_id = deterministic_uuid(EDGE_NAMESPACE, "vp", variety_id, method_id)
                     vp_edges.setdefault(vp_id, (vp_id, variety_id, method_id))
 
     return _BuiltRows(
@@ -299,11 +291,7 @@ def load_cqi_data(
     """
     df = _read_cqi(Path(arabica_path), Path(robusta_path))
 
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-
-    try:
+    with managed_connection(db_path, conn) as conn:
         name_to_id = {
             name.lower(): vid
             for vid, name in conn.execute("SELECT id, name FROM var_varieties").fetchall()
@@ -372,9 +360,6 @@ def load_cqi_data(
                 "INSERT INTO edges_variety_processing (id, variety_id, method_id) VALUES (?, ?, ?)",
                 built.variety_processing,
             )
-    finally:
-        if owns_conn:
-            conn.close()
 
     return IngestCounts(
         countries=len(built.countries),

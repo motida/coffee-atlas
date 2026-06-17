@@ -18,7 +18,7 @@ from pathlib import Path
 
 import duckdb
 
-from backend.db.connection import get_connection
+from backend.ingest._common import deterministic_uuid, managed_connection
 
 ORIGIN_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000003")
 DIST_NAMESPACE = uuid.UUID("6f9b3a0e-1b4c-4e5a-9f3d-c0ffee000006")
@@ -34,16 +34,8 @@ class DistributionCounts:
     unresolved: list[str]
 
 
-def _slug(*parts: str) -> str:
-    return ":".join(p.strip().lower() for p in parts if p)
-
-
-def _uid(namespace: uuid.UUID, *parts: str) -> str:
-    return str(uuid.uuid5(namespace, _slug(*parts)))
-
-
 def _country_id(name: str) -> str:
-    return _uid(ORIGIN_NAMESPACE, "country", name)
+    return deterministic_uuid(ORIGIN_NAMESPACE, "country", name)
 
 
 def _ensure_countries(
@@ -66,11 +58,7 @@ def load_distribution(
 ) -> DistributionCounts:
     seed = json.loads(Path(source_path).read_text(encoding="utf-8"))
 
-    owns_conn = conn is None
-    if conn is None:
-        conn = get_connection() if db_path is None else duckdb.connect(db_path)
-
-    try:
+    with managed_connection(db_path, conn) as conn:
         referenced = {*seed.get("import_countries", [])}
         referenced.update(i["country"] for i in seed["importers"])
         referenced.update(r["exporter"] for r in seed["trade_routes"])
@@ -81,7 +69,7 @@ def load_distribution(
             conn.execute(f"DELETE FROM {table}")
 
         cert_rows = [
-            (_uid(DIST_NAMESPACE, "cert", c["name"]), c["name"], c.get("description"))
+            (deterministic_uuid(DIST_NAMESPACE, "cert", c["name"]), c["name"], c.get("description"))
             for c in seed["certifications"]
         ]
         conn.executemany(
@@ -98,7 +86,7 @@ def load_distribution(
                 continue
             importer_rows.append(
                 (
-                    _uid(DIST_NAMESPACE, "importer", imp["name"]),
+                    deterministic_uuid(DIST_NAMESPACE, "importer", imp["name"]),
                     imp["name"],
                     country_id,
                     imp.get("website"),
@@ -118,7 +106,7 @@ def load_distribution(
                 continue
             route_rows.append(
                 (
-                    _uid(DIST_NAMESPACE, "route", exp_id, imp_id),
+                    deterministic_uuid(DIST_NAMESPACE, "route", exp_id, imp_id),
                     exp_id,
                     imp_id,
                     None,
@@ -139,9 +127,6 @@ def load_distribution(
             trade_routes=len(route_rows),
             unresolved=unresolved,
         )
-    finally:
-        if owns_conn:
-            conn.close()
 
 
 if __name__ == "__main__":
