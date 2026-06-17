@@ -169,6 +169,32 @@ def test_roaster_dedup_strips_leading_the(db):
     assert rows[0][0] == "seed-cc"
 
 
+def test_vendor_alias_renames_roaster(db):
+    # birdrockcoffee.com's Shopify vendor is the abbreviation "BRCR Roasting";
+    # the alias maps it to the friendly name on load.
+    load_products(
+        [_rec("https://www.birdrockcoffee.com", "BRCR Roasting", "Honduras Las Capucas", "Coffee")],
+        db,
+    )
+    names = {r[0] for r in db.execute("SELECT name FROM roast_roasters").fetchall()}
+    assert names == {"Bird Rock Coffee Roasters"}
+
+
+def test_vendor_alias_reuses_existing_canonical_row(db):
+    # With the friendly name already present, an aliased re-scrape must reuse it
+    # (not spawn a "BRCR Roasting" duplicate).
+    db.execute(
+        "INSERT INTO roast_roasters (id, name) VALUES ('seed-brcr', 'Bird Rock Coffee Roasters')"
+    )
+    load_products(
+        [_rec("https://www.birdrockcoffee.com", "BRCR Roasting", "Honduras Las Capucas", "Coffee")],
+        db,
+    )
+    rows = db.execute("SELECT id FROM roast_roasters WHERE name ILIKE '%bird rock%'").fetchall()
+    assert len(rows) == 1
+    assert rows[0][0] == "seed-brcr"
+
+
 def test_canon_name_unit():
     from backend.ingest.products_loader import _canon_name
 
