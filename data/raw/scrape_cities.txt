@@ -37,3 +37,11 @@ Atlanta,US
 Phoenix,US
 Ottawa,CA
 Leeds,GB
+Tel Aviv,IL
+Tel Aviv-Yafo,IL
+
+# Awaiting Overture shops coverage — the ingest bbox doesn't yet include
+# JP/TH, so these are no-ops until the shops stage is re-run for those metros.
+Tokyo,JP
+Bangkok,TH
+Chiang Mai,TH
