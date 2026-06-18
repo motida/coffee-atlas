@@ -49,6 +49,17 @@ def test_accented_chain_names_are_folded():
     assert is_specialty_chain("Devoción")
 
 
+def test_israeli_and_global_chains_excluded():
+    # Tel Aviv coverage surfaced local chains; the Hebrew-parenthetical name form
+    # must still classify (non-ASCII folds away, leaving the brand core).
+    assert is_nonspecialty_chain("Aroma (ארומה)")
+    assert is_nonspecialty_chain("Arcaffé (ארקפה)")
+    assert is_nonspecialty_chain("Greg Cafe (קפה גרג)")
+    assert is_nonspecialty_chain("Nespresso Boutique")
+    # An independent isn't caught.
+    assert not is_nonspecialty_chain("Cafe Tachtit (קפה תחתית)")
+
+
 # --- Score + flag computation ---
 
 

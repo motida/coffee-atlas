@@ -52,12 +52,19 @@ JUNK_PATTERNS = [
 
 # Description must contain at least one of these — filters squatted domains,
 # parked pages, and content that drifted to non-coffee businesses.
+# Latin terms use \b word boundaries; non-Latin scripts (Hebrew/Japanese/Thai)
+# have no usable word boundary here, so they're a separate boundary-free
+# alternation. Without these, non-English coffee pages (Tel Aviv, Tokyo,
+# Bangkok…) get a meta description but fail this filter and are dropped as junk.
 COFFEE_KEYWORDS = re.compile(
     r"\b(coffee|cafe|café|caffè|espresso|roast(?:ed|er|ing|ery)?|"
     r"latte|cappuccino|cortado|macchiato|americano|mocha|brew(?:ed|ing)?|"
     r"barista|drip|pour\s*over|cold\s*brew|beans?|cup(?:ping)?|"
     r"bakery|pastry|pastries|tea\s*shop|tea\s*house|"
-    r"breakfast|brunch|deli)\b",
+    r"breakfast|brunch|deli)\b"
+    r"|(?:קפה|אספרסו|"  # Hebrew: coffee, espresso
+    r"コーヒー|珈琲|カフェ|エスプレッソ|焙煎|"  # Japanese: coffee, coffee, cafe, espresso, roast
+    r"กาแฟ|คาเฟ่|เอสเพรสโซ)",  # Thai: coffee, cafe, espresso
     re.I,
 )
 
