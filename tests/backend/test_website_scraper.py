@@ -2,12 +2,22 @@
 
 The HTTP-fetching path is exercised by running the scraper manually; here we
 cover the scope-slug logic that names the resumable log (regression for the
-255-byte filename overflow with many cities).
+255-byte filename overflow with many cities) and the city-frontier reader that
+drives the `descriptions` ingest stage.
 """
 
 from __future__ import annotations
 
-from backend.ingest.shop_scrapers.website_scraper import MAX_SCOPE_SLUG_BYTES, _scope_slug
+from pathlib import Path
+
+import pytest
+
+from backend.ingest.shop_scrapers.website_scraper import (
+    CITIES_FILE,
+    MAX_SCOPE_SLUG_BYTES,
+    _scope_slug,
+    read_cities,
+)
 
 
 def test_scope_slug_short_list_is_readable():
@@ -45,3 +55,31 @@ def test_scope_slug_handles_unicode_city_names():
     cities = [("Montréal", "CA")] * 30
     slug = _scope_slug(cities)
     assert len(slug.encode("utf-8")) <= MAX_SCOPE_SLUG_BYTES
+
+
+def test_read_cities_parses_and_skips_comments_and_blanks(tmp_path: Path):
+    f = tmp_path / "cities.txt"
+    f.write_text(
+        "# a comment\n\nNew York,US\n  Montréal,CA  \n\n# trailing comment\nLondon,GB\n",
+        encoding="utf-8",
+    )
+    assert read_cities(f) == [("New York", "US"), ("Montréal", "CA"), ("London", "GB")]
+
+
+def test_read_cities_missing_file_returns_empty(tmp_path: Path):
+    assert read_cities(tmp_path / "nope.txt") == []
+
+
+def test_read_cities_rejects_malformed_line(tmp_path: Path):
+    f = tmp_path / "cities.txt"
+    f.write_text("New York,US\nBrokenLineNoCountry\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="City,CC"):
+        read_cities(f)
+
+
+def test_committed_city_frontier_is_valid():
+    # The shipped frontier must parse and be non-trivial (it's the coverage list).
+    cities = read_cities(CITIES_FILE)
+    assert len(cities) >= 20
+    assert all(c and co for c, co in cities)
+    assert ("London", "GB") in cities

@@ -34,6 +34,7 @@ data/raw/*
 !data/raw/roasting_seed.json
 !data/raw/processing_flavor_seed.json
 !data/raw/roaster_sites.txt
+!data/raw/scrape_cities.txt
 data/processed/
 data/parquet/
 data/cache/
