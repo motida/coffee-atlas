@@ -16,6 +16,7 @@ import type {
   Region,
   RegionGeoProperties,
   Roaster,
+  RoasterListItem,
   SearchResult,
   Shop,
   ShopGeoProperties,
@@ -150,6 +151,17 @@ export const getProductOrigin = (id: string) =>
   fetchAPI<ProductOrigin>(`/products/${id}/origin`);
 
 // --- Roasters ---
+export const getRoasters = (
+  limit = 100,
+  offset = 0,
+  opts?: { search?: string; sort?: "count" | "name" },
+) => {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (opts?.search) params.set("search", opts.search);
+  if (opts?.sort) params.set("sort", opts.sort);
+  return fetchAPI<RoasterListItem[]>(`/roasting/roasters?${params.toString()}`);
+};
+
 export const getRoaster = (id: string) => fetchAPI<Roaster>(`/roasting/roasters/${id}`);
 
 // --- Graph ---
