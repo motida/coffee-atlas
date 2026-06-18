@@ -98,3 +98,21 @@ def test_logout_clears_session(client: TestClient) -> None:
     assert client.post("/api/v1/auth/logout").status_code == 204
     client.cookies.clear()
     assert client.get("/api/v1/auth/me").status_code == 401
+
+
+def test_pg_routes_503_when_no_user_store(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With no DATABASE_URL the pool is never initialized; PG-backed routes
+    return a clean 503 ("accounts unavailable"), not a raw 500. No Postgres
+    needed — this exercises the pool-is-None path directly."""
+    import backend.db.pg as pg_module
+
+    monkeypatch.setattr(pg_module, "_pool", None)
+    app.dependency_overrides.pop(get_pg, None)  # use the real dependency
+    no_pg_client = TestClient(app)
+
+    res = no_pg_client.post(
+        "/api/v1/auth/register",
+        json={"email": "x@example.com", "password": "password123", "display_name": "X"},
+    )
+    assert res.status_code == 503
+    assert "unavailable" in res.json()["detail"].lower()
