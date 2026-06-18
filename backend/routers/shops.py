@@ -15,8 +15,13 @@ router = APIRouter(prefix="/api/v1/shops", tags=["shops"])
 # Columns safe to ship to clients — excludes embedding vector (3072 floats).
 SHOP_PUBLIC_COLS = (
     "id, name, latitude, longitude, address, city, country, "
-    "website, rating, roasts_in_house, description, created_at, updated_at"
+    "website, rating, roasts_in_house, description, is_specialty, "
+    "created_at, updated_at"
 )
+
+# The app surfaces only specialty shops; discovery endpoints filter on this.
+# `is_specialty` is materialized by the `specialty` ingest stage.
+SPECIALTY_FILTER = "is_specialty"
 
 
 def _parse_bbox(bbox: str | None) -> tuple[float, float, float, float] | None:
@@ -35,10 +40,15 @@ def _parse_bbox(bbox: str | None) -> tuple[float, float, float, float] | None:
 def list_shops(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    include_non_specialty: bool = Query(False, description="Include non-specialty shops"),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> list[dict[str, Any]]:
+    where = "" if include_non_specialty else f"WHERE {SPECIALTY_FILTER}"
     return fetchall_dicts(
-        db.execute(f"SELECT {SHOP_PUBLIC_COLS} FROM shop_shops LIMIT ? OFFSET ?", [limit, offset])
+        db.execute(
+            f"SELECT {SHOP_PUBLIC_COLS} FROM shop_shops {where} LIMIT ? OFFSET ?",
+            [limit, offset],
+        )
     )
 
 
@@ -46,9 +56,12 @@ def list_shops(
 def get_shops_geo(
     bbox: str | None = Query(None, description="xmin,ymin,xmax,ymax (lng/lat)"),
     limit: int = Query(5000, ge=1, le=50000),
+    include_non_specialty: bool = Query(False, description="Include non-specialty shops"),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> dict[str, Any]:
     where = ["latitude IS NOT NULL"]
+    if not include_non_specialty:
+        where.append(SPECIALTY_FILTER)
     params: list[Any] = []
     parsed = _parse_bbox(bbox)
     if parsed is not None:
@@ -91,7 +104,7 @@ def get_nearby_shops(
                     )
                 ) AS distance_km
                 FROM shop_shops
-                WHERE latitude IS NOT NULL
+                WHERE latitude IS NOT NULL AND is_specialty
             )
             WHERE distance_km <= ?
             ORDER BY distance_km

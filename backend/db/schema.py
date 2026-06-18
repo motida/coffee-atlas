@@ -165,6 +165,8 @@ TABLES: list[str] = [
         roasts_in_house BOOLEAN,
         description TEXT,
         description_embedding FLOAT[3072],
+        specialty_score DOUBLE,
+        is_specialty BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT current_timestamp,
         updated_at TIMESTAMP DEFAULT current_timestamp
     )

@@ -152,6 +152,13 @@ def _run_graph(tables: list[str] | None = None) -> None:
     )
 
 
+def _run_specialty(tables: list[str] | None = None) -> None:
+    from backend.ingest.shop_specialty import compute_specialty
+
+    counts = compute_specialty(settings.DUCKDB_PATH)
+    print(f"Specialty shops: {counts.specialty}/{counts.total} flagged")
+
+
 # Stage name → handler, in pipeline execution order. STAGES is derived from this
 # mapping, so the CLI choices and the dispatch can never drift apart. Adding a
 # stage means writing one handler and adding one entry here.
@@ -168,6 +175,7 @@ STAGE_REGISTRY: dict[str, Callable[[list[str] | None], None]] = {
     "products": _run_products,
     "embeddings": _run_embeddings,
     "graph": _run_graph,
+    "specialty": _run_specialty,
 }
 
 STAGES = list(STAGE_REGISTRY)
