@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import re
 import time
@@ -34,6 +35,9 @@ USER_AGENT = "coffee-atlas-bot/0.1 (+https://huggingface.co/spaces/motidav/coffe
 REQUEST_TIMEOUT = 10.0
 MIN_DESCRIPTION_LEN = 30
 MAX_DESCRIPTION_LEN = 1200
+# Keep the scope slug (and thus the log filename) well under the 255-byte
+# filename limit; long city lists fall back to a deterministic hash.
+MAX_SCOPE_SLUG_BYTES = 150
 CACHE_DIR = Path("data/cache/shop_scrape")
 
 # Generic CMS boilerplate that we treat as no-signal
@@ -182,6 +186,22 @@ def select_shops(
     return rows
 
 
+def _scope_slug(cities: list[tuple[str, str]]) -> str:
+    """A filesystem-safe, deterministic key for this city set.
+
+    The slug names the resumable JSONL log. The readable form (city names joined
+    by ``_``) is used as-is while it fits; longer lists (the filename overflows
+    the 255-byte limit past ~8 cities) collapse to ``<firstcity>-and<N>more-<hash>``.
+    The hash is stable for a given city set, so re-runs still resume.
+    """
+    raw = "_".join(f"{c}-{co}".replace(" ", "") for c, co in cities)
+    if len(raw.encode("utf-8")) <= MAX_SCOPE_SLUG_BYTES:
+        return raw
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
+    first = f"{cities[0][0]}-{cities[0][1]}".replace(" ", "")[:40]
+    return f"{first}-and{len(cities) - 1}more-{digest}"
+
+
 def load_done_ids(scope_key: str) -> set[str]:
     """Read every JSONL log matching this scope and collect already-processed ids."""
     done: set[str] = set()
@@ -205,7 +225,7 @@ async def run(
     dry_run: bool,
 ) -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    scope_key = "_".join(f"{c}-{co}".replace(" ", "") for c, co in cities)
+    scope_key = _scope_slug(cities)
     log_path = CACHE_DIR / f"{scope_key}__{int(time.time())}.jsonl"
 
     conn = get_connection()
