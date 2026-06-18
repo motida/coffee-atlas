@@ -38,12 +38,19 @@ def search_db() -> Iterator[duckdb.DuckDBPyConnection]:
     )
     conn.execute("INSERT INTO org_countries (id, name) VALUES ('c1', 'Ethiopia'), ('c2', 'Kenya')")
     conn.execute("INSERT INTO org_regions (id, name) VALUES ('r1', 'sidamo'), ('r2', 'nyeri')")
+    # s1 is specialty (surfaces in search); s2 is not (must be filtered out).
     conn.execute(
-        "INSERT INTO shop_shops (id, name, description, latitude, longitude) VALUES "
-        "('s1', 'Floral Cafe', 'Specialty pour-over shop', 1.0, 2.0)"
+        "INSERT INTO shop_shops (id, name, description, latitude, longitude, is_specialty) "
+        "VALUES "
+        "('s1', 'Floral Cafe', 'Specialty pour-over shop', 1.0, 2.0, true), "
+        "('s2', 'Floral Diner', 'Floral roadside diner and gas', 3.0, 4.0, false)"
     )
     conn.execute(
         "INSERT INTO proc_methods (id, name, category) VALUES ('p1', 'Washed / Wet', 'wet')"
+    )
+    conn.execute(
+        "INSERT INTO roast_roasters (id, name, location) VALUES "
+        "('rr1', 'Floral Coffee Roasters', 'Portland')"
     )
     yield conn
     conn.close()
@@ -65,6 +72,17 @@ def test_text_search_matches_across_types(client):
     assert "variety" in types
     assert "flavor" in types
     assert "shop" in types
+
+
+def test_text_search_excludes_non_specialty_shops(client):
+    # Both "Floral Cafe" (s1, specialty) and "Floral Diner" (s2, not) match
+    # "floral", but search only surfaces specialty shops.
+    r = client.get(
+        "/api/v1/search/text",
+        params=[("query", "floral"), ("limit", "50"), ("entity_types", "shop")],
+    )
+    assert r.status_code == 200
+    assert {row["id"] for row in r.json()} == {"s1"}
 
 
 def test_text_search_entity_type_filter(client):
@@ -115,6 +133,16 @@ def test_text_search_finds_processing_methods(client):
     results = r.json()
     proc = [row for row in results if row["entity_type"] == "processing"]
     assert [row["id"] for row in proc] == ["p1"]
+
+
+def test_text_search_finds_roasters(client):
+    # Roasters have no embeddings, so text search by name is how they surface.
+    r = client.get(
+        "/api/v1/search/text",
+        params=[("query", "floral"), ("limit", "50"), ("entity_types", "roaster")],
+    )
+    assert r.status_code == 200
+    assert {row["id"] for row in r.json()} == {"rr1"}
 
 
 def test_text_search_empty_query_rejected(client):

@@ -79,6 +79,19 @@ def _run_shops(tables: list[str] | None = None) -> None:
     print(f"Inserted {counts.inserted} shops from {counts.fetched} Overture candidates")
 
 
+def _run_descriptions(tables: list[str] | None = None) -> None:
+    import asyncio
+
+    from backend.ingest.shop_scrapers.website_scraper import read_cities, run
+
+    cities = read_cities()
+    if not cities:
+        print("Skipped: no cities configured (data/raw/scrape_cities.txt empty/absent)")
+        return
+    print(f"Scraping shop descriptions across {len(cities)} cities (resumable)...")
+    asyncio.run(run(cities, concurrency=16, limit=None, dry_run=False))
+
+
 def _run_distribution(tables: list[str] | None = None) -> None:
     from backend.ingest.distribution_loader import load_distribution
 
@@ -152,6 +165,13 @@ def _run_graph(tables: list[str] | None = None) -> None:
     )
 
 
+def _run_specialty(tables: list[str] | None = None) -> None:
+    from backend.ingest.shop_specialty import compute_specialty
+
+    counts = compute_specialty(settings.DUCKDB_PATH)
+    print(f"Specialty shops: {counts.specialty}/{counts.total} flagged")
+
+
 # Stage name → handler, in pipeline execution order. STAGES is derived from this
 # mapping, so the CLI choices and the dispatch can never drift apart. Adding a
 # stage means writing one handler and adding one entry here.
@@ -163,11 +183,13 @@ STAGE_REGISTRY: dict[str, Callable[[list[str] | None], None]] = {
     "processing_flavor": _run_processing_flavor,
     "geocode": _run_geocode,
     "shops": _run_shops,
+    "descriptions": _run_descriptions,
     "distribution": _run_distribution,
     "roasting": _run_roasting,
     "products": _run_products,
     "embeddings": _run_embeddings,
     "graph": _run_graph,
+    "specialty": _run_specialty,
 }
 
 STAGES = list(STAGE_REGISTRY)

@@ -25,3 +25,10 @@ class RoasterBase(BaseModel):
 
 class RoasterRead(RoasterBase, ReadModel):
     pass
+
+
+class RoasterListItem(RoasterRead):
+    """Roaster as it appears in the browse list — with the number of coffees it
+    offers, derived from ``edges_roaster_product``."""
+
+    product_count: int = 0

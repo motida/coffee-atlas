@@ -27,6 +27,12 @@ def roasters_db() -> Iterator[duckdb.DuckDBPyConnection]:
         "('p1', 'Ethiopia Ayla', 'r1', false, 28.0), "
         "('p2', 'Pride Blend', 'r1', true, 24.0)"
     )
+    # The list endpoint counts coffees via the edge table. Verve (r1) has two;
+    # Onyx (r2) has none.
+    conn.execute(
+        "INSERT INTO edges_roaster_product (id, roaster_id, product_id) VALUES "
+        "('e1', 'r1', 'p1'), ('e2', 'r1', 'p2')"
+    )
     yield conn
     conn.close()
 
@@ -38,11 +44,25 @@ def client(roasters_db) -> Iterator[TestClient]:
     app.dependency_overrides.clear()
 
 
-def test_list_roasters(client):
+def test_list_roasters_default_sort_by_count(client):
+    # Default sort is product_count desc, so Verve (2 coffees) leads Onyx (0).
     r = client.get("/api/v1/roasting/roasters")
     assert r.status_code == 200
     rows = r.json()
-    assert [row["name"] for row in rows] == ["Onyx Coffee Lab", "Verve Coffee"]
+    assert [row["name"] for row in rows] == ["Verve Coffee", "Onyx Coffee Lab"]
+    assert [row["product_count"] for row in rows] == [2, 0]
+
+
+def test_list_roasters_sort_by_name(client):
+    r = client.get("/api/v1/roasting/roasters", params={"sort": "name"})
+    assert [row["name"] for row in r.json()] == ["Onyx Coffee Lab", "Verve Coffee"]
+
+
+def test_list_roasters_search(client):
+    r = client.get("/api/v1/roasting/roasters", params={"search": "onyx"})
+    rows = r.json()
+    assert [row["name"] for row in rows] == ["Onyx Coffee Lab"]
+    assert rows[0]["product_count"] == 0
 
 
 def test_get_roaster(client):

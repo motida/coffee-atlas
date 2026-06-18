@@ -1,0 +1,47 @@
+# Cities whose shop homepages the description scraper crawls (the `descriptions`
+# ingest stage → backend.ingest.shop_scrapers.website_scraper). A scraped,
+# coffee-keyword description is the main signal the `specialty` stage uses, so
+# this list is effectively the specialty-coverage frontier — review changes here.
+# Network-heavy: run via `just ingest descriptions` (or `pipeline --all`); it is
+# excluded from `just ingest-all`. An empty/absent file makes the stage a no-op.
+# Format: one "City,CC" per line (city as it appears in Overture's locality
+# field); blank lines and # comments are ignored.
+
+London,GB
+New York,US
+Toronto,CA
+Los Angeles,US
+Chicago,US
+San Francisco,US
+Montréal,CA
+Brooklyn,US
+Seattle,US
+Portland,US
+San Diego,US
+Houston,US
+Vancouver,CA
+Dublin,IE
+Las Vegas,US
+Glasgow,GB
+Manchester,GB
+Philadelphia,US
+Edinburgh,GB
+Washington,US
+Austin,US
+Bristol,GB
+San Antonio,US
+Birmingham,GB
+Denver,US
+Dallas,US
+Atlanta,US
+Phoenix,US
+Ottawa,CA
+Leeds,GB
+Tel Aviv,IL
+Tel Aviv-Yafo,IL
+
+# Awaiting Overture shops coverage — the ingest bbox doesn't yet include
+# JP/TH, so these are no-ops until the shops stage is re-run for those metros.
+Tokyo,JP
+Bangkok,TH
+Chiang Mai,TH

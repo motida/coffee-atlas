@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import re
 import time
@@ -28,31 +29,18 @@ import duckdb
 import httpx
 
 from backend.db.connection import get_connection
+from backend.ingest.shop_scrapers.chains import is_nonspecialty_chain
 
 USER_AGENT = "coffee-atlas-bot/0.1 (+https://huggingface.co/spaces/motidav/coffee-atlas-web)"
 REQUEST_TIMEOUT = 10.0
 MIN_DESCRIPTION_LEN = 30
 MAX_DESCRIPTION_LEN = 1200
+# Keep the scope slug (and thus the log filename) well under the 255-byte
+# filename limit; long city lists fall back to a deterministic hash.
+MAX_SCOPE_SLUG_BYTES = 150
 CACHE_DIR = Path("data/cache/shop_scrape")
-
-# Chains we already know aren't going to yield useful descriptions
-CHAIN_BLOCKLIST = {
-    "Starbucks",
-    "Tim Hortons",
-    "Dunkin'",
-    "Dunkin' Donuts",
-    "Dutch Bros. Coffee",
-    "McCafé",
-    "Panera Bread",
-    "Caribou Coffee",
-    "Scooter's Coffee",
-    "7 Brew Coffee",
-    "Costa Coffee",
-    "Peet's Coffee",
-    "Peet's Coffee & Tea",
-    "Coffee Bean & Tea Leaf",
-    "Coffee Bean and Tea Leaf",
-}
+# Curated city frontier for the `descriptions` ingest stage (see read_cities).
+CITIES_FILE = Path("data/raw/scrape_cities.txt")
 
 # Generic CMS boilerplate that we treat as no-signal
 JUNK_PATTERNS = [
@@ -64,12 +52,19 @@ JUNK_PATTERNS = [
 
 # Description must contain at least one of these — filters squatted domains,
 # parked pages, and content that drifted to non-coffee businesses.
+# Latin terms use \b word boundaries; non-Latin scripts (Hebrew/Japanese/Thai)
+# have no usable word boundary here, so they're a separate boundary-free
+# alternation. Without these, non-English coffee pages (Tel Aviv, Tokyo,
+# Bangkok…) get a meta description but fail this filter and are dropped as junk.
 COFFEE_KEYWORDS = re.compile(
     r"\b(coffee|cafe|café|caffè|espresso|roast(?:ed|er|ing|ery)?|"
     r"latte|cappuccino|cortado|macchiato|americano|mocha|brew(?:ed|ing)?|"
     r"barista|drip|pour\s*over|cold\s*brew|beans?|cup(?:ping)?|"
     r"bakery|pastry|pastries|tea\s*shop|tea\s*house|"
-    r"breakfast|brunch|deli)\b",
+    r"breakfast|brunch|deli)\b"
+    r"|(?:קפה|אספרסו|"  # Hebrew: coffee, espresso
+    r"コーヒー|珈琲|カフェ|エスプレッソ|焙煎|"  # Japanese: coffee, coffee, cafe, espresso, roast
+    r"กาแฟ|คาเฟ่|เอสเพรสโซ)",  # Thai: coffee, cafe, espresso
     re.I,
 )
 
@@ -172,12 +167,16 @@ def select_shops(
     limit: int | None,
     already_done: set[str],
 ) -> list[tuple[str, str, str]]:
-    """Return list of (shop_id, name, website) for the given (city, country) pairs."""
+    """Return list of (shop_id, name, website) for the given (city, country) pairs.
+
+    Non-specialty chains are skipped (they yield no useful description); specialty
+    chains are kept, so the filtering happens in Python via ``is_nonspecialty_chain``
+    rather than a SQL name blocklist.
+    """
     if not cities:
         raise ValueError("at least one --city required")
-    placeholders_chains = ",".join("?" for _ in CHAIN_BLOCKLIST)
     city_clauses = " OR ".join("(city = ? AND country = ?)" for _ in cities)
-    params: list[object] = [*CHAIN_BLOCKLIST]
+    params: list[object] = []
     for city, country in cities:
         params.extend([city, country])
 
@@ -186,15 +185,51 @@ def select_shops(
         FROM shop_shops
         WHERE description IS NULL
           AND website IS NOT NULL AND TRIM(website) != ''
-          AND name NOT IN ({placeholders_chains})
           AND ({city_clauses})
         ORDER BY id
     """
     rows = conn.execute(sql, params).fetchall()
-    rows = [r for r in rows if r[0] not in already_done]
+    rows = [r for r in rows if r[0] not in already_done and not is_nonspecialty_chain(r[1])]
     if limit is not None:
         rows = rows[:limit]
     return rows
+
+
+def read_cities(path: str | Path = CITIES_FILE) -> list[tuple[str, str]]:
+    """(city, country) pairs from the city-frontier file; the `descriptions` stage
+    reads this. Blank lines and ``#`` comments are ignored; a missing file yields
+    an empty list (the stage then no-ops). Each line is ``City,CC`` (e.g.
+    ``New York,US``)."""
+    p = Path(path)
+    if not p.exists():
+        return []
+    cities: list[tuple[str, str]] = []
+    for raw in p.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        city, sep, country = line.partition(",")
+        city, country = city.strip(), country.strip()
+        if not sep or not city or not country:
+            raise ValueError(f"scrape_cities line must be 'City,CC', got: {raw!r}")
+        cities.append((city, country))
+    return cities
+
+
+def _scope_slug(cities: list[tuple[str, str]]) -> str:
+    """A filesystem-safe, deterministic key for this city set.
+
+    The slug names the resumable JSONL log. The readable form (city names joined
+    by ``_``) is used as-is while it fits; longer lists (the filename overflows
+    the 255-byte limit past ~8 cities) collapse to ``<firstcity>-and<N>more-<hash>``.
+    The hash is stable for a given city set, so re-runs still resume.
+    """
+    raw = "_".join(f"{c}-{co}".replace(" ", "") for c, co in cities)
+    if len(raw.encode("utf-8")) <= MAX_SCOPE_SLUG_BYTES:
+        return raw
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
+    first = f"{cities[0][0]}-{cities[0][1]}".replace(" ", "")[:40]
+    return f"{first}-and{len(cities) - 1}more-{digest}"
 
 
 def load_done_ids(scope_key: str) -> set[str]:
@@ -220,7 +255,7 @@ async def run(
     dry_run: bool,
 ) -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    scope_key = "_".join(f"{c}-{co}".replace(" ", "") for c, co in cities)
+    scope_key = _scope_slug(cities)
     log_path = CACHE_DIR / f"{scope_key}__{int(time.time())}.jsonl"
 
     conn = get_connection()

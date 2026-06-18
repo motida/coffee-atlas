@@ -6,7 +6,7 @@ from typing import Any
 from backend.ingest.products_loader import classify_coffee, load_products
 
 
-def _rec(site: str, vendor: str, title: str, product_type: str, **kw: Any) -> dict[str, Any]:
+def _rec(site: str, vendor: str, title: str, product_type: str | None, **kw: Any) -> dict[str, Any]:
     return {
         "site": site,
         "roaster": vendor,
@@ -195,6 +195,38 @@ def test_vendor_alias_reuses_existing_canonical_row(db):
     assert rows[0][0] == "seed-brcr"
 
 
+def test_site_override_names_roaster_when_vendor_is_tasting_notes(db):
+    # catandcloud.com files each coffee's tasting notes as the Shopify vendor, so
+    # modal-vendor attribution can't recover "Cat & Cloud" once merch is filtered.
+    # The per-site override must name the roaster regardless of the junk vendors.
+    cc = "https://www.catandcloud.com"
+    load_products(
+        [
+            _rec(cc, "Lavender • Raspberry • Green Tea", "Brazil Cavaquinho Natural", "Coffee"),
+            _rec(cc, "Cherry • Honey • Nougat", "Ethiopia Kercha Natural", "Coffee"),
+            _rec(cc, "Cat & Cloud", "Birthday Shirt", None, tags=["merch"]),  # dropped
+        ],
+        db,
+    )
+    rows = db.execute(
+        "SELECT r.name, count(p.id) FROM roast_roasters r "
+        "JOIN prod_products p ON p.roaster_id = r.id GROUP BY r.name"
+    ).fetchall()
+    assert rows == [("Cat & Cloud", 2)]
+
+
+def test_site_override_reuses_existing_roaster_row(db):
+    # The override name must collapse onto an existing "Cat & Cloud" row, not
+    # spawn a duplicate under a fresh id.
+    db.execute("INSERT INTO roast_roasters (id, name) VALUES ('seed-cc', 'Cat & Cloud')")
+    load_products(
+        [_rec("https://www.catandcloud.com", "Juicy • Sweet • Clean", "Peru The Andes", "Coffee")],
+        db,
+    )
+    rows = db.execute("SELECT id FROM roast_roasters WHERE name = 'Cat & Cloud'").fetchall()
+    assert rows == [("seed-cc",)]
+
+
 def test_canon_name_unit():
     from backend.ingest.products_loader import _canon_name
 
@@ -255,6 +287,48 @@ def test_classify_keeps_coffees_with_collision_words():
     assert classify_coffee("Brazil | #1 Cup of Excellence", "Coffee", []) is True
     assert classify_coffee("Honduras Las Capucas", "Coffee", []) is True  # not "cap"
     assert classify_coffee("El Matazano Pacamara Washed", "Coffee", []) is True  # not "mat"
+
+
+def test_classify_drops_records_and_merch_by_type():
+    # Roaster stores that double as record shops / merch (e.g. tandemcoffee.com:
+    # 159 "Vinyl", 25 "Wearables", 6 "Kits") — the merchant's product_type is the
+    # decisive signal even when the title carries no junk keyword.
+    assert classify_coffee("Radiohead - OK Computer", "Vinyl", ["vinyl"]) is False
+    assert classify_coffee("A Tribe Called Quest - Midnight Marauders", "Records", []) is False
+    assert classify_coffee("Souvenir Pennant", "Wearables", []) is False  # title alone is clean
+    assert classify_coffee("Holiday Pack", "Kits", []) is False
+    assert classify_coffee("Field Recording Vol. 1", "Music", []) is False
+
+
+def test_classify_drops_records_by_tag_when_type_blank():
+    # Many records carry no product_type but a 'vinyl' tag — must still drop, even
+    # though Shopify also auto-tags them into a 'coffees' collection.
+    assert (
+        classify_coffee(
+            "Fela Kuti - Sorrow, Tears And Blood",
+            None,
+            ["cybermonday", "POS", "vinyl", "meta-related-collection-coffees"],
+        )
+        is False
+    )
+    assert classify_coffee("Some Tee", None, ["merch"]) is False
+    # A real coffee tagged into a gift/subscription collection must NOT be dropped
+    # by the tag screen (those words are type-only, never screened on tags).
+    assert classify_coffee("Kenya Nyeri AA", "Coffee", ["gifts", "subscription"]) is True
+    # A coffee product_type wins over a stray 'merch' tag (Cat & Cloud files its
+    # "Instant Coffee 6 Pack" with product_type "Coffee" but also a 'merch' tag).
+    assert classify_coffee("Instant Coffee 6 Pack", "Coffee", ["blends", "merch"]) is True
+    # ...but a genuine merch item with no coffee product_type still drops.
+    assert classify_coffee("Kitty Litter Crop", None, ["clothing", "crop top", "merch"]) is False
+
+
+def test_classify_keeps_instant_coffee_type():
+    # "Instant" is a coffee product_type (instant coffee) — must NOT be dropped
+    # by the records/merch additions.
+    assert classify_coffee("Instant Ethiopia Single Serve", "Instant", []) is True
+    # A coffee whose title coincidentally reads like a record name still survives
+    # as long as its type is coffee — the new terms are type-only in the loader.
+    assert classify_coffee("Long Player Blend", "Coffee", []) is True
     assert classify_coffee("Instant Coffee - Galactic Standard", "Coffee", []) is True
 
 

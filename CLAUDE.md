@@ -167,6 +167,18 @@ Classes: `CoffeeShop`, `Roastery`, `CafeChain`, `BrewMethod`
 Key properties: `locatedAt` (coordinates), `servesVariety`, `roastsInHouse`, `offersBrewMethod`, `sourcesFrom`, `rating`
 Seed data: Google Places API, Yelp Fusion API, or Overture Maps Foundation open data for POI. Filter by coffee-related categories. For specialty focus, consider scraping European Coffee Trip, Sprudge city guides, or specialty coffee directories.
 
+> **Specialty-only.** The app surfaces *only* specialty shops. Overture loads
+> every coffee POI, then the `specialty` ingest stage
+> (`backend/ingest/shop_specialty.py`) sets `shop_shops.is_specialty` from a
+> multi-signal heuristic (curated-roaster match via `edges_shop_roaster`,
+> scraper-vetted description, `roasts_in_house`, rating; minus a non-specialty
+> chain blocklist, plus a specialty-chain allowlist that keeps Blue Bottle /
+> Stumptown / etc.). Chain lists live in
+> `backend/ingest/shop_scrapers/chains.py`. The shop discovery endpoints
+> (`/shops`, `/shops/geo`, `/shops/nearby`) and shop search results filter to
+> `is_specialty`; `/shops` and `/shops/geo` accept `?include_non_specialty=true`
+> as an escape hatch.
+
 #### 8. Products (`products.ttl`)
 Classes: `CoffeeProduct` (single-origin or blend)
 Key properties: `roastedBy` (→ Roaster), `roastLevel`, `process`, `isBlend`, `price`, `netWeightGrams`, `consistsOf` (→ Variety), `hasFlavor` (→ FlavorAttribute), `fromOrigin` (→ Country/Region)
@@ -213,11 +225,13 @@ local stages; the network-heavy `shops` and `products` stages are run explicitly
 5. `processing_flavor` — seed `edges_processing_flavor` from a hand-mapped table
 6. `geocode` — batch-geocode origins (Nominatim + ISO centroids), store coordinates
 7. `shops` — Overture Maps POI load → `shop_shops` *(network; skipped in bootstrap)*
-8. `distribution` — certifications, importers, trade routes → `dist_*`
-9. `roasting` — roast profiles + roasters seed → `roast_profiles`, `roast_roasters`, `edges_roast_variety`
-10. `products` — scrape roaster catalogs → `prod_products` *(network; skipped in bootstrap)*
-11. `embeddings` — generate Gemini embeddings → `*_embedding` columns (cosine scan today)
-12. `graph` — compute and store all `edges_*` tables (incl. product/shop edges; DuckPGQ graph parked)
+8. `descriptions` — scrape shop homepages for a description → `shop_shops.description`, for the cities in `data/raw/scrape_cities.txt` *(network; skipped in bootstrap; no-op when the city list is empty)*. Main signal feeding `specialty`.
+9. `distribution` — certifications, importers, trade routes → `dist_*`
+10. `roasting` — roast profiles + roasters seed → `roast_profiles`, `roast_roasters`, `edges_roast_variety`
+11. `products` — scrape roaster catalogs → `prod_products` *(network; skipped in bootstrap)*
+12. `embeddings` — generate Gemini embeddings → `*_embedding` columns (cosine scan today)
+13. `graph` — compute and store all `edges_*` tables (incl. product/shop edges; DuckPGQ graph parked)
+14. `specialty` — score shops + set `shop_shops.is_specialty` (multi-signal heuristic; reads `edges_shop_roaster`, so runs after `graph`). The app surfaces only specialty shops. *(run after the network stages; no-op without shop data)*
 
 ### DuckDB Schema Conventions
 - All tables prefixed by domain: `var_`, `org_`, `proc_`, `roast_`, `flav_`, `dist_`, `shop_`, `prod_` (plus `edges_*` join tables)
@@ -439,14 +453,17 @@ tables → export triples → `just ingest-all`). To run it by hand:
    `cqi`, `processing_descriptions`, `processing_flavor`, `geocode`,
    `distribution`, `roasting`, `embeddings`, `graph`
 5. The network-heavy stages stay out of `ingest-all` — run them explicitly:
-   `just ingest shops` then `just ingest products`, followed by a
-   `just ingest graph` re-run to resolve the product/shop/roaster edges
+   `just ingest shops`, `just ingest descriptions` (cities from
+   `data/raw/scrape_cities.txt`), then `just ingest products`, followed by a
+   `just ingest graph` re-run to resolve the product/shop/roaster edges, then
+   `just ingest specialty` to flag specialty shops
 6. `just dev-backend` — start the API (`uvicorn backend.main:app --reload`)
 7. `just dev-frontend` — start Next.js (`cd frontend && npm run dev`)
 
-> Note: `just ingest-all` runs every stage except the two network-heavy ones
-> (`shops`, `products`). `python -m backend.ingest.pipeline --all` runs all 12,
-> including those two.
+> Note: `just ingest-all` runs the local stages only — it excludes the
+> network-heavy ones (`shops`, `descriptions`, `products`) and `specialty` (a
+> no-op without shop data). `python -m backend.ingest.pipeline --all` runs all
+> 14, including those.
 
 ---
 
