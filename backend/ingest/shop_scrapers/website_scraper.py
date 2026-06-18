@@ -28,31 +28,13 @@ import duckdb
 import httpx
 
 from backend.db.connection import get_connection
+from backend.ingest.shop_scrapers.chains import is_nonspecialty_chain
 
 USER_AGENT = "coffee-atlas-bot/0.1 (+https://huggingface.co/spaces/motidav/coffee-atlas-web)"
 REQUEST_TIMEOUT = 10.0
 MIN_DESCRIPTION_LEN = 30
 MAX_DESCRIPTION_LEN = 1200
 CACHE_DIR = Path("data/cache/shop_scrape")
-
-# Chains we already know aren't going to yield useful descriptions
-CHAIN_BLOCKLIST = {
-    "Starbucks",
-    "Tim Hortons",
-    "Dunkin'",
-    "Dunkin' Donuts",
-    "Dutch Bros. Coffee",
-    "McCafé",
-    "Panera Bread",
-    "Caribou Coffee",
-    "Scooter's Coffee",
-    "7 Brew Coffee",
-    "Costa Coffee",
-    "Peet's Coffee",
-    "Peet's Coffee & Tea",
-    "Coffee Bean & Tea Leaf",
-    "Coffee Bean and Tea Leaf",
-}
 
 # Generic CMS boilerplate that we treat as no-signal
 JUNK_PATTERNS = [
@@ -172,12 +154,16 @@ def select_shops(
     limit: int | None,
     already_done: set[str],
 ) -> list[tuple[str, str, str]]:
-    """Return list of (shop_id, name, website) for the given (city, country) pairs."""
+    """Return list of (shop_id, name, website) for the given (city, country) pairs.
+
+    Non-specialty chains are skipped (they yield no useful description); specialty
+    chains are kept, so the filtering happens in Python via ``is_nonspecialty_chain``
+    rather than a SQL name blocklist.
+    """
     if not cities:
         raise ValueError("at least one --city required")
-    placeholders_chains = ",".join("?" for _ in CHAIN_BLOCKLIST)
     city_clauses = " OR ".join("(city = ? AND country = ?)" for _ in cities)
-    params: list[object] = [*CHAIN_BLOCKLIST]
+    params: list[object] = []
     for city, country in cities:
         params.extend([city, country])
 
@@ -186,12 +172,11 @@ def select_shops(
         FROM shop_shops
         WHERE description IS NULL
           AND website IS NOT NULL AND TRIM(website) != ''
-          AND name NOT IN ({placeholders_chains})
           AND ({city_clauses})
         ORDER BY id
     """
     rows = conn.execute(sql, params).fetchall()
-    rows = [r for r in rows if r[0] not in already_done]
+    rows = [r for r in rows if r[0] not in already_done and not is_nonspecialty_chain(r[1])]
     if limit is not None:
         rows = rows[:limit]
     return rows

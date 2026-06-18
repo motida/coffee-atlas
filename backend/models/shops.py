@@ -16,6 +16,7 @@ class ShopBase(BaseModel):
     rating: float | None = None
     roasts_in_house: bool | None = None
     description: str | None = None
+    is_specialty: bool | None = None
 
 
 class ShopRead(ShopBase, ReadModel):

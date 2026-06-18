@@ -36,6 +36,10 @@ TEXT_SOURCES: list[tuple[str, str, str, str | None]] = [
     ("product", "prod_products", "name", "description"),
 ]
 
+# Per-entity-type extra WHERE fragment (no bind params). Shops are filtered to
+# the specialty subset so search matches the rest of the app.
+EXTRA_WHERE: dict[str, str] = {"shop": "is_specialty"}
+
 # The embedding column each entity type ranks against. Types absent here
 # (country, region) have no embeddings and so never take part in semantic search.
 EMBEDDING_COLS: dict[str, str] = {
@@ -100,6 +104,8 @@ def text_search(
         if species is not None:
             where += " AND LOWER(species) = LOWER(?)"
             params.append(species)
+        if extra := EXTRA_WHERE.get(entity_type):
+            where += f" AND {extra}"
         cols = f"id, {label_col}" + (f", {desc_col}" if desc_col else "")
         sql = (
             f"SELECT {cols} FROM {table} "
@@ -154,6 +160,8 @@ def semantic_search(
         if species is not None:
             where += " AND LOWER(species) = LOWER(?)"
             bind.append(species)
+        if extra := EXTRA_WHERE.get(entity_type):
+            where += f" AND {extra}"
         bind.append(per)
         sql = (
             f"SELECT {cols}, "
