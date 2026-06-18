@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { AuthNav } from "@/components/AuthNav";
+import { MainNav } from "@/components/MainNav";
 import { AuthProvider } from "@/lib/auth-context";
 
 const SITE_URL =
@@ -56,30 +57,7 @@ export default function RootLayout({
                 Coffee Atlas
               </Link>
               <div className="flex items-center gap-6">
-                <Link
-                  href="/"
-                  className="text-sm font-medium text-gray-600 hover:text-coffee-700"
-                >
-                  Map
-                </Link>
-                <Link
-                  href="/explore"
-                  className="text-sm font-medium text-gray-600 hover:text-coffee-700"
-                >
-                  Explore
-                </Link>
-                <Link
-                  href="/flavor"
-                  className="text-sm font-medium text-gray-600 hover:text-coffee-700"
-                >
-                  Flavor
-                </Link>
-                <Link
-                  href="/graph"
-                  className="text-sm font-medium text-gray-600 hover:text-coffee-700"
-                >
-                  Graph
-                </Link>
+                <MainNav />
                 <AuthNav />
               </div>
             </div>

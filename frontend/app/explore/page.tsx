@@ -14,6 +14,7 @@ const ENTITY_TYPES = [
   { id: "processing", label: "Processing" },
   { id: "shop", label: "Shops" },
   { id: "roast_profile", label: "Roasts" },
+  { id: "roaster", label: "Roasters" },
   { id: "product", label: "Products" },
 ] as const;
 

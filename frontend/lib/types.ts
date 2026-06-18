@@ -88,6 +88,10 @@ export interface Roaster extends Timestamped {
   website: string | null;
 }
 
+export interface RoasterListItem extends Roaster {
+  product_count: number;
+}
+
 // --- Flavor ---
 export interface FlavorAttribute extends Timestamped {
   name: string;

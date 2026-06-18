@@ -48,6 +48,10 @@ def search_db() -> Iterator[duckdb.DuckDBPyConnection]:
     conn.execute(
         "INSERT INTO proc_methods (id, name, category) VALUES ('p1', 'Washed / Wet', 'wet')"
     )
+    conn.execute(
+        "INSERT INTO roast_roasters (id, name, location) VALUES "
+        "('rr1', 'Floral Coffee Roasters', 'Portland')"
+    )
     yield conn
     conn.close()
 
@@ -129,6 +133,16 @@ def test_text_search_finds_processing_methods(client):
     results = r.json()
     proc = [row for row in results if row["entity_type"] == "processing"]
     assert [row["id"] for row in proc] == ["p1"]
+
+
+def test_text_search_finds_roasters(client):
+    # Roasters have no embeddings, so text search by name is how they surface.
+    r = client.get(
+        "/api/v1/search/text",
+        params=[("query", "floral"), ("limit", "50"), ("entity_types", "roaster")],
+    )
+    assert r.status_code == 200
+    assert {row["id"] for row in r.json()} == {"rr1"}
 
 
 def test_text_search_empty_query_rejected(client):
