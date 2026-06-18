@@ -40,6 +40,15 @@ def test_word_boundary_avoids_false_positives():
     assert not is_specialty_chain("Independent Corner Cafe")
 
 
+def test_accented_chain_names_are_folded():
+    # Accents must fold to ASCII or the blocklist misses accented brands
+    # (regression: "Caffè Nero" leaked into specialty as "caff nero").
+    assert is_nonspecialty_chain("Caffè Nero")
+    assert is_nonspecialty_chain("Caffe Nero")  # ASCII spelling still matches
+    # And accented specialty names still resolve to their ASCII keys.
+    assert is_specialty_chain("Devoción")
+
+
 # --- Score + flag computation ---
 
 

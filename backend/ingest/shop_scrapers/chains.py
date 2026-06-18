@@ -18,6 +18,7 @@ curation surfaces — extend them as coverage grows, especially outside the US.
 from __future__ import annotations
 
 import re
+import unicodedata
 
 # Distinctive brand *cores*, normalized into match sets at import time. Matching
 # is "name equals core, or name starts with core + space", so a short core like
@@ -68,11 +69,14 @@ _SPECIALTY_CHAIN_NAMES: tuple[str, ...] = (
 
 
 def _norm(name: str) -> str:
-    """Lowercase, drop apostrophes, reduce other punctuation to spaces.
+    """Fold accents, lowercase, drop apostrophes, reduce other punctuation to spaces.
 
-    "Peet's Coffee & Tea" -> "peets coffee tea"; "Blue Bottle" -> "blue bottle".
+    "Caffè Nero" -> "caffe nero"; "Peet's Coffee & Tea" -> "peets coffee tea";
+    "Blue Bottle" -> "blue bottle". Accent folding matters: without it an accented
+    chain name (Caffè Nero) wouldn't match its ASCII key and would slip the filter.
     """
-    s = name.casefold().replace("'", "").replace("’", "")
+    s = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
+    s = s.casefold().replace("'", "")
     s = re.sub(r"[^a-z0-9]+", " ", s)
     return re.sub(r"\s+", " ", s).strip()
 
