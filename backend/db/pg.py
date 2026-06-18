@@ -14,12 +14,22 @@ from collections.abc import Generator
 from typing import cast
 
 import psycopg
+from fastapi import HTTPException
 from psycopg.rows import DictRow, dict_row
 from psycopg_pool import ConnectionPool
 
 from backend.config import settings
 
 _pool: ConnectionPool | None = None
+
+# Returned by the PG-backed routes (/auth/*, /account/*) when DATABASE_URL was
+# never configured, so the pool was never initialized. A 503 (not a raw 500)
+# tells the client the feature is unavailable rather than broken — the common
+# cause is the api Space being recreated and losing its DATABASE_URL/JWT_SECRET
+# secrets. See deploy/huggingface/DEPLOY.md ("User accounts & data").
+_ACCOUNTS_UNAVAILABLE_DETAIL = (
+    "User accounts are unavailable: this server has no user-data store configured."
+)
 
 
 def init_pool() -> ConnectionPool:
@@ -55,8 +65,12 @@ def get_pg() -> Generator[psycopg.Connection[DictRow], None, None]:
     raises, then returns the connection to the pool. The connection is created
     with ``dict_row`` at runtime, so it is cast to ``Connection[DictRow]`` (the
     pool can't carry the row-factory type statically) — cursors then yield dicts.
+
+    When the pool was never initialized (no ``DATABASE_URL``), the user-data
+    features are simply off; raise a 503 so callers see "unavailable" rather
+    than a bare 500 from an uncaught ``RuntimeError``.
     """
     if _pool is None:
-        raise RuntimeError("Postgres pool not initialized — is DATABASE_URL set?")
+        raise HTTPException(status_code=503, detail=_ACCOUNTS_UNAVAILABLE_DETAIL)
     with _pool.connection() as conn:
         yield cast("psycopg.Connection[DictRow]", conn)

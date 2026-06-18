@@ -153,6 +153,34 @@ The git-lfs delta is pushed and HF rebuilds the api Space.
 
 ---
 
+## Resetting the LFS storage quota (recreating the api Space)
+
+Each `deploy.sh api` run pushes a **fresh full-size DB blob** through git-LFS,
+and old LFS versions aren't freed promptly (squashing history doesn't reclaim
+them quickly either). After enough data deploys the api Space hits the free
+tier's **~1 GB LFS storage cap** and pushes start failing. The reliable fix is
+to **delete and recreate** the Space so its storage resets:
+
+1. Delete the api Space (Settings → bottom → *Delete this Space*).
+2. Recreate it per [Create both Spaces](#3-create-both-spaces-on-huggingfaceco)
+   above (same name, Docker SDK).
+3. Re-run `HF_USER=... ./deploy/huggingface/deploy.sh api` to push code + DB.
+
+> **Recreating wipes every secret — re-add all THREE on the api Space.**
+> A fresh Space starts with no variables or secrets. It's easy to remember the
+> obvious one (`GEMINI_API_KEY`) and forget the auth pair. Re-add **all** of
+> `GEMINI_API_KEY`, `DATABASE_URL`, and `JWT_SECRET` (see
+> [Configure Space variables and secrets](#4-configure-space-variables-and-secrets)).
+>
+> Missing `DATABASE_URL`/`JWT_SECRET` fails **silently and partially**: the
+> content endpoints (`/varieties`, `/shops`, …) keep returning 200, so the
+> Space looks healthy, while every `/auth/*` and `/account/*` route returns
+> `503 "User accounts are unavailable"` (raised by `db/pg.get_pg` when the pool
+> was never initialized). Symptom in the UI: registration/login fails with
+> "Could not create your account."
+
+---
+
 ## Gotchas
 
 - **48-hour idle sleep.** Free Spaces sleep after 48h with no traffic. First

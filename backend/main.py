@@ -36,7 +36,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     conn.close()
 
     # User-data store (Postgres) — opt-in via DATABASE_URL. When unset, the app
-    # still boots (content-only) and auth/account routes 500 on use.
+    # still boots (content-only) and auth/account routes return a clean 503
+    # ("accounts unavailable") on use — see db/pg.get_pg.
     pg_enabled = bool(settings.DATABASE_URL)
     if pg_enabled:
         # Refuse to boot with a forgeable (empty/weak) JWT secret.
