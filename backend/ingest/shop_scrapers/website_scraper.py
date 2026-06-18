@@ -39,6 +39,8 @@ MAX_DESCRIPTION_LEN = 1200
 # filename limit; long city lists fall back to a deterministic hash.
 MAX_SCOPE_SLUG_BYTES = 150
 CACHE_DIR = Path("data/cache/shop_scrape")
+# Curated city frontier for the `descriptions` ingest stage (see read_cities).
+CITIES_FILE = Path("data/raw/scrape_cities.txt")
 
 # Generic CMS boilerplate that we treat as no-signal
 JUNK_PATTERNS = [
@@ -184,6 +186,27 @@ def select_shops(
     if limit is not None:
         rows = rows[:limit]
     return rows
+
+
+def read_cities(path: str | Path = CITIES_FILE) -> list[tuple[str, str]]:
+    """(city, country) pairs from the city-frontier file; the `descriptions` stage
+    reads this. Blank lines and ``#`` comments are ignored; a missing file yields
+    an empty list (the stage then no-ops). Each line is ``City,CC`` (e.g.
+    ``New York,US``)."""
+    p = Path(path)
+    if not p.exists():
+        return []
+    cities: list[tuple[str, str]] = []
+    for raw in p.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        city, sep, country = line.partition(",")
+        city, country = city.strip(), country.strip()
+        if not sep or not city or not country:
+            raise ValueError(f"scrape_cities line must be 'City,CC', got: {raw!r}")
+        cities.append((city, country))
+    return cities
 
 
 def _scope_slug(cities: list[tuple[str, str]]) -> str:
