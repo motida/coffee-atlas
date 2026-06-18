@@ -43,6 +43,17 @@ _NONSPECIALTY_CHAIN_NAMES: tuple[str, ...] = (
     "Gloria Jean's",
     "Second Cup",
     "Tully's",
+    # Global brand boutiques (not specialty cafés)
+    "Nespresso",
+    # Israeli chains (Tel Aviv coverage)
+    "Aroma",
+    "Arcaffe",
+    "Cafe Greg",
+    "Greg Cafe",
+    "Cofix",
+    "Landwer",
+    "Cafe Landwer",
+    "Roladin",
 )
 
 _SPECIALTY_CHAIN_NAMES: tuple[str, ...] = (
