@@ -16,8 +16,38 @@ from backend.ingest.shop_scrapers.website_scraper import (
     CITIES_FILE,
     MAX_SCOPE_SLUG_BYTES,
     _scope_slug,
+    extract_description,
     read_cities,
 )
+
+
+def _meta(content: str) -> str:
+    return f'<html><head><meta name="description" content="{content}"></head></html>'
+
+
+def test_extract_description_accepts_english():
+    desc = "A specialty coffee roaster and cafe serving single-origin espresso."
+    assert extract_description(_meta(desc), "Some Shop") == desc
+
+
+def test_extract_description_accepts_hebrew():
+    desc = "בית קפה בוטיק בתל אביב עם קפה מיוחד וקלייה עצמית טרייה"
+    assert extract_description(_meta(desc), "Some Shop") is not None
+
+
+def test_extract_description_accepts_japanese():
+    desc = "東京で自家焙煎したスペシャルティコーヒーを提供する珈琲専門店です"
+    assert extract_description(_meta(desc), "Some Shop") is not None
+
+
+def test_extract_description_accepts_thai():
+    desc = "ร้านกาแฟพิเศษในเชียงใหม่ คั่วเองสดใหม่ทุกวัน บริการเอสเพรสโซและคาเฟ่"
+    assert extract_description(_meta(desc), "Some Shop") is not None
+
+
+def test_extract_description_rejects_non_coffee():
+    desc = "A law firm providing corporate legal services across the region today."
+    assert extract_description(_meta(desc), "Some Firm") is None
 
 
 def test_scope_slug_short_list_is_readable():
