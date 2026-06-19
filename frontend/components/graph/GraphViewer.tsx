@@ -6,6 +6,7 @@ import { graphTraverse, searchText } from "@/lib/api";
 import { EDGE_TYPES, GraphControls } from "@/components/graph/GraphControls";
 import { GraphDetailSidebar } from "@/components/graph/GraphDetailSidebar";
 import { entityColor, entityHref } from "@/lib/entity-config";
+import { capNodes, pruneEdges } from "@/lib/graph-display";
 import type { SearchResult } from "@/lib/types";
 
 const SEED_SEARCH_TYPES = ["variety", "country", "region", "flavor", "roast_profile", "product"];
@@ -42,6 +43,7 @@ export default function GraphViewer() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nodeLimit, setNodeLimit] = useState<number | null>(50);
 
   // Debounced search
   useEffect(() => {
@@ -117,34 +119,39 @@ export default function GraphViewer() {
     try {
       const result = await graphTraverse(id, 1, controller.signal);
       if (controller.signal.aborted) return;
-      setNodes((existing) => {
-        const byId = new Map(existing.map((n) => [n.id, n]));
-        for (const n of result.nodes) {
-          if (!byId.has(n.id)) {
-            byId.set(n.id, {
-              id: n.id,
-              entity_type: n.entity_type,
-              label: n.label,
-            });
-          }
+
+      const byId = new Map(nodes.map((n) => [n.id, n]));
+      for (const n of result.nodes) {
+        if (!byId.has(n.id)) {
+          byId.set(n.id, {
+            id: n.id,
+            entity_type: n.entity_type,
+            label: n.label,
+          });
         }
-        return Array.from(byId.values());
-      });
-      setEdges((existing) => {
-        const seen = new Set(existing.map(edgeKey));
-        const merged = [...existing];
-        for (const e of result.edges) {
-          const candidate: SimEdge = {
-            source: e.source_id,
-            target: e.target_id,
-            edge_type: e.edge_type,
-          };
-          if (!seen.has(edgeKey(candidate))) {
-            merged.push(candidate);
-          }
+      }
+      const mergedNodes = Array.from(byId.values());
+
+      const seen = new Set(edges.map(edgeKey));
+      const mergedEdges = [...edges];
+      for (const e of result.edges) {
+        const candidate: SimEdge = {
+          source: e.source_id,
+          target: e.target_id,
+          edge_type: e.edge_type,
+        };
+        if (!seen.has(edgeKey(candidate))) {
+          mergedEdges.push(candidate);
         }
-        return merged;
-      });
+      }
+
+      setNodes(mergedNodes);
+      setEdges(mergedEdges);
+      // Expand is an explicit "show me more" — raise the cap so freshly added
+      // neighbors are never hidden ("All" stays "All").
+      setNodeLimit((prev) =>
+        prev == null ? null : Math.max(prev, mergedNodes.length),
+      );
     } catch (err) {
       if (isAbort(err)) return;
       setError(err instanceof Error ? err.message : "Failed to expand node");
@@ -165,6 +172,17 @@ export default function GraphViewer() {
   const visibleEdges = useMemo(
     () => edges.filter((e) => enabledEdgeTypes.has(e.edge_type)),
     [edges, enabledEdgeTypes],
+  );
+
+  // Cap the rendered graph to the nearest-N nodes (BFS order, seed first), then
+  // drop any edge whose endpoint was trimmed away (d3.forceLink throws otherwise).
+  const displayNodes = useMemo(
+    () => capNodes(nodes, nodeLimit, selectedNode?.id),
+    [nodes, nodeLimit, selectedNode],
+  );
+  const displayEdges = useMemo(
+    () => pruneEdges(visibleEdges, new Set(displayNodes.map((n) => n.id))),
+    [visibleEdges, displayNodes],
   );
 
   // d3-force render
@@ -232,15 +250,15 @@ export default function GraphViewer() {
       initializedRef.current = true;
     }
 
-    simulation.nodes(nodes);
+    simulation.nodes(displayNodes);
     (simulation.force("link") as d3.ForceLink<SimNode, SimEdge>).links(
-      visibleEdges,
+      displayEdges,
     );
     simulation.alpha(0.4).restart();
 
     const edgeSel = root
       .selectAll<SVGLineElement, SimEdge>("line.edge")
-      .data(visibleEdges, (d) => edgeKey(d));
+      .data(displayEdges, (d) => edgeKey(d));
     edgeSel.exit().remove();
     const edgeEnter = edgeSel
       .enter()
@@ -253,7 +271,7 @@ export default function GraphViewer() {
 
     const nodeSel = root
       .selectAll<SVGGElement, SimNode>("g.node")
-      .data(nodes, (d) => d.id);
+      .data(displayNodes, (d) => d.id);
     nodeSel.exit().remove();
 
     const nodeEnter = nodeSel
@@ -325,7 +343,7 @@ export default function GraphViewer() {
         (d) => `translate(${d.x ?? 0},${d.y ?? 0})`,
       );
     });
-  }, [nodes, visibleEdges]);
+  }, [displayNodes, displayEdges]);
 
   // Highlight only — no simulation restart on selection change
   useEffect(() => {
@@ -340,7 +358,7 @@ export default function GraphViewer() {
         selectedNode && d.id === selectedNode.id ? 2.5 : 1.5,
       )
       .attr("r", (d) => (selectedNode && d.id === selectedNode.id ? 11 : 9));
-  }, [selectedNode, nodes]);
+  }, [selectedNode, displayNodes]);
 
   // Stop simulation + abort inflight on unmount
   useEffect(() => {
@@ -363,6 +381,10 @@ export default function GraphViewer() {
         onSeed={seedFromNode}
         enabledEdgeTypes={enabledEdgeTypes}
         onToggleEdge={toggleEdge}
+        nodeLimit={nodeLimit}
+        onNodeLimitChange={setNodeLimit}
+        displayedCount={displayNodes.length}
+        totalCount={nodes.length}
       />
 
       {/* Detail sidebar */}
