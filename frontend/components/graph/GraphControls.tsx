@@ -21,6 +21,9 @@ export const EDGE_TYPES: { id: string; label: string }[] = [
   { id: "shop_variety", label: "Shop → Variety" },
 ];
 
+/** Display caps for the graph; `null` means "show all". */
+const NODE_LIMIT_OPTIONS: (number | null)[] = [25, 50, 100, 250, null];
+
 interface GraphControlsProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -28,6 +31,10 @@ interface GraphControlsProps {
   onSeed: (id: string) => void;
   enabledEdgeTypes: Set<string>;
   onToggleEdge: (id: string) => void;
+  nodeLimit: number | null;
+  onNodeLimitChange: (limit: number | null) => void;
+  displayedCount: number;
+  totalCount: number;
 }
 
 /** The graph's left panel: seed search, edge-type toggles, and the color legend. */
@@ -38,6 +45,10 @@ export function GraphControls({
   onSeed,
   enabledEdgeTypes,
   onToggleEdge,
+  nodeLimit,
+  onNodeLimitChange,
+  displayedCount,
+  totalCount,
 }: GraphControlsProps) {
   return (
     <div className="absolute left-4 top-4 z-10 w-80 overflow-hidden rounded-lg border border-coffee-200 bg-white shadow-sm">
@@ -91,6 +102,30 @@ export function GraphControls({
               </button>
             );
           })}
+        </div>
+      </div>
+
+      <div className="border-b border-coffee-100 p-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-coffee-700">
+          Max nodes
+        </div>
+        <select
+          value={nodeLimit ?? "all"}
+          onChange={(e) =>
+            onNodeLimitChange(e.target.value === "all" ? null : Number(e.target.value))
+          }
+          className="mt-2 w-full rounded border border-coffee-200 px-3 py-1.5 text-sm focus:border-coffee-500 focus:outline-none"
+        >
+          {NODE_LIMIT_OPTIONS.map((opt) => (
+            <option key={opt ?? "all"} value={opt ?? "all"}>
+              {opt ?? "All"}
+            </option>
+          ))}
+        </select>
+        <div className="mt-1.5 text-xs text-coffee-600">
+          {totalCount > displayedCount
+            ? `Showing ${displayedCount} of ${totalCount} nodes`
+            : `${totalCount} ${totalCount === 1 ? "node" : "nodes"}`}
         </div>
       </div>
 

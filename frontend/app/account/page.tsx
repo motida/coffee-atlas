@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CardGrid, EntityCard, Section } from "@/components/explore/EntityPage";
+import { RecommendedForYou } from "@/components/account/RecommendedForYou";
 import * as api from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { entityHref } from "@/lib/entity-config";
@@ -49,6 +50,8 @@ export default function AccountPage() {
       </header>
 
       <div className="space-y-8">
+        <RecommendedForYou entityType="product" />
+
         <Section title="Saved" count={favorites.length} empty="Nothing saved yet.">
           <CardGrid>
             {favorites.map((fav) => {

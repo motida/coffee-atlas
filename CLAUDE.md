@@ -319,6 +319,8 @@ GET  /api/v1/graph/traverse              # Graph traversal (start_id, max_depth,
 GET  /api/v1/graph/path                  # Shortest path between two entities
 GET  /api/v1/search/semantic             # Semantic similarity search across all entities
 GET  /api/v1/search/text                 # Full-text search
+GET  /api/v1/recommend/{type}/{id}       # "You might also like" — similar same-type entities
+GET  /api/v1/recommend/for-you           # Personalized feed from favorites + notes (?entity_type=)
 POST /api/v1/auth/register               # Create account, set session cookie
 POST /api/v1/auth/login                  # Log in, set session cookie
 POST /api/v1/auth/logout                 # Clear session cookie
@@ -338,6 +340,18 @@ DELETE /api/v1/account/notes/{id}        # Delete a cupping note (ownership-scop
 > the referenced `entity_id` exists in DuckDB (`require_entity`) before writing —
 > `entity_type` is resolved to a DuckDB table via the whitelists in
 > `backend/routers/_activity_entities.py`.
+
+> **Recommendations (hybrid embedding + graph).** `/recommend/*`
+> (`backend/services/recommendations.py`, `backend/routers/recommend.py`) ranks
+> same-type peers by a blend of stored-embedding cosine similarity (the dense
+> "content" signal, reusing the `array_cosine_similarity` path semantic search
+> uses) and shared-neighbor overlap across the `edges_*` graph (the sparse,
+> explainable signal that fills the `reason` text). The six embeddable types
+> (`variety, flavor, processing, shop, roast_profile, product`) are recommendable
+> via a declarative `RECOMMENDABLE` config; it degrades to graph-only when a seed
+> has no embedding. No Gemini call is made at request time (all embeddings are
+> pre-stored). `/recommend/for-you` is Postgres-backed (auth + favorites/notes →
+> taste centroid), so it 503s without a user-data store, like `/account/*`.
 
 ### Query Patterns
 - All list endpoints support `?limit=`, `?offset=`, `?sort=`, `?filter[field]=value`
@@ -486,4 +500,4 @@ tables → export triples → `just ingest-all`). To run it by hand:
 
 - This project is also a portfolio piece demonstrating full-stack + knowledge graph + geospatial skills
 - The ontology + DuckDB + DuckPGQ architecture mirrors the Sentinel pattern but in a self-contained, publicly demonstrable domain
-- Future expansion: user accounts for cupping logs, recommendation engine ("if you like X, try Y" via graph similarity), roaster/shop owner portal for self-listing
+- Future expansion: user accounts for cupping logs *(done)*, recommendation engine ("if you like X, try Y" via graph similarity) *(done — see `/recommend/*`)*, roaster/shop owner portal for self-listing
