@@ -12,6 +12,7 @@ import type {
   ProcessingMethod,
   Product,
   ProductOrigin,
+  Recommendation,
   RegisterRequest,
   Region,
   RegionGeoProperties,
@@ -213,6 +214,17 @@ export const searchText = (
 ) =>
   fetchAPI<SearchResult[]>(
     buildSearchUrl("/search/text", query, limit, entityTypes, species),
+  );
+
+// --- Recommendations ---
+export const getRecommendations = (entityType: string, id: string, limit = 6) =>
+  fetchAPI<Recommendation[]>(
+    `/recommend/${entityType}/${id}?limit=${limit}`,
+  );
+
+export const getRecommendationsForYou = (entityType = "product", limit = 10) =>
+  fetchAPI<Recommendation[]>(
+    `/recommend/for-you?entity_type=${entityType}&limit=${limit}`,
   );
 
 // --- Auth ---

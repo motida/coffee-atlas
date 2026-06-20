@@ -270,6 +270,15 @@ export interface SearchResult {
   similarity: number | null;
 }
 
+export interface Recommendation {
+  id: string;
+  entity_type: string;
+  label: string;
+  description: string | null;
+  score: number;
+  reason: string | null;
+}
+
 // --- Users & activity ---
 export interface User extends Timestamped {
   email: string;

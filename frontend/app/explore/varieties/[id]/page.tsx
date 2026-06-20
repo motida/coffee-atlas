@@ -12,6 +12,7 @@ import {
 } from "@/components/explore/EntityPage";
 import { AddCuppingNote } from "@/components/account/AddCuppingNote";
 import { FavoriteButton } from "@/components/account/FavoriteButton";
+import { Recommendations } from "@/components/explore/Recommendations";
 import { useEntityDetail } from "@/lib/hooks";
 import type { FlavorAttribute, Variety } from "@/lib/types";
 
@@ -83,6 +84,8 @@ export default function VarietyPage({ params }: { params: { id: string } }) {
           ))}
         </CardGrid>
       </Section>
+
+      <Recommendations entityType="variety" entityId={params.id} />
     </EntityPage>
   );
 }
