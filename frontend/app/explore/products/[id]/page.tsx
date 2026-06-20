@@ -18,6 +18,7 @@ import {
 } from "@/components/explore/EntityPage";
 import { AddCuppingNote } from "@/components/account/AddCuppingNote";
 import { FavoriteButton } from "@/components/account/FavoriteButton";
+import { Recommendations } from "@/components/explore/Recommendations";
 import { useEntityDetail } from "@/lib/hooks";
 import { titleCase } from "@/lib/text";
 import type { FlavorAttribute, Product, ProductOrigin, Variety } from "@/lib/types";
@@ -158,6 +159,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           ))}
         </CardGrid>
       </Section>
+
+      <Recommendations entityType="product" entityId={params.id} />
     </EntityPage>
   );
 }
