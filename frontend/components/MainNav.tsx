@@ -9,6 +9,7 @@ const TABS = [
   { href: "/roasters", label: "Roasters" },
   { href: "/flavor", label: "Flavor" },
   { href: "/graph", label: "Graph" },
+  { href: "/help", label: "Help" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
