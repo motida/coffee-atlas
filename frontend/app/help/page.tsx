@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ApiVersion } from "@/components/help/ApiVersion";
 import pkg from "../../package.json";
 
 const FEATURES = [
@@ -87,8 +88,14 @@ export default function HelpPage() {
         <div className="mt-3 rounded-lg border border-coffee-200 bg-white px-4 py-3 text-sm text-gray-700">
           <dl className="space-y-1.5">
             <div className="flex justify-between gap-4">
-              <dt className="text-gray-500">Version</dt>
+              <dt className="text-gray-500">Web app</dt>
               <dd className="font-medium text-coffee-800">v{pkg.version}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-gray-500">API</dt>
+              <dd>
+                <ApiVersion />
+              </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-gray-500">Data sources</dt>

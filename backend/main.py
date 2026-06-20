@@ -26,6 +26,7 @@ from backend.routers import (
     graph,
     search,
     recommend,
+    meta,
 )
 from backend.services.auth import validate_jwt_secret
 
@@ -88,6 +89,7 @@ app.include_router(products.router)
 app.include_router(graph.router)
 app.include_router(search.router)
 app.include_router(recommend.router)
+app.include_router(meta.router)
 
 
 @app.get("/health")
