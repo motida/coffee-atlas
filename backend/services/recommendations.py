@@ -72,7 +72,9 @@ RECOMMENDABLE: dict[str, RecConfig] = {
         embedding_col="name_embedding",
         neighbor_edges=[
             NeighborEdge("edges_variety_flavor", "variety_id", "flavor_id", "flavor note"),
-            NeighborEdge("edges_variety_processing", "variety_id", "method_id", "processing method"),
+            NeighborEdge(
+                "edges_variety_processing", "variety_id", "method_id", "processing method"
+            ),
             NeighborEdge("edges_country_variety", "variety_id", "country_id", "origin"),
             NeighborEdge("edges_region_variety", "variety_id", "region_id", "origin"),
             NeighborEdge("edges_roast_variety", "variety_id", "profile_id", "roast profile"),
@@ -228,7 +230,9 @@ class RecommendationService:
             f"array_cosine_similarity({cfg.embedding_col}, ?::FLOAT[{DIMENSIONS}]) AS sim "
             f"FROM {cfg.table} WHERE {' AND '.join(where)} ORDER BY sim DESC LIMIT ?"
         )
-        rows = db.execute(sql, [*seed_ids, centroid, *seed_ids, limit]).fetchall()
+        # Param order must match placeholder order in the SQL text: centroid
+        # (SELECT), seed_ids (WHERE id NOT IN (...)), then limit.
+        rows = db.execute(sql, [centroid, *seed_ids, limit]).fetchall()
         return [
             Recommendation(
                 id=row[0],
