@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend import __version__
 from backend.config import settings
 from backend.db.connection import get_connection
 from backend.db.pg import close_pool, init_pool
@@ -25,6 +26,7 @@ from backend.routers import (
     graph,
     search,
     recommend,
+    meta,
 )
 from backend.services.auth import validate_jwt_secret
 
@@ -56,7 +58,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(
     title="Coffee Atlas API",
     description="Geospatial coffee knowledge graph platform",
-    version="0.1.0",
+    version=__version__,
     lifespan=lifespan,
 )
 
@@ -87,6 +89,7 @@ app.include_router(products.router)
 app.include_router(graph.router)
 app.include_router(search.router)
 app.include_router(recommend.router)
+app.include_router(meta.router)
 
 
 @app.get("/health")

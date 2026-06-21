@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Map, {
+  GeolocateControl,
   Layer,
   Source,
   type MapLayerMouseEvent,
   type MapRef,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre";
+import type { GeolocateControl as GeolocateControlInstance } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
   getOriginsGeo,
@@ -105,10 +107,16 @@ type AnyGeo = GeoJSONFeatureCollection<
 
 export default function CoffeeMap() {
   const mapRef = useRef<MapRef | null>(null);
+  const geolocateRef = useRef<GeolocateControlInstance | null>(null);
   // The map is uncontrolled — MapLibre owns the camera so React stays out of the
   // per-frame pan/zoom loop. We only track `zoom` (refreshed on moveEnd) for the
   // legend's "zoom in for shops" label; the camera position is never read back.
   const [initialView] = useState(loadInitialView);
+  // True only on a genuine first open (no stored view) — `loadInitialView`
+  // returns the `DEFAULT_VIEW` reference exactly when sessionStorage had no
+  // valid view. Used to auto-focus on the visitor's location once, without
+  // overriding a restored position when navigating back into the map.
+  const firstOpenRef = useRef(initialView === DEFAULT_VIEW);
   const [zoom, setZoom] = useState(initialView.zoom);
   const [countries, setCountries] =
     useState<GeoJSONFeatureCollection<CountryGeoProperties> | null>(null);
@@ -159,6 +167,19 @@ export default function CoffeeMap() {
       .catch((e) => console.error("Failed to load shops:", e))
       .finally(() => setShopsLoading(false));
   }, []);
+
+  // On first open only, ask the browser for the visitor's real-time location
+  // and fly there (the GeolocateControl handles the permission prompt, the live
+  // dot, and the camera move). Triggered from onLoad so the control is mounted
+  // on the map first. When a stored view exists (navigating back), we skip this
+  // and let the restored initialViewState stand.
+  const handleLoad = useCallback(() => {
+    fetchShops();
+    if (firstOpenRef.current) {
+      firstOpenRef.current = false;
+      geolocateRef.current?.trigger();
+    }
+  }, [fetchShops]);
 
   const handleMoveEnd = useCallback(
     (evt: ViewStateChangeEvent) => {
@@ -278,7 +299,7 @@ export default function CoffeeMap() {
       ref={mapRef}
       initialViewState={initialView}
       onMoveEnd={handleMoveEnd}
-      onLoad={fetchShops}
+      onLoad={handleLoad}
       mapStyle={MAP_STYLE}
       style={{ width: "100%", height: "100%" }}
       interactiveLayerIds={[
@@ -293,6 +314,21 @@ export default function CoffeeMap() {
       onMouseLeave={() => setHovering(false)}
       cursor={hovering ? "pointer" : "grab"}
     >
+      {/* "Locate me" button + live location dot. Auto-triggered once on first
+          open (see handleLoad); also available for manual re-centering. Placed
+          bottom-left to clear the top-left legend and top-right routes toggle.
+          A denied/unavailable prompt is swallowed quietly so it doesn't spam
+          the console — the map just stays at the fallback view. */}
+      <GeolocateControl
+        ref={geolocateRef}
+        position="bottom-left"
+        trackUserLocation
+        showUserLocation
+        positionOptions={{ enableHighAccuracy: true }}
+        fitBoundsOptions={{ maxZoom: 11 }}
+        onError={(e) => console.debug("Geolocation unavailable:", e?.message)}
+      />
+
       {showRoutes && routes && (
         <Source id="trade-routes" type="geojson" data={routes as AnyGeo}>
           {/* Transparent wide line: a generous click/hover target for the

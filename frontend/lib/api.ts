@@ -278,3 +278,6 @@ export const updateNote = (id: string, body: Partial<Omit<NoteInput, "entity_typ
 
 export const deleteNote = (id: string) =>
   fetchAPI<void>(`/account/notes/${id}`, { method: "DELETE" });
+
+// --- Meta ---
+export const getApiVersion = () => fetchAPI<{ version: string }>("/version");
