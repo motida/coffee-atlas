@@ -33,7 +33,11 @@ from dataclasses import dataclass
 import duckdb
 
 from backend.ingest._common import managed_connection
-from backend.ingest.shop_scrapers.chains import is_nonspecialty_chain, is_specialty_chain
+from backend.ingest.shop_scrapers.chains import (
+    is_nonspecialty_chain,
+    is_nonspecialty_domain,
+    is_specialty_chain,
+)
 
 # --- Tunable heuristic ---
 WEIGHT_CURATED_ROASTER = 0.6
@@ -71,14 +75,23 @@ def _classify_chains(conn: duckdb.DuckDBPyConnection) -> None:
 
     Chain matching is normalized/prefix-aware Python (see chains.py) — too
     awkward as pure SQL and DuckDB Python UDFs need numpy here — so we classify
-    names in Python and join the flags back in the set-based UPDATEs below.
+    names in Python and join the flags back in the set-based UPDATEs below. A
+    shop is non-specialty if its name *or* its website domain matches a chain
+    (the domain catches branches Overture names only in Hebrew).
     """
     conn.execute(
         "CREATE OR REPLACE TEMP TABLE _shop_chain_flags "
         "(id TEXT, spec_chain BOOLEAN, nonspec_chain BOOLEAN)"
     )
-    rows = conn.execute("SELECT id, name FROM shop_shops").fetchall()
-    flags = [(sid, is_specialty_chain(name), is_nonspecialty_chain(name)) for sid, name in rows]
+    rows = conn.execute("SELECT id, name, website FROM shop_shops").fetchall()
+    flags = [
+        (
+            sid,
+            is_specialty_chain(name),
+            is_nonspecialty_chain(name) or is_nonspecialty_domain(website),
+        )
+        for sid, name, website in rows
+    ]
     if flags:
         conn.executemany("INSERT INTO _shop_chain_flags VALUES (?, ?, ?)", flags)
 

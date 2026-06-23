@@ -29,7 +29,7 @@ import duckdb
 import httpx
 
 from backend.db.connection import get_connection
-from backend.ingest.shop_scrapers.chains import is_nonspecialty_chain
+from backend.ingest.shop_scrapers.chains import is_nonspecialty_chain, is_nonspecialty_domain
 
 USER_AGENT = "coffee-atlas-bot/0.1 (+https://huggingface.co/spaces/motidav/coffee-atlas-web)"
 REQUEST_TIMEOUT = 10.0
@@ -169,9 +169,11 @@ def select_shops(
 ) -> list[tuple[str, str, str]]:
     """Return list of (shop_id, name, website) for the given (city, country) pairs.
 
-    Non-specialty chains are skipped (they yield no useful description); specialty
-    chains are kept, so the filtering happens in Python via ``is_nonspecialty_chain``
-    rather than a SQL name blocklist.
+    Non-specialty chains are skipped (they yield no useful description, and one
+    shared homepage would otherwise flag every branch specialty); specialty chains
+    are kept. Filtering happens in Python via ``is_nonspecialty_chain`` (by name)
+    and ``is_nonspecialty_domain`` (by website, which catches Hebrew-named branches)
+    rather than a SQL blocklist.
     """
     if not cities:
         raise ValueError("at least one --city required")
@@ -189,7 +191,13 @@ def select_shops(
         ORDER BY id
     """
     rows = conn.execute(sql, params).fetchall()
-    rows = [r for r in rows if r[0] not in already_done and not is_nonspecialty_chain(r[1])]
+    rows = [
+        r
+        for r in rows
+        if r[0] not in already_done
+        and not is_nonspecialty_chain(r[1])
+        and not is_nonspecialty_domain(r[2])
+    ]
     if limit is not None:
         rows = rows[:limit]
     return rows

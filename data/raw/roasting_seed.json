@@ -125,6 +125,11 @@
     { "name": "Blue Bottle Coffee", "location": "Oakland, United States", "website": "https://bluebottlecoffee.com" },
     { "name": "Stumptown Coffee Roasters", "location": "Portland, United States", "website": "https://www.stumptowncoffee.com" },
     { "name": "Heart Coffee Roasters", "location": "Portland, United States", "website": "https://www.heartroasters.com" },
-    { "name": "Onyx Coffee Lab", "location": "Rogers, United States", "website": "https://onyxcoffeelab.com" }
+    { "name": "Onyx Coffee Lab", "location": "Rogers, United States", "website": "https://onyxcoffeelab.com" },
+    { "name": "Cafelix", "location": "Tel Aviv, Israel", "website": "https://cafelix.co.il" },
+    { "name": "Nahat", "location": "Tel Aviv, Israel", "website": "https://nahatcafe.com" },
+    { "name": "Nomena Roasters", "location": "Tel Aviv, Israel", "website": "https://nomenaroasters.com" },
+    { "name": "Roasters JLM", "location": "Jerusalem, Israel", "website": "https://roastersjlm.com" },
+    { "name": "Reut Roasters", "location": "Israel", "website": "https://reutroasters.co.il" }
   ]
 }
