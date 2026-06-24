@@ -17,10 +17,12 @@ def _insert_variety(db, vid, name, species, alt_max=None):
 
 def test_loads_all_profiles_and_roasters(db):
     counts = load_roasting(conn=db)
+    # Profiles are a stable taxonomy; roasters are a curation surface that grows
+    # (e.g. regional additions), so assert against the seed length, not a literal.
     assert counts.profiles == len(SEED["profiles"]) == 11
-    assert counts.roasters == len(SEED["roasters"]) == 10
+    assert counts.roasters == len(SEED["roasters"])
     assert db.execute("SELECT COUNT(*) FROM roast_profiles").fetchone()[0] == 11
-    assert db.execute("SELECT COUNT(*) FROM roast_roasters").fetchone()[0] == 10
+    assert db.execute("SELECT COUNT(*) FROM roast_roasters").fetchone()[0] == len(SEED["roasters"])
 
 
 def test_no_varieties_means_no_edges(db):

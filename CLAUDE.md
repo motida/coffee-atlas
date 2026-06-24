@@ -229,9 +229,10 @@ local stages; the network-heavy `shops` and `products` stages are run explicitly
 9. `distribution` — certifications, importers, trade routes → `dist_*`
 10. `roasting` — roast profiles + roasters seed → `roast_profiles`, `roast_roasters`, `edges_roast_variety`
 11. `products` — scrape roaster catalogs → `prod_products` *(network; skipped in bootstrap)*
-12. `embeddings` — generate Gemini embeddings → `*_embedding` columns (cosine scan today)
-13. `graph` — compute and store all `edges_*` tables (incl. product/shop edges; DuckPGQ graph parked)
-14. `specialty` — score shops + set `shop_shops.is_specialty` (multi-signal heuristic; reads `edges_shop_roaster`, so runs after `graph`). The app surfaces only specialty shops. *(run after the network stages; no-op without shop data)*
+12. `roaster_locations` — backfill `roast_roasters.location` from a curated `name → location` map (`data/raw/roaster_locations.json`). Roasters added by the `products` scrape arrive with no location; this fills them via UPDATE-by-name (never insert/delete, so it sidesteps the FK reload hazard and is idempotent). The country is the grouping key on the frontend Roasters page. *(run after `products`; without it only the seed roasters have locations)*
+13. `embeddings` — generate Gemini embeddings → `*_embedding` columns (cosine scan today)
+14. `graph` — compute and store all `edges_*` tables (incl. product/shop edges; DuckPGQ graph parked)
+15. `specialty` — score shops + set `shop_shops.is_specialty` (multi-signal heuristic; reads `edges_shop_roaster`, so runs after `graph`). The app surfaces only specialty shops. *(run after the network stages; no-op without shop data)*
 
 ### DuckDB Schema Conventions
 - All tables prefixed by domain: `var_`, `org_`, `proc_`, `roast_`, `flav_`, `dist_`, `shop_`, `prod_` (plus `edges_*` join tables)
@@ -468,16 +469,17 @@ tables → export triples → `just ingest-all`). To run it by hand:
    `distribution`, `roasting`, `embeddings`, `graph`
 5. The network-heavy stages stay out of `ingest-all` — run them explicitly:
    `just ingest shops`, `just ingest descriptions` (cities from
-   `data/raw/scrape_cities.txt`), then `just ingest products`, followed by a
-   `just ingest graph` re-run to resolve the product/shop/roaster edges, then
-   `just ingest specialty` to flag specialty shops
+   `data/raw/scrape_cities.txt`), then `just ingest products`,
+   `just ingest roaster_locations` to backfill locations on the scraped
+   roasters, followed by a `just ingest graph` re-run to resolve the
+   product/shop/roaster edges, then `just ingest specialty` to flag specialty shops
 6. `just dev-backend` — start the API (`uvicorn backend.main:app --reload`)
 7. `just dev-frontend` — start Next.js (`cd frontend && npm run dev`)
 
 > Note: `just ingest-all` runs the local stages only — it excludes the
 > network-heavy ones (`shops`, `descriptions`, `products`) and `specialty` (a
 > no-op without shop data). `python -m backend.ingest.pipeline --all` runs all
-> 14, including those.
+> 15, including those.
 
 ---
 

@@ -37,8 +37,35 @@ Atlanta,US
 Phoenix,US
 Ottawa,CA
 Leeds,GB
+# Israel. Overture stores Israeli localities in Hebrew (only ~40 shops carry a
+# romanized "Tel Aviv"), so the Hebrew strings below are what actually match
+# shop_shops.city — they unlock the ~3.5k IL shops already loaded. Use the exact
+# locality spelling, including the spaced hyphen in "תל אביב - יפו".
 Tel Aviv,IL
 Tel Aviv-Yafo,IL
+תל אביב - יפו,IL
+ירושלים,IL
+חיפה,IL
+באר שבע,IL
+רמת גן,IL
+נתניה,IL
+ראשון לציון,IL
+פתח תקווה,IL
+הרצליה,IL
+אשדוד,IL
+רעננה,IL
+אשקלון,IL
+כפר סבא,IL
+אילת,IL
+נצרת,IL
+פרדס חנה-כרכור,IL
+רחובות,IL
+חדרה,IL
+נהריה,IL
+הוד השרון,IL
+בת ים,IL
+עכו,IL
+חולון,IL
 
 # Awaiting Overture shops coverage — the ingest bbox doesn't yet include
 # JP/TH, so these are no-ops until the shops stage is re-run for those metros.

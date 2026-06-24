@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import duckdb
 
-from backend.ingest.shop_scrapers.chains import is_nonspecialty_chain, is_specialty_chain
+from backend.ingest.shop_scrapers.chains import (
+    is_nonspecialty_chain,
+    is_nonspecialty_domain,
+    is_specialty_chain,
+)
 from backend.ingest.shop_specialty import compute_specialty
 
 
@@ -58,6 +62,23 @@ def test_israeli_and_global_chains_excluded():
     assert is_nonspecialty_chain("Nespresso Boutique")
     # An independent isn't caught.
     assert not is_nonspecialty_chain("Cafe Tachtit (קפה תחתית)")
+    # Israeli specialty roaster-cafés are on the allowlist (kept on the map).
+    assert is_specialty_chain("Cafelix")
+    assert is_specialty_chain("Nahat Cafe נחת קפה")  # Hebrew suffix, Latin core matches
+
+
+def test_nonspecialty_domain_catches_hebrew_named_chains():
+    # The killer case for Israel: branches Overture names only in Hebrew fold to ""
+    # and slip the name list, but every branch shares the chain's domain.
+    assert is_nonspecialty_chain("קפה קפה") is False  # name signal is gone…
+    assert is_nonspecialty_domain("https://www.cafecafe.co.il/branch")  # …domain catches it
+    assert is_nonspecialty_domain("aroma.co.il")  # bare, no scheme
+    assert is_nonspecialty_domain("http://gregcafe.co.il/x?y=1")  # scheme + path
+    # Independents and specialty roasters are not blocklisted by domain.
+    assert not is_nonspecialty_domain("https://cafelix.co.il")
+    assert not is_nonspecialty_domain("https://nahatcafe.com")
+    assert not is_nonspecialty_domain(None)
+    assert not is_nonspecialty_domain("")
 
 
 # --- Score + flag computation ---
@@ -102,6 +123,28 @@ def test_compute_specialty_flags_by_signal(db):
 
     assert counts.total == 8
     assert counts.specialty == 5
+
+
+def test_compute_specialty_excludes_chain_by_domain(db):
+    # A Hebrew-named chain branch with a scraped description would otherwise score
+    # 0.3 and be flagged specialty; the domain blocklist forces it to 0.
+    _insert_shop(
+        db,
+        "chain_dom",
+        "קפה קפה",
+        website="https://www.cafecafe.co.il/holon",
+        description="בית קפה ומאפים — espresso, cappuccino and fresh pastries",
+    )
+    # A genuine independent on the same kind of description still qualifies.
+    _insert_shop(
+        db, "indie", "Some Indie Roastery", description="Single-origin pour-over and espresso"
+    )
+
+    compute_specialty(conn=db)
+
+    flags = dict(db.execute("SELECT id, is_specialty FROM shop_shops").fetchall())
+    assert flags["chain_dom"] is False  # domain blocklist overrides the description signal
+    assert flags["indie"] is True
 
 
 def test_compute_specialty_is_idempotent(db):

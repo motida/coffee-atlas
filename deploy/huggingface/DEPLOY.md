@@ -86,9 +86,26 @@ HF_USER=your-username ./deploy/huggingface/deploy.sh
 ```
 
 The script clones each Space, syncs the relevant source tree, copies the
-HF-specific `Dockerfile` + `README.md` + `.gitattributes`, copies the
+HF-specific `Dockerfile` + `README.md` + `.gitattributes`, ships a **compacted**
 DuckDB file with LFS, commits, and pushes. HF rebuilds automatically on push;
 follow the build logs at:
+
+> **DB compaction.** Rather than `cp` the full local DB, the api deploy runs
+> `python -m backend.db.compact` to build the shipped copy: it recreates the
+> schema with `create_tables`, copies every table's rows in FK order, and drops
+> the non-specialty shops (~98% of `shop_shops`, which the app never serves) plus
+> the edges referencing them. Writing a fresh file also reclaims DuckDB's free
+> blocks. This takes the LFS blob from ~190 MB to ~55 MB (≈3× more deploys before
+> the LFS-quota reset below). Your local DB is left untouched, so you can still
+> re-tune the specialty heuristic and re-run stages against the full POI set.
+>
+> The PK/FK constraints are **preserved on purpose**: the container runs
+> `backend.db.bootstrap` (→ `create_tables`) against the shipped DB on startup,
+> which crashes if a referenced table has lost its primary key. `compact.py`
+> self-checks this before the file ships. The only behavioural change is that
+> `?include_non_specialty=true` on `/shops` returns nothing against the shipped
+> DB (the app is specialty-only by design).
+
 
 - `https://huggingface.co/spaces/<your-username>/coffee-atlas-api`
 - `https://huggingface.co/spaces/<your-username>/coffee-atlas-web`
@@ -155,11 +172,12 @@ The git-lfs delta is pushed and HF rebuilds the api Space.
 
 ## Resetting the LFS storage quota (recreating the api Space)
 
-Each `deploy.sh api` run pushes a **fresh full-size DB blob** through git-LFS,
-and old LFS versions aren't freed promptly (squashing history doesn't reclaim
-them quickly either). After enough data deploys the api Space hits the free
-tier's **~1 GB LFS storage cap** and pushes start failing. The reliable fix is
-to **delete and recreate** the Space so its storage resets:
+Each `deploy.sh api` run pushes a **fresh DB blob** through git-LFS (now ~55 MB
+after compaction, down from ~190 MB), and old LFS versions aren't freed promptly
+(squashing history doesn't reclaim them quickly either). After enough data
+deploys the api Space still drifts toward the free tier's **~1 GB LFS storage
+cap** and pushes start failing — compaction just buys ~5× more deploys first. The
+reliable fix is to **delete and recreate** the Space so its storage resets:
 
 1. Delete the api Space (Settings → bottom → *Delete this Space*).
 2. Recreate it per [Create both Spaces](#3-create-both-spaces-on-huggingfaceco)
@@ -189,8 +207,8 @@ to **delete and recreate** the Space so its storage resets:
 - **Backend URL is build-time, not runtime.** Changing the api Space's URL
   (e.g. renaming) means the web Space must be rebuilt. This is a Next.js
   rewrites limitation (see `frontend/next.config.js`), not an HF one.
-- **Repo size limit: 5 GB per Space.** The DB is currently ~25 MB so there's
-  plenty of headroom.
+- **Repo size limit: 5 GB per Space.** The shipped (compacted) DB is ~55 MB so
+  there's plenty of headroom.
 - **Files >10 MB must be LFS-tracked.** `.gitattributes` in the api Space
   handles `*.duckdb` and `*.parquet`.
 - **Container runs as UID 1000** (`user`). The Dockerfile `chown`s `/app` to
