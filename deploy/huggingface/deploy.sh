@@ -82,7 +82,7 @@ deploy_api() {
     cp "$DEPLOY_DIR/api/.gitattributes"  "$stage/.gitattributes"
 
     # Ship a compacted copy: drop non-specialty shops (the app only serves
-    # is_specialty) and reclaim DuckDB's free blocks, keeping the LFS blob ~5x
+    # is_specialty) and reclaim DuckDB's free blocks, keeping the LFS blob ~3x
     # smaller than the full local DB. The local DB is left untouched. See
     # backend/db/compact.py.
     mkdir -p "$stage/data"
