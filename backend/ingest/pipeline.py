@@ -132,6 +132,15 @@ def _run_products(tables: list[str] | None = None) -> None:
     )
 
 
+def _run_roaster_locations(tables: list[str] | None = None) -> None:
+    from backend.ingest.roaster_locations_loader import backfill_roaster_locations
+
+    counts = backfill_roaster_locations(settings.DUCKDB_PATH)
+    print(f"Backfilled location on {counts.updated} roasters ({counts.already_set} already set)")
+    if counts.unmatched:
+        print(f"  Unmatched names (no roaster row): {len(counts.unmatched)}")
+
+
 def _run_embeddings(tables: list[str] | None = None) -> None:
     if not settings.ENABLE_EMBEDDINGS:
         print("Embeddings disabled (ENABLE_EMBEDDINGS=false)")
@@ -187,6 +196,7 @@ STAGE_REGISTRY: dict[str, Callable[[list[str] | None], None]] = {
     "distribution": _run_distribution,
     "roasting": _run_roasting,
     "products": _run_products,
+    "roaster_locations": _run_roaster_locations,
     "embeddings": _run_embeddings,
     "graph": _run_graph,
     "specialty": _run_specialty,
