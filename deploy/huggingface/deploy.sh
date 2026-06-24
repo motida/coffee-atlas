@@ -81,8 +81,14 @@ deploy_api() {
     cp "$DEPLOY_DIR/api/README.md"       "$stage/README.md"
     cp "$DEPLOY_DIR/api/.gitattributes"  "$stage/.gitattributes"
 
+    # Ship a compacted copy: drop non-specialty shops (the app only serves
+    # is_specialty) and reclaim DuckDB's free blocks, keeping the LFS blob ~5x
+    # smaller than the full local DB. The local DB is left untouched. See
+    # backend/db/compact.py.
     mkdir -p "$stage/data"
-    cp "$DB_FILE" "$stage/data/coffee_atlas.duckdb"
+    echo "    Compacting DB (prune non-specialty shops + reclaim free space)..."
+    ( cd "$REPO_ROOT" && uv run python -m backend.db.compact \
+        "$DB_FILE" "$stage/data/coffee_atlas.duckdb" )
 
     pushd "$stage" >/dev/null
     git add -A
