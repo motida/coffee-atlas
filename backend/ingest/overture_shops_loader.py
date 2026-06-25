@@ -9,8 +9,10 @@ No API key required — Overture is ODbL public data.
 The default Overture release is pinned for reproducible bootstraps. To bump
 to a newer release, set `OVERTURE_RELEASE` in the environment, e.g.:
 
-    OVERTURE_RELEASE=2026-04-15.0 just ingest shops
+    OVERTURE_RELEASE=2026-06-17.0 just ingest shops
 
+Overture only keeps recent releases live in S3, so a pinned release eventually
+404s ("No parquet files found") and the default must be bumped to a current one.
 Release history: https://docs.overturemaps.org/release/
 
 Bbox filter: a global scan of Overture places (~10 GB across 16 parquet
@@ -39,7 +41,7 @@ import duckdb
 
 from backend.ingest._common import managed_connection
 
-OVERTURE_RELEASE = os.environ.get("OVERTURE_RELEASE", "2026-04-15.0")
+OVERTURE_RELEASE = os.environ.get("OVERTURE_RELEASE", "2026-06-17.0")
 OVERTURE_BUCKET = "overturemaps-us-west-2"
 OVERTURE_PLACES_PREFIX = f"release/{OVERTURE_RELEASE}/theme=places/type=place/"
 
