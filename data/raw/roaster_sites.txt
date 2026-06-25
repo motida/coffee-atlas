@@ -62,3 +62,9 @@ https://roundhillroastery.com
 # WooCommerce roasters in the frontier (all of the above are Shopify).
 https://www.ritualcoffee.com
 https://www.barringtoncoffee.com
+
+# Tokyo — added 2026-06-25. Onibus runs Shopify (vendor "ONIBUS COFFEE", which
+# canonicalizes to the seed roaster "Onibus Coffee"). The other Tokyo seed
+# roasters (Glitch, Koffee Mameya, Leaves) have no scrapeable catalog
+# (Japanese commerce platforms / no products.json), so they're not listed.
+https://onibuscoffee.com
