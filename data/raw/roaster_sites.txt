@@ -63,8 +63,10 @@ https://roundhillroastery.com
 https://www.ritualcoffee.com
 https://www.barringtoncoffee.com
 
-# Tokyo — added 2026-06-25. Onibus runs Shopify (vendor "ONIBUS COFFEE", which
-# canonicalizes to the seed roaster "Onibus Coffee"). The other Tokyo seed
-# roasters (Glitch, Koffee Mameya, Leaves) have no scrapeable catalog
-# (Japanese commerce platforms / no products.json), so they're not listed.
+# Tokyo — added 2026-06-25. Shopify storefronts whose vendor canonicalizes to
+# the matching seed roaster: Onibus (vendor "ONIBUS COFFEE" -> "Onibus Coffee")
+# and Glitch (its shop is the myshopify store, not glitchcoffee.com; vendor
+# "GLITCH COFFEE & ROASTERS" -> "Glitch Coffee & Roasters"). Koffee Mameya has no
+# online store and Leaves no scrapeable catalog, so neither is listed.
 https://onibuscoffee.com
+https://glitchcoffeeroasters.myshopify.com
