@@ -437,8 +437,8 @@ ENABLE_EMBEDDINGS=true
 ENABLE_GRAPH=true
 
 # Ingest options (read at ingest time; optional)
-OVERTURE_RELEASE=2026-04-15.0      # Overture release for the shops stage
-OVERTURE_BBOX=                     # xmin,ymin,xmax,ymax to scope the shops scrape
+OVERTURE_RELEASE=2026-06-17.0      # Overture release for the shops stage (old releases age out of S3)
+OVERTURE_BBOX=                     # xmin,ymin,xmax,ymax to scope the shops scrape (e.g. 139.55,35.55,139.90,35.80 for Tokyo)
 ```
 
 ### Deployment

@@ -75,7 +75,7 @@ bump if the pinned default disappears. Check
 [overture release history](https://docs.overturemaps.org/release/) and set:
 
 ```bash
-OVERTURE_RELEASE=2026-04-15.0 just ingest shops
+OVERTURE_RELEASE=2026-06-17.0 just ingest shops
 ```
 
 ## Roasting stage
