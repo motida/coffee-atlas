@@ -49,6 +49,17 @@ def test_classify_coffee_units():
     assert classify_coffee("Brew Guide", "Brewing", []) is False
 
 
+def test_classify_coffee_japanese_product_types():
+    # Japanese roaster (Onibus) files coffee under コーヒー豆 and non-coffee under
+    # グッズ (goods) / フード (food) / ギフト (gift bundle).
+    assert classify_coffee("エチオピア / ウォルカ サカロ", "コーヒー豆", []) is True
+    assert classify_coffee("オニバスブレンド", "コーヒー豆", []) is True
+    assert classify_coffee("ONIBUS COFFEE ブランドブック", "グッズ", []) is False
+    assert classify_coffee("MINOR FIGURES オーガニックオーツミルク", "フード", []) is False
+    assert classify_coffee("コーヒーギフト [3種セット]", "ギフト", []) is False
+    assert classify_coffee("ONIBUS オリジナル カップ＆ソーサー", "グッズ", []) is False
+
+
 def test_load_counts_and_drops(db):
     counts = load_products(_records(), db)
     assert counts.products == 5  # 3 Verve + 2 Onyx coffees
