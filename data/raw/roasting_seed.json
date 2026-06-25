@@ -130,6 +130,10 @@
     { "name": "Nahat", "location": "Tel Aviv, Israel", "website": "https://nahatcafe.com" },
     { "name": "Nomena Roasters", "location": "Tel Aviv, Israel", "website": "https://nomenaroasters.com" },
     { "name": "Roasters JLM", "location": "Jerusalem, Israel", "website": "https://roastersjlm.com" },
-    { "name": "Reut Roasters", "location": "Israel", "website": "https://reutroasters.co.il" }
+    { "name": "Reut Roasters", "location": "Israel", "website": "https://reutroasters.co.il" },
+    { "name": "Glitch Coffee & Roasters", "location": "Tokyo, Japan", "website": "https://glitchcoffee.com" },
+    { "name": "Onibus Coffee", "location": "Tokyo, Japan", "website": "https://onibuscoffee.com" },
+    { "name": "Koffee Mameya", "location": "Tokyo, Japan", "website": "https://www.koffee-mameya.com" },
+    { "name": "Leaves Coffee Roasters", "location": "Tokyo, Japan", "website": "https://leavescoffee.jp" }
   ]
 }
