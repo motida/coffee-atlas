@@ -98,6 +98,14 @@ _NON_COFFEE_TYPE = re.compile(
 # 'gifts'/'subscription'/etc. that legitimately tag a coffee.
 _NON_COFFEE_TAG = re.compile(r"\b(vinyl|merch\w*|wearables?)\b", re.I)
 
+# Japanese non-coffee product_type values from JP roaster storefronts (Onibus
+# files coffee under コーヒー豆 and everything else under these). CJK has no \b
+# word boundaries, so these are matched by substring, not regex:
+#   グッズ=goods/merch, フード=food, ギフト=gift bundle, ドリンク=drink, ウェア=apparel.
+_NON_COFFEE_TYPE_JA = ("グッズ", "フード", "ギフト", "ドリンク", "ウェア")
+# Japanese product_type that IS coffee — "coffee beans".
+_COFFEE_TYPE_JA = "コーヒー豆"
+
 
 @dataclass
 class ProductCounts:
@@ -151,14 +159,19 @@ def classify_coffee(title: str, product_type: str | None, tags: list[str]) -> bo
     # An explicit coffee product_type is a strong positive — trust it over the
     # tag/type screens below. Stores mis-tag real coffee 'merch' (Cat & Cloud's
     # "Instant Coffee 6 Pack", product_type "Coffee", carries a 'merch' tag), and
-    # some file a coffee under a "...,Gifts" collection type.
-    if pt and re.search(r"coffee", pt, re.I):
+    # some file a coffee under a "...,Gifts" collection type. Japanese storefronts
+    # use コーヒー豆 ("coffee beans") for the same role.
+    if pt and (re.search(r"coffee", pt, re.I) or _COFFEE_TYPE_JA in pt):
         return True
     # A 'vinyl'/'merch' category tag is decisive when product_type doesn't claim
     # coffee (records with no product_type but a 'vinyl' tag).
     if any(_NON_COFFEE_TAG.search(t) for t in tags):
         return False
     if pt and _NON_COFFEE_TYPE.search(pt):
+        return False
+    # Japanese non-coffee product_types (goods/food/gift/drink/apparel) — matched
+    # by substring since CJK text has no regex word boundaries.
+    if pt and any(j in pt for j in _NON_COFFEE_TYPE_JA):
         return False
     return True
 
