@@ -70,3 +70,8 @@ https://www.barringtoncoffee.com
 # online store and Leaves no scrapeable catalog, so neither is listed.
 https://onibuscoffee.com
 https://glitchcoffeeroasters.myshopify.com
+# Fuglen Coffee Roasters Tokyo (added 2026-06-25). Vendor "FUGLEN COFFEE ROASTERS
+# TOKYO" canonicalizes to the seed roaster of the same name. Files brewers/paper
+# filters under product_type "Coffee Equipment"; classify_coffee's hard
+# non-coffee categories drop those so only the ~20 single-origin beans attribute.
+https://fuglencoffee.jp

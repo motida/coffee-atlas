@@ -49,6 +49,21 @@ def test_classify_coffee_units():
     assert classify_coffee("Brew Guide", "Brewing", []) is False
 
 
+def test_classify_drops_coffee_typed_equipment():
+    # Fuglen Tokyo files brewers, paper filters and grinders under a product_type
+    # that itself contains "coffee" ("Coffee Equipment"), which the coffee-keyword
+    # positive would otherwise wave through. Hard equipment/merch categories must
+    # override that — they are gear, not beans.
+    assert classify_coffee("ORIGAMI Paper Filter [Cone]", "Coffee Equipment", []) is False
+    assert classify_coffee("ボダム・フレンチプレス 350ml", "Coffee Equipment", []) is False
+    assert classify_coffee("Comandante C40", "Coffee Grinder", []) is False
+    assert classify_coffee("Logo Hoodie", "Coffee Apparel", []) is False
+    # ...but a genuine coffee whose type carries a *soft* category still survives.
+    assert classify_coffee("Ethiopia Guji Dimtu", "Coffee Beans", []) is True
+    assert classify_coffee("Kenya Nyeri AA", "Coffee,Gifts", []) is True
+    assert classify_coffee("House Blend", "Coffee & Tea", []) is True
+
+
 def test_classify_coffee_japanese_product_types():
     # Japanese roaster (Onibus) files coffee under コーヒー豆 and non-coffee under
     # グッズ (goods) / フード (food) / ギフト (gift bundle).
