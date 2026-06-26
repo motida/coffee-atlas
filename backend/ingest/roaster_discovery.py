@@ -31,12 +31,11 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from pathlib import Path
-from urllib.parse import urlparse
 
 import duckdb
 import httpx
 
-from backend.ingest._common import managed_connection
+from backend.ingest._common import managed_connection, site_host
 from backend.ingest.shop_scrapers.product_scraper import (
     DEFAULT_SITES_FILE,
     USER_AGENT,
@@ -90,15 +89,8 @@ def _site_root(url: str | None) -> str | None:
     Returns None for blanks and anything without a dotted host, so junk in
     ``website`` columns can't become a probe target.
     """
-    raw = (url or "").strip()
-    if not raw:
-        return None
-    if not raw.startswith(("http://", "https://")):
-        raw = "https://" + raw
-    host = urlparse(raw).netloc.lower().split(":")[0].removeprefix("www.").strip()
-    if not host or "." not in host:
-        return None
-    return f"https://{host}"
+    host = site_host(url)
+    return f"https://{host}" if host else None
 
 
 def _host(root: str) -> str:

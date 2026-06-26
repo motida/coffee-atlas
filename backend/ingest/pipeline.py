@@ -133,12 +133,22 @@ def _run_products(tables: list[str] | None = None) -> None:
 
 
 def _run_roaster_locations(tables: list[str] | None = None) -> None:
-    from backend.ingest.roaster_locations_loader import backfill_roaster_locations
+    from backend.ingest.roaster_locations_loader import (
+        backfill_roaster_locations,
+        derive_roaster_locations_from_shops,
+    )
 
-    counts = backfill_roaster_locations(settings.DUCKDB_PATH)
-    print(f"Backfilled location on {counts.updated} roasters ({counts.already_set} already set)")
-    if counts.unmatched:
-        print(f"  Unmatched names (no roaster row): {len(counts.unmatched)}")
+    # Curated map first (authoritative), then auto-derive fills remaining blanks
+    # from each roaster's own Overture shop.
+    curated = backfill_roaster_locations(settings.DUCKDB_PATH)
+    print(f"Curated: filled {curated.updated} roasters ({curated.already_set} already set)")
+    if curated.unmatched:
+        print(f"  Unmatched curated names (no roaster row): {len(curated.unmatched)}")
+    derived = derive_roaster_locations_from_shops(settings.DUCKDB_PATH)
+    print(
+        f"Derived from shops: filled {derived.derived} roasters "
+        f"({derived.already_set} already set, {derived.unmatched} unmatched)"
+    )
 
 
 def _run_embeddings(tables: list[str] | None = None) -> None:

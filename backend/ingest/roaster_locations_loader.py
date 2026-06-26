@@ -1,30 +1,43 @@
-"""Backfill roast_roasters.location from a curated name→location map.
+"""Fill roast_roasters.location from two sources, curated-first.
 
 Most roasters enter the database through the products scrape
 (backend/ingest/products_loader), which records only name + website — so they
 arrive with location = NULL and land in the "Other" bucket on the frontend
-Roasters page. This stage fills location by matching roaster name against
-data/raw/roaster_locations.json.
+Roasters page (which groups by the country segment of `location`).
 
-Unlike the roasting stage (which delete+inserts roast_roasters and is therefore
-unsafe to re-run on a populated DB, because roaster ids are FK-referenced by the
-product tables), this stage only ever issues UPDATEs keyed on the roaster id of
-rows it has already matched by name. It never inserts or deletes, so it is safe
-and idempotent to re-run. By default it fills blanks only; pass overwrite=True to
-also correct rows that already carry a location.
+Two stages fill it, in precedence order:
+
+1. ``backfill_roaster_locations`` — the curated override. Matches roaster *name*
+   against data/raw/roaster_locations.json ("City, Country" with full country
+   names). Authoritative, so it runs first.
+2. ``derive_roaster_locations_from_shops`` — automatic, no curation. A roaster's
+   ``website`` host usually also appears as a ``shop_shops.website`` (the
+   roaster's own cafe, loaded from Overture). That shop carries a ``city`` and an
+   ISO ``country`` code; we normalize the code to a full country name via
+   data/raw/country_centroids.json and write "City, Country". This fills the
+   long tail of scraped roasters the curated map never named — so the frontier
+   can grow without hand-maintaining a location per roaster.
+
+Both only ever issue UPDATEs keyed on a roaster id they matched (never insert or
+delete — roaster ids are FK-referenced by the product tables, so a delete+insert
+would be unsafe), and both fill blanks only by default (pass overwrite=True to
+correct existing values). Running curated-first then derive means the curated
+value wins and derivation only touches what is still blank.
 """
 
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import duckdb
 
-from backend.ingest._common import managed_connection
+from backend.ingest._common import managed_connection, site_host
 
 DEFAULT_SOURCE = Path("data/raw/roaster_locations.json")
+DEFAULT_CENTROIDS = Path("data/raw/country_centroids.json")
 
 
 @dataclass
@@ -69,8 +82,121 @@ def backfill_roaster_locations(
     return counts
 
 
+# --------------------------------------------------------------------------
+# Source 2: derive location from the roaster's own Overture shop
+# --------------------------------------------------------------------------
+
+
+@dataclass
+class LocationDeriveCounts:
+    derived: int = 0
+    already_set: int = 0  # skipped: roaster already had a location
+    unmatched: int = 0  # roaster has a website but no shop shares its host
+
+
+def _iso_to_name(centroids_path: str | Path = DEFAULT_CENTROIDS) -> dict[str, str]:
+    """alpha-2 ISO code → full country name, from the bundled ISO 3166 file."""
+    raw = json.loads(Path(centroids_path).read_text(encoding="utf-8"))
+    out: dict[str, str] = {}
+    for entry in raw["ref_country_codes"]:
+        code = (entry.get("alpha2") or "").strip().upper()
+        name = (entry.get("country") or "").strip()
+        if code and name:
+            out[code] = name
+    return out
+
+
+def _country_name(value: str | None, iso_to_name: dict[str, str]) -> str | None:
+    """Resolve a shop_shops.country value to a display country name.
+
+    Overture stores the ISO alpha-2 code ("US"), which we map to the full name
+    ("United States") so it groups with the curated locations on the frontend.
+    A value that isn't a known code (already a full name, or unknown) passes
+    through unchanged.
+    """
+    v = (value or "").strip()
+    if not v:
+        return None
+    return iso_to_name.get(v.upper(), v)
+
+
+def _index_shop_locations(
+    shop_rows: list[tuple], iso_to_name: dict[str, str]
+) -> dict[str, str]:
+    """host → "City, Country" from shops, choosing the dominant value per host.
+
+    A roaster can have several shops on one host (multiple cafes); we take the
+    most common country, then the most common city within it, so one stray
+    mis-tagged row can't decide the location.
+    """
+    by_host: dict[str, list[tuple[str | None, str]]] = {}
+    for website, city, country in shop_rows:
+        host = site_host(website)
+        if host is None:
+            continue
+        name = _country_name(country, iso_to_name)
+        if not name:
+            continue
+        by_host.setdefault(host, []).append(((city or "").strip() or None, name))
+
+    out: dict[str, str] = {}
+    for host, pairs in by_host.items():
+        country = Counter(c for _, c in pairs).most_common(1)[0][0]
+        cities = [city for city, c in pairs if c == country and city]
+        city = Counter(cities).most_common(1)[0][0] if cities else None
+        out[host] = f"{city}, {country}" if city else country
+    return out
+
+
+def derive_roaster_locations_from_shops(
+    db_path: str | None = None,
+    conn: duckdb.DuckDBPyConnection | None = None,
+    centroids_path: str | Path = DEFAULT_CENTROIDS,
+    overwrite: bool = False,
+) -> LocationDeriveCounts:
+    """Fill blank roaster locations by matching their website host to a shop."""
+    counts = LocationDeriveCounts()
+    with managed_connection(db_path, conn) as conn:
+        iso_to_name = _iso_to_name(centroids_path)
+        shop_rows = conn.execute(
+            """
+            SELECT website, city, country
+            FROM shop_shops
+            WHERE website IS NOT NULL AND trim(website) != ''
+              AND country IS NOT NULL AND trim(country) != ''
+            """
+        ).fetchall()
+        host_loc = _index_shop_locations(shop_rows, iso_to_name)
+
+        roasters = conn.execute(
+            "SELECT id, website, location FROM roast_roasters "
+            "WHERE website IS NOT NULL AND trim(website) != ''"
+        ).fetchall()
+        for roaster_id, website, existing in roasters:
+            if not _is_blank(existing) and not overwrite:
+                counts.already_set += 1
+                continue
+            host = site_host(website)
+            location = host_loc.get(host) if host else None
+            if location is None:
+                counts.unmatched += 1
+                continue
+            conn.execute(
+                "UPDATE roast_roasters SET location = ?, updated_at = now() WHERE id = ?",
+                [location, roaster_id],
+            )
+            counts.derived += 1
+
+    return counts
+
+
 if __name__ == "__main__":
-    result = backfill_roaster_locations()
-    print(f"Backfilled location on {result.updated} roasters ({result.already_set} already set)")
-    if result.unmatched:
-        print(f"  Unmatched names (no roaster row): {result.unmatched}")
+    curated = backfill_roaster_locations()
+    print(f"Curated: filled {curated.updated} ({curated.already_set} already set)")
+    if curated.unmatched:
+        print(f"  Unmatched names (no roaster row): {curated.unmatched}")
+    derived = derive_roaster_locations_from_shops()
+    print(
+        f"Derived from shops: filled {derived.derived} "
+        f"({derived.already_set} already set, {derived.unmatched} unmatched)"
+    )
