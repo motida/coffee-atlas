@@ -233,6 +233,7 @@ local stages; the network-heavy `shops` and `products` stages are run explicitly
 13. `embeddings` — generate Gemini embeddings → `*_embedding` columns (cosine scan today)
 14. `graph` — compute and store all `edges_*` tables (incl. product/shop edges; DuckPGQ graph parked)
 15. `specialty` — score shops + set `shop_shops.is_specialty` (multi-signal heuristic; reads `edges_shop_roaster`, so runs after `graph`). The app surfaces only specialty shops. *(run after the network stages; no-op without shop data)*
+16. `roaster_discovery` — grow the roaster frontier without hand-curation. Probes the websites of specialty / `roasts_in_house` shops in `shop_shops` for a public catalog (Shopify `/products.json` or the WooCommerce Store API, reusing the `products` scraper's fetchers + coffee filter), skipping any host already in `data/raw/roaster_sites.txt` or already a `roast_roasters.website`. Confirmed hits are written to a **review staging file** (`data/processed/roaster_site_candidates.txt`, same format as `roaster_sites.txt`) — it writes **no** DB rows and does not edit the frontier; a person vets the candidates, then moves approved URLs into `roaster_sites.txt` for the next `products` run. *(network; runs after `specialty` so `is_specialty` is set; no-op without shop data)*
 
 ### DuckDB Schema Conventions
 - All tables prefixed by domain: `var_`, `org_`, `proc_`, `roast_`, `flav_`, `dist_`, `shop_`, `prod_` (plus `edges_*` join tables)

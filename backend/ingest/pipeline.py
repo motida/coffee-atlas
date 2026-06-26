@@ -181,6 +181,18 @@ def _run_specialty(tables: list[str] | None = None) -> None:
     print(f"Specialty shops: {counts.specialty}/{counts.total} flagged")
 
 
+def _run_roaster_discovery(tables: list[str] | None = None) -> None:
+    from backend.ingest.roaster_discovery import discover_roaster_sites
+
+    counts = discover_roaster_sites(settings.DUCKDB_PATH)
+    print(
+        f"Probed {counts.candidates} new specialty-shop sites, "
+        f"confirmed {counts.confirmed} roaster catalogs {counts.by_platform}"
+    )
+    if counts.confirmed:
+        print(f"  Review staged candidates → {counts.output_path}")
+
+
 # Stage name → handler, in pipeline execution order. STAGES is derived from this
 # mapping, so the CLI choices and the dispatch can never drift apart. Adding a
 # stage means writing one handler and adding one entry here.
@@ -200,6 +212,7 @@ STAGE_REGISTRY: dict[str, Callable[[list[str] | None], None]] = {
     "embeddings": _run_embeddings,
     "graph": _run_graph,
     "specialty": _run_specialty,
+    "roaster_discovery": _run_roaster_discovery,
 }
 
 STAGES = list(STAGE_REGISTRY)
