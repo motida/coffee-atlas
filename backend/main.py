@@ -1,5 +1,6 @@
 """Coffee Atlas API — FastAPI application entry point."""
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -9,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend import __version__
 from backend.config import settings
 from backend.db.connection import get_connection
-from backend.db.pg import close_pool, init_pool
+from backend.db.pg import close_pool, init_pool, pool_ready
 from backend.db.pg_schema import create_pg_tables
 from backend.db.schema import create_tables
 from backend.routers import (
@@ -30,6 +31,8 @@ from backend.routers import (
 )
 from backend.services.auth import validate_jwt_secret
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -48,6 +51,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         pool = init_pool()
         with pool.connection() as pg:
             create_pg_tables(pg)
+        logger.info("User-data store enabled: /auth/* and /account/* are active.")
+    else:
+        # Loud, because the failure is otherwise silent: content endpoints keep
+        # returning 200 while every /auth/* and /account/* route 503s. The usual
+        # cause is the hosted api Space losing its DATABASE_URL/JWT_SECRET secrets
+        # on a recreate — see deploy/huggingface/DEPLOY.md.
+        logger.warning(
+            "DATABASE_URL is not set — the Postgres user-data store is DISABLED. "
+            "All /api/v1/auth/* and /api/v1/account/* routes will return 503 "
+            '("User accounts are unavailable"). If this is the hosted api Space, '
+            "re-add the DATABASE_URL and JWT_SECRET secrets and reboot."
+        )
     try:
         yield
     finally:
@@ -94,4 +109,7 @@ app.include_router(meta.router)
 
 @app.get("/health")
 def health_check() -> dict[str, str]:
-    return {"status": "ok"}
+    # `accounts` surfaces whether the Postgres user-data store came up, so a
+    # missing DATABASE_URL is visible from a probe rather than only when a user
+    # tries to log in (where it shows as a 503). "disabled" == auth/account 503.
+    return {"status": "ok", "accounts": "enabled" if pool_ready() else "disabled"}

@@ -58,6 +58,17 @@ def close_pool() -> None:
         _pool = None
 
 
+def pool_ready() -> bool:
+    """True when the Postgres pool was initialized at startup.
+
+    Mirrors the exact condition ``get_pg`` checks before serving, so health and
+    diagnostics can report whether the user-data features are live without
+    re-deriving it from ``settings``. False means ``DATABASE_URL`` was unset when
+    the app booted, so ``/auth/*`` and ``/account/*`` will 503.
+    """
+    return _pool is not None
+
+
 def get_pg() -> Generator[psycopg.Connection[DictRow], None, None]:
     """FastAPI dependency that yields a pooled Postgres connection.
 
