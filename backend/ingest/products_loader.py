@@ -275,6 +275,12 @@ _VENDOR_ALIASES: dict[str, str] = {
 # by the www-stripped domain (see _name_from_domain); the override always wins.
 _SITE_ROASTER_OVERRIDES: dict[str, str] = {
     "catandcloud.com": "Cat & Cloud",
+    # WooCommerce store with no `brands` field, so the modal "vendor" is the host.
+    "copenhagencoffeelab.com": "Copenhagen Coffee Lab",
+    # Prolog files single-origin coffees under origin-country "vendors" (Peru,
+    # Colombia, …) and puts "Prolog Coffee" mostly on merch/subscriptions, so once
+    # merch is filtered the modal coffee vendor is an origin, not the roaster.
+    "prologcoffee.com": "Prolog Coffee",
 }
 
 

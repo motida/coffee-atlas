@@ -234,3 +234,18 @@ https://webe.coffee
 https://williamsandjohnson.com
 # Wogan Coffee Roasters — Bristol, GB — shopify (45 products)
 https://wogancoffee.com
+
+# Copenhagen / Denmark — added 2026-06-30. Verified via product_scraper --dry-run
+# (Shopify /products.json or the WooCommerce Store API; product counts are the
+# coffee-filtered dry-run totals). Coffee Collective (coffeecollective.dk) and
+# La Cabra (lacabra.com) are already listed above, so they're not repeated here.
+# April Coffee Roasters — Copenhagen, DK — shopify (58 products)
+https://aprilcoffeeroasters.com
+# Prolog Coffee — Copenhagen, DK — shopify (14 products)
+https://prologcoffee.com
+# Andersen & Maillard — Copenhagen, DK — shopify (8 products)
+https://andersenmaillard.dk
+# Impact Roasters — Copenhagen, DK — shopify (26 products)
+https://impactroasters.dk
+# Copenhagen Coffee Lab — Copenhagen, DK — woocommerce (31 products; host-named, see _SITE_ROASTER_OVERRIDES in products_loader)
+https://copenhagencoffeelab.com
