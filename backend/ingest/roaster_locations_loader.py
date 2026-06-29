@@ -120,9 +120,7 @@ def _country_name(value: str | None, iso_to_name: dict[str, str]) -> str | None:
     return iso_to_name.get(v.upper(), v)
 
 
-def _index_shop_locations(
-    shop_rows: list[tuple], iso_to_name: dict[str, str]
-) -> dict[str, str]:
+def _index_shop_locations(shop_rows: list[tuple], iso_to_name: dict[str, str]) -> dict[str, str]:
     """host → "City, Country" from shops, choosing the dominant value per host.
 
     A roaster can have several shops on one host (multiple cafes); we take the
