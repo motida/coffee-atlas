@@ -167,7 +167,10 @@ def test_derive_does_not_overwrite_by_default_but_overwrite_flag_does(db):
 
     kept = derive_roaster_locations_from_shops(conn=db)
     assert kept.derived == 0 and kept.already_set == 1
-    assert db.execute("SELECT location FROM roast_roasters WHERE id='r1'").fetchone()[0] == "Oslo, Norway"
+    assert (
+        db.execute("SELECT location FROM roast_roasters WHERE id='r1'").fetchone()[0]
+        == "Oslo, Norway"
+    )
 
     forced = derive_roaster_locations_from_shops(conn=db, overwrite=True)
     assert forced.derived == 1

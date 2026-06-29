@@ -97,7 +97,9 @@ def _host(root: str) -> str:
     return root.removeprefix("https://")
 
 
-def known_hosts(roaster_websites: list[str], sites_file: str | Path = DEFAULT_SITES_FILE) -> set[str]:
+def known_hosts(
+    roaster_websites: list[str], sites_file: str | Path = DEFAULT_SITES_FILE
+) -> set[str]:
     """Hosts we already cover — the scrape frontier plus every roaster website."""
     hosts: set[str] = set()
     try:
@@ -175,7 +177,7 @@ async def _probe_site(
                 products = extract_woocommerce(woo_raw, stub.site)
                 if products:
                     return _confirm(stub, "woocommerce", len(products))
-        except (httpx.HTTPError, OSError):
+        except httpx.HTTPError, OSError:
             return None
     return None
 
