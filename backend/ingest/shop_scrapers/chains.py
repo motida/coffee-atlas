@@ -107,6 +107,50 @@ _NONSPECIALTY_CHAIN_DOMAINS: tuple[str, ...] = (
     "cofix.co.il",
     "roladin.co.il",
     "joe.co.il",
+    # Japan — Tokyo coverage. Overture stores these chains' names in katakana/
+    # kanji, which _norm folds to "" and so slips the name list; the franchise
+    # HQ domain is the reliable fingerprint. Exact-host match, so subdomains the
+    # POI set actually uses (store./shop.) are listed alongside the apex.
+    "starbucks.co.jp",
+    "store.starbucks.co.jp",
+    "doutor.co.jp",
+    "shop.doutor.co.jp",
+    "pronto.co.jp",
+    "c-united.co.jp",  # Cafe Veloce / カフェ・ベローチェ operator
+    "hoshinocoffee.com",  # 星乃珈琲店
+    "tullys.co.jp",
+    "saint-marc-hd.com",  # サンマルクカフェ
+    "ueshima-coffee-ten.jp",  # 上島珈琲店 (UCC)
+    "komeda.co.jp",  # コメダ珈琲店
+    "kaldi.co.jp",  # カルディコーヒーファーム — import retailer chain
+    "segafredo.jp",
+    "ginza-renoir.co.jp",  # 喫茶室ルノアール
+    "gongcha.co.jp",  # bubble-tea chain
+    "deandeluca.co.jp",
+    "italiantomato.co.jp",
+)
+
+# Social / review-aggregator / blog platforms. When a shop's only listed
+# "website" is one of these, a description scraped from it is NOT the shop's own
+# homepage copy, so it must not count as the specialty *description* signal (see
+# shop_specialty). Suffix-matched: every subdomain (r.gnavi.co.jp, m.facebook.com)
+# is equally non-homepage, unlike the exact-host chain domains above.
+_SOCIAL_AGGREGATOR_DOMAINS: tuple[str, ...] = (
+    "instagram.com",
+    "facebook.com",
+    "twitter.com",
+    "x.com",
+    "tabelog.com",
+    "ameblo.jp",
+    "note.com",
+    "retty.me",
+    "gnavi.co.jp",
+    "hotpepper.jp",
+    "linktr.ee",
+    "lin.ee",
+    "line.me",
+    "youtube.com",
+    "tiktok.com",
 )
 
 
@@ -168,3 +212,16 @@ NONSPECIALTY_CHAIN_DOMAINS: frozenset[str] = frozenset(
 def is_nonspecialty_domain(website: str | None) -> bool:
     """True if the shop's website domain is a known mass-market chain domain."""
     return _domain(website) in NONSPECIALTY_CHAIN_DOMAINS
+
+
+def is_social_or_aggregator_domain(website: str | None) -> bool:
+    """True if the website is a social/review/blog platform, not the shop's own
+    homepage — so a description scraped from it is not a reliable specialty signal.
+
+    Unlike the exact-host chain blocklist, this is suffix-matched: any subdomain
+    (``r.gnavi.co.jp``, ``m.facebook.com``) is equally non-homepage.
+    """
+    host = _domain(website)
+    if not host:
+        return False
+    return any(host == d or host.endswith("." + d) for d in _SOCIAL_AGGREGATOR_DOMAINS)
