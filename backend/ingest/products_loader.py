@@ -298,6 +298,9 @@ _SITE_ROASTER_OVERRIDES: dict[str, str] = {
     "lucecoffeeroasters.com": "Luce Ave Coffee Roasters",
     "nogocoffee.com": "No Go Coffee Co.",
     "ritualcoffee.com": "Ritual Coffee Roasters",
+    # ritualcoffee.org is a DIFFERENT roaster (Cheltenham, UK) the scraper also
+    # names "Ritual Coffee Roasters" — qualify it so the two don't collide.
+    "ritualcoffee.org": "Ritual Coffee Roasters (Cheltenham)",
 }
 
 
