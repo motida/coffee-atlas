@@ -11,6 +11,7 @@ import re
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
+from urllib.parse import urlparse
 
 import duckdb
 
@@ -56,3 +57,23 @@ def normalize_whitespace(text: str) -> str:
 def normalize_for_dedup(name: str) -> str:
     """Whitespace-normalized, case-folded key for case-insensitive matching."""
     return normalize_whitespace(name).casefold()
+
+
+def site_host(url: str | None) -> str | None:
+    """Reduce a URL to its bare host: lowercased, no scheme/``www.``/port/path.
+
+    The stable identity for matching a storefront across the database — a
+    roaster ``website`` and a ``shop_shops.website`` for the same business share
+    this host even when one carries a path or ``www.`` and the other does not.
+    Returns None for blanks and anything without a dotted host, so junk in a
+    ``website`` column can't become a spurious match key.
+    """
+    raw = (url or "").strip()
+    if not raw:
+        return None
+    if not raw.startswith(("http://", "https://")):
+        raw = "https://" + raw
+    host = urlparse(raw).netloc.lower().split(":")[0].removeprefix("www.").strip()
+    if not host or "." not in host:
+        return None
+    return host

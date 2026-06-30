@@ -133,12 +133,22 @@ def _run_products(tables: list[str] | None = None) -> None:
 
 
 def _run_roaster_locations(tables: list[str] | None = None) -> None:
-    from backend.ingest.roaster_locations_loader import backfill_roaster_locations
+    from backend.ingest.roaster_locations_loader import (
+        backfill_roaster_locations,
+        derive_roaster_locations_from_shops,
+    )
 
-    counts = backfill_roaster_locations(settings.DUCKDB_PATH)
-    print(f"Backfilled location on {counts.updated} roasters ({counts.already_set} already set)")
-    if counts.unmatched:
-        print(f"  Unmatched names (no roaster row): {len(counts.unmatched)}")
+    # Curated map first (authoritative), then auto-derive fills remaining blanks
+    # from each roaster's own Overture shop.
+    curated = backfill_roaster_locations(settings.DUCKDB_PATH)
+    print(f"Curated: filled {curated.updated} roasters ({curated.already_set} already set)")
+    if curated.unmatched:
+        print(f"  Unmatched curated names (no roaster row): {len(curated.unmatched)}")
+    derived = derive_roaster_locations_from_shops(settings.DUCKDB_PATH)
+    print(
+        f"Derived from shops: filled {derived.derived} roasters "
+        f"({derived.already_set} already set, {derived.unmatched} unmatched)"
+    )
 
 
 def _run_embeddings(tables: list[str] | None = None) -> None:
@@ -181,6 +191,18 @@ def _run_specialty(tables: list[str] | None = None) -> None:
     print(f"Specialty shops: {counts.specialty}/{counts.total} flagged")
 
 
+def _run_roaster_discovery(tables: list[str] | None = None) -> None:
+    from backend.ingest.roaster_discovery import discover_roaster_sites
+
+    counts = discover_roaster_sites(settings.DUCKDB_PATH)
+    print(
+        f"Probed {counts.candidates} new specialty-shop sites, "
+        f"confirmed {counts.confirmed} roaster catalogs {counts.by_platform}"
+    )
+    if counts.confirmed:
+        print(f"  Review staged candidates → {counts.output_path}")
+
+
 # Stage name → handler, in pipeline execution order. STAGES is derived from this
 # mapping, so the CLI choices and the dispatch can never drift apart. Adding a
 # stage means writing one handler and adding one entry here.
@@ -200,6 +222,7 @@ STAGE_REGISTRY: dict[str, Callable[[list[str] | None], None]] = {
     "embeddings": _run_embeddings,
     "graph": _run_graph,
     "specialty": _run_specialty,
+    "roaster_discovery": _run_roaster_discovery,
 }
 
 STAGES = list(STAGE_REGISTRY)

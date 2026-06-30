@@ -67,8 +67,42 @@ Tel Aviv-Yafo,IL
 עכו,IL
 חולון,IL
 
+# Tokyo. Japan IS loaded (~15.5k JP shops). Like Israel, Overture stores Tokyo
+# localities at the ward (区/ku) level in Japanese — there is no locality named
+# "Tokyo" (only ~4 shops carry the romanized string), so the 23 special wards
+# below are what actually match shop_shops.city. They unlock ~13.7k Tokyo shops
+# for the specialty heuristic. Use the exact Japanese spelling — keep lines bare
+# "City,CC" with NO inline comment (read_cities() only strips whitespace, so a
+# trailing "# ..." becomes part of the country code and silently matches nothing).
+# Romaji, in the order below: Shibuya, Shinjuku, Minato, Chiyoda, Setagaya, Chūō,
+# Taitō, Toshima, Suginami, Meguro, Kōtō, Ōta, Shinagawa, Sumida, Bunkyō, Nerima,
+# Nakano, Adachi, Kita, Itabashi, Katsushika, Edogawa, Arakawa.
+渋谷区,JP
+新宿区,JP
+港区,JP
+千代田区,JP
+世田谷区,JP
+中央区,JP
+台東区,JP
+豊島区,JP
+杉並区,JP
+目黒区,JP
+江東区,JP
+大田区,JP
+品川区,JP
+墨田区,JP
+文京区,JP
+練馬区,JP
+中野区,JP
+足立区,JP
+北区,JP
+板橋区,JP
+葛飾区,JP
+江戸川区,JP
+荒川区,JP
+
 # Awaiting Overture shops coverage — the ingest bbox doesn't yet include
-# JP/TH, so these are no-ops until the shops stage is re-run for those metros.
-Tokyo,JP
+# Thailand (only ~5 TH shops loaded), so these are no-ops until the shops
+# stage is re-run with a TH bbox.
 Bangkok,TH
 Chiang Mai,TH

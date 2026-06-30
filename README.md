@@ -35,6 +35,7 @@ enabling discovery through relationships rather than flat search.
 - **[Architecture](docs/ARCHITECTURE.md)** — design rationale and deep dive
 - **[API Reference](docs/API.md)** — REST endpoints
 - **[Data Sources & Pipeline](docs/DATA.md)** — ingest stages and sources
+- **[Adding Shops & Roasters](docs/ADDING_SHOPS_AND_ROASTERS.md)** — runbook for expanding the map into a new country/city
 - **[Development](docs/DEVELOPMENT.md)** — project structure, testing, Docker
 
 ## License

@@ -11,16 +11,26 @@ from pathlib import Path
 
 from backend.ingest.roaster_locations_loader import (
     DEFAULT_SOURCE,
+    _country_name,
+    _iso_to_name,
     backfill_roaster_locations,
+    derive_roaster_locations_from_shops,
 )
 
 REAL_MAP = json.loads(Path(DEFAULT_SOURCE).read_text(encoding="utf-8"))["locations"]
 
 
-def _insert_roaster(db, rid, name, location=None):
+def _insert_roaster(db, rid, name, location=None, website=None):
     db.execute(
-        "INSERT INTO roast_roasters (id, name, location) VALUES (?, ?, ?)",
-        [rid, name, location],
+        "INSERT INTO roast_roasters (id, name, location, website) VALUES (?, ?, ?, ?)",
+        [rid, name, location, website],
+    )
+
+
+def _insert_shop(db, sid, name, website, city, country):
+    db.execute(
+        "INSERT INTO shop_shops (id, name, website, city, country) VALUES (?, ?, ?, ?, ?)",
+        [sid, name, website, city, country],
     )
 
 
@@ -97,3 +107,103 @@ def test_real_map_locations_all_carry_a_country(db):
     for name, location in REAL_MAP.items():
         country = location.split(",")[-1].strip()
         assert country, f"{name!r} has no country in {location!r}"
+
+
+# --- Source 2: derive location from the roaster's own Overture shop ---
+
+
+def test_iso_to_name_maps_real_codes():
+    iso = _iso_to_name()
+    assert iso["US"] == "United States"
+    assert iso["GB"] == "United Kingdom"
+
+
+def test_country_name_normalizes_code_and_passes_names_through():
+    iso = _iso_to_name()
+    assert _country_name("US", iso) == "United States"
+    assert _country_name("us", iso) == "United States"  # case-insensitive code
+    assert _country_name("United States", iso) == "United States"  # already a name
+    assert _country_name("", iso) is None
+    assert _country_name(None, iso) is None
+
+
+def test_derive_fills_blank_from_matching_shop_host(db):
+    # Roaster website and shop website share a host despite www/path differences.
+    _insert_roaster(db, "r1", "Verve", website="https://www.vervecoffee.com")
+    _insert_shop(db, "s1", "Verve Cafe", "https://vervecoffee.com/pages/visit", "Santa Cruz", "US")
+
+    counts = derive_roaster_locations_from_shops(conn=db)
+
+    assert counts.derived == 1
+    loc = db.execute("SELECT location FROM roast_roasters WHERE id = 'r1'").fetchone()[0]
+    assert loc == "Santa Cruz, United States"  # ISO code normalized to full name
+
+
+def test_derive_uses_country_only_when_shop_has_no_city(db):
+    _insert_roaster(db, "r1", "Square Mile", website="https://squaremilecoffee.com")
+    _insert_shop(db, "s1", "SM", "https://squaremilecoffee.com", None, "GB")
+
+    derive_roaster_locations_from_shops(conn=db)
+
+    loc = db.execute("SELECT location FROM roast_roasters WHERE id = 'r1'").fetchone()[0]
+    assert loc == "United Kingdom"
+
+
+def test_derive_picks_dominant_city_and_country_across_shops(db):
+    _insert_roaster(db, "r1", "Chainy", website="https://chainy.com")
+    _insert_shop(db, "s1", "A", "https://chainy.com", "Portland", "US")
+    _insert_shop(db, "s2", "B", "https://chainy.com", "Portland", "US")
+    _insert_shop(db, "s3", "C", "https://chainy.com", "Seattle", "US")
+
+    derive_roaster_locations_from_shops(conn=db)
+
+    loc = db.execute("SELECT location FROM roast_roasters WHERE id = 'r1'").fetchone()[0]
+    assert loc == "Portland, United States"
+
+
+def test_derive_does_not_overwrite_by_default_but_overwrite_flag_does(db):
+    _insert_roaster(db, "r1", "Seeded", "Oslo, Norway", website="https://seeded.com")
+    _insert_shop(db, "s1", "Shop", "https://seeded.com", "Wrong City", "US")
+
+    kept = derive_roaster_locations_from_shops(conn=db)
+    assert kept.derived == 0 and kept.already_set == 1
+    assert (
+        db.execute("SELECT location FROM roast_roasters WHERE id='r1'").fetchone()[0]
+        == "Oslo, Norway"
+    )
+
+    forced = derive_roaster_locations_from_shops(conn=db, overwrite=True)
+    assert forced.derived == 1
+    assert (
+        db.execute("SELECT location FROM roast_roasters WHERE id='r1'").fetchone()[0]
+        == "Wrong City, United States"
+    )
+
+
+def test_derive_leaves_unmatched_roasters_untouched_and_inserts_nothing(db):
+    _insert_roaster(db, "r1", "Online Only", website="https://noshop.com")
+    _insert_shop(db, "s1", "Elsewhere", "https://other.com", "Berlin", "DE")
+
+    counts = derive_roaster_locations_from_shops(conn=db)
+
+    assert counts.derived == 0 and counts.unmatched == 1
+    assert db.execute("SELECT location FROM roast_roasters WHERE id='r1'").fetchone()[0] is None
+    # read-only: no rows inserted/deleted in either table
+    assert db.execute("SELECT COUNT(*) FROM roast_roasters").fetchone()[0] == 1
+    assert db.execute("SELECT COUNT(*) FROM shop_shops").fetchone()[0] == 1
+
+
+def test_curated_then_derive_precedence(db, tmp_path):
+    # The pipeline runs curated first, then derive. A roaster the curated map
+    # names must keep that value even though a shop on its host says otherwise.
+    _insert_roaster(db, "r1", "Curated Roaster", website="https://curated.com")
+    _insert_shop(db, "s1", "Shop", "https://curated.com", "Shop City", "US")
+    src = _write_map(tmp_path, {"Curated Roaster": "Oslo, Norway"})
+
+    curated = backfill_roaster_locations(conn=db, source_path=src)
+    derived = derive_roaster_locations_from_shops(conn=db)
+
+    assert curated.updated == 1
+    assert derived.already_set == 1 and derived.derived == 0
+    loc = db.execute("SELECT location FROM roast_roasters WHERE id='r1'").fetchone()[0]
+    assert loc == "Oslo, Norway"

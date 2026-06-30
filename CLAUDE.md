@@ -229,10 +229,11 @@ local stages; the network-heavy `shops` and `products` stages are run explicitly
 9. `distribution` — certifications, importers, trade routes → `dist_*`
 10. `roasting` — roast profiles + roasters seed → `roast_profiles`, `roast_roasters`, `edges_roast_variety`
 11. `products` — scrape roaster catalogs → `prod_products` *(network; skipped in bootstrap)*
-12. `roaster_locations` — backfill `roast_roasters.location` from a curated `name → location` map (`data/raw/roaster_locations.json`). Roasters added by the `products` scrape arrive with no location; this fills them via UPDATE-by-name (never insert/delete, so it sidesteps the FK reload hazard and is idempotent). The country is the grouping key on the frontend Roasters page. *(run after `products`; without it only the seed roasters have locations)*
+12. `roaster_locations` — fill `roast_roasters.location` from two sources, curated-first: (a) a curated `name → location` map (`data/raw/roaster_locations.json`, authoritative), then (b) auto-derive — for roasters still blank, match the roaster `website` host to a `shop_shops.website` (the roaster's own Overture cafe) and build `"City, Country"`, normalizing Overture's ISO country code to a full name via `data/raw/country_centroids.json`. Roasters added by the `products` scrape arrive with no location; both sources only UPDATE (never insert/delete, so they sidestep the FK reload hazard and are idempotent) and fill blanks only by default. The country (last comma segment) is the grouping key on the frontend Roasters page. *(run after `products`; the derive source also needs the `shops` stage to have populated `shop_shops`)*
 13. `embeddings` — generate Gemini embeddings → `*_embedding` columns (cosine scan today)
 14. `graph` — compute and store all `edges_*` tables (incl. product/shop edges; DuckPGQ graph parked)
 15. `specialty` — score shops + set `shop_shops.is_specialty` (multi-signal heuristic; reads `edges_shop_roaster`, so runs after `graph`). The app surfaces only specialty shops. *(run after the network stages; no-op without shop data)*
+16. `roaster_discovery` — grow the roaster frontier without hand-curation. Probes the websites of specialty / `roasts_in_house` shops in `shop_shops` for a public catalog (Shopify `/products.json` or the WooCommerce Store API, reusing the `products` scraper's fetchers + coffee filter), skipping any host already in `data/raw/roaster_sites.txt` or already a `roast_roasters.website`. Confirmed hits are written to a **review staging file** (`data/processed/roaster_site_candidates.txt`, same format as `roaster_sites.txt`) — it writes **no** DB rows and does not edit the frontier; a person vets the candidates, then moves approved URLs into `roaster_sites.txt` for the next `products` run. *(network; runs after `specialty` so `is_specialty` is set; no-op without shop data)*
 
 ### DuckDB Schema Conventions
 - All tables prefixed by domain: `var_`, `org_`, `proc_`, `roast_`, `flav_`, `dist_`, `shop_`, `prod_` (plus `edges_*` join tables)
@@ -437,8 +438,8 @@ ENABLE_EMBEDDINGS=true
 ENABLE_GRAPH=true
 
 # Ingest options (read at ingest time; optional)
-OVERTURE_RELEASE=2026-04-15.0      # Overture release for the shops stage
-OVERTURE_BBOX=                     # xmin,ymin,xmax,ymax to scope the shops scrape
+OVERTURE_RELEASE=2026-06-17.0      # Overture release for the shops stage (old releases age out of S3)
+OVERTURE_BBOX=                     # xmin,ymin,xmax,ymax to scope the shops scrape (e.g. 139.55,35.55,139.90,35.80 for Tokyo)
 ```
 
 ### Deployment

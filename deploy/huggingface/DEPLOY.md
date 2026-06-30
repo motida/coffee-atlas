@@ -177,25 +177,35 @@ after compaction, down from ~190 MB), and old LFS versions aren't freed promptly
 (squashing history doesn't reclaim them quickly either). After enough data
 deploys the api Space still drifts toward the free tier's **~1 GB LFS storage
 cap** and pushes start failing — compaction just buys ~5× more deploys first. The
-reliable fix is to **delete and recreate** the Space so its storage resets:
+reliable fix is to **delete and recreate** the Space so its storage resets.
 
-1. Delete the api Space (Settings → bottom → *Delete this Space*).
-2. Recreate it per [Create both Spaces](#3-create-both-spaces-on-huggingfaceco)
-   above (same name, Docker SDK).
-3. Re-run `HF_USER=... ./deploy/huggingface/deploy.sh api` to push code + DB.
+**Use the script** — it deletes, recreates, **re-adds all three secrets from
+your local `.env`**, and redeploys, so the auth pair can't be forgotten:
 
-> **Recreating wipes every secret — re-add all THREE on the api Space.**
-> A fresh Space starts with no variables or secrets. It's easy to remember the
-> obvious one (`GEMINI_API_KEY`) and forget the auth pair. Re-add **all** of
+```bash
+# dry run first — validates the secrets are present locally and prints the plan:
+HF_USER=<user> uv run python deploy/huggingface/recreate_api_space.py
+# then do it for real:
+HF_USER=<user> uv run --with huggingface_hub python deploy/huggingface/recreate_api_space.py --yes
+```
+
+It refuses to delete anything unless `GEMINI_API_KEY`, `DATABASE_URL`, and
+`JWT_SECRET` are all set locally, so you can never recreate into a
+half-configured Space. (`hf auth login` or `HF_TOKEN` provides write access.)
+
+> **If you recreate by hand instead, re-add all THREE secrets yourself.**
+> A fresh Space starts with no variables or secrets, and it's easy to remember
+> the obvious one (`GEMINI_API_KEY`) and forget the auth pair. Re-add **all** of
 > `GEMINI_API_KEY`, `DATABASE_URL`, and `JWT_SECRET` (see
-> [Configure Space variables and secrets](#4-configure-space-variables-and-secrets)).
+> [Configure Space variables and secrets](#4-configure-space-variables-and-secrets)),
+> then `HF_USER=... ./deploy/huggingface/deploy.sh api` to push code + DB.
 >
 > Missing `DATABASE_URL`/`JWT_SECRET` fails **silently and partially**: the
 > content endpoints (`/varieties`, `/shops`, …) keep returning 200, so the
 > Space looks healthy, while every `/auth/*` and `/account/*` route returns
 > `503 "User accounts are unavailable"` (raised by `db/pg.get_pg` when the pool
-> was never initialized). Symptom in the UI: registration/login fails with
-> "Could not create your account."
+> was never initialized). The `/health` probe shows `"accounts":"disabled"`, and
+> in the UI registration/login fails with "Could not create your account."
 
 ---
 

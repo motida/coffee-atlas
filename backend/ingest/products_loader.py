@@ -77,16 +77,26 @@ _NON_COFFEE_TITLE = re.compile(
 _NON_COFFEE_BEVERAGE = re.compile(r"\b(chocolate|horchata)\b", re.I)
 _COFFEE_DRINK = re.compile(r"\bcold\s*brew\b", re.I)
 
-# Non-coffee product_type categories. These disqualify UNLESS the type string
-# also mentions coffee (some stores file a coffee under "...,Gifts" collections).
-# Roaster storefronts often double as record shops / merch stores (e.g.
-# tandemcoffee.com files 159 records under "Vinyl" and 25 items under
-# "Wearables"); the merchant's own product_type is the decisive signal.
+# Hard non-coffee product_type categories: physical equipment, merch, and
+# record-shop media that is never bagged coffee even when the type string ALSO
+# says "coffee". Fuglen Tokyo files brewers and paper filters under "Coffee
+# Equipment", and tandemcoffee.com files records under "Vinyl"/"Wearables" — the
+# merchant's own category is the decisive signal. These override the
+# coffee-keyword positive below, unlike the soft categories (gifts/tea/
+# subscription), which a real coffee can legitimately carry.
+_HARD_NON_COFFEE_TYPE = re.compile(
+    r"\b(equipment|gear|accessor\w*|drinkware|machine|grinder|brewers?|"
+    r"merch\w*|apparel|wearables?|logoware|vinyl|records?|albums?|music|cds?|books?)\b",
+    re.I,
+)
+
+# Soft non-coffee product_type categories. These disqualify UNLESS the type
+# string also mentions coffee — some stores file a coffee under "...,Gifts"
+# collections, or sell it under "Coffee & Tea" — so they yield to the
+# coffee-keyword positive below.
 _NON_COFFEE_TYPE = re.compile(
-    r"\b(tea|machine|grinder|equipment|brewers?|brewing|gear|accessor\w*|"
-    r"drinkware|merch\w*|apparel|wearables?|logoware|supplies|warehouse|event|ticket|"
-    r"subscription|carbon\s*offset|alt\s*beverage|cleaning|gifts?|"
-    r"vinyl|records?|albums?|music|cds?|media|kits?|books?)\b",
+    r"\b(tea|brewing|supplies|warehouse|event|ticket|"
+    r"subscription|carbon\s*offset|alt\s*beverage|cleaning|gifts?|media|kits?)\b",
     re.I,
 )
 
@@ -97,6 +107,14 @@ _NON_COFFEE_TYPE = re.compile(
 # are tagged 'meta-related-collection-coffees'), so this must not screen on
 # 'gifts'/'subscription'/etc. that legitimately tag a coffee.
 _NON_COFFEE_TAG = re.compile(r"\b(vinyl|merch\w*|wearables?)\b", re.I)
+
+# Japanese non-coffee product_type values from JP roaster storefronts (Onibus
+# files coffee under コーヒー豆 and everything else under these). CJK has no \b
+# word boundaries, so these are matched by substring, not regex:
+#   グッズ=goods/merch, フード=food, ギフト=gift bundle, ドリンク=drink, ウェア=apparel.
+_NON_COFFEE_TYPE_JA = ("グッズ", "フード", "ギフト", "ドリンク", "ウェア")
+# Japanese product_type that IS coffee — "coffee beans".
+_COFFEE_TYPE_JA = "コーヒー豆"
 
 
 @dataclass
@@ -148,17 +166,26 @@ def classify_coffee(title: str, product_type: str | None, tags: list[str]) -> bo
     if _NON_COFFEE_BEVERAGE.search(title) and not _COFFEE_DRINK.search(title):
         return False
     pt = product_type or ""
+    # Hard non-coffee categories (equipment/merch/media) disqualify even when the
+    # type also says "coffee" — a "Coffee Equipment" item is a brewer, not beans.
+    if pt and _HARD_NON_COFFEE_TYPE.search(pt):
+        return False
     # An explicit coffee product_type is a strong positive — trust it over the
-    # tag/type screens below. Stores mis-tag real coffee 'merch' (Cat & Cloud's
-    # "Instant Coffee 6 Pack", product_type "Coffee", carries a 'merch' tag), and
-    # some file a coffee under a "...,Gifts" collection type.
-    if pt and re.search(r"coffee", pt, re.I):
+    # soft tag/type screens below. Stores mis-tag real coffee 'merch' (Cat &
+    # Cloud's "Instant Coffee 6 Pack", product_type "Coffee", carries a 'merch'
+    # tag), and some file a coffee under a "...,Gifts" collection type. Japanese
+    # storefronts use コーヒー豆 ("coffee beans") for the same role.
+    if pt and (re.search(r"coffee", pt, re.I) or _COFFEE_TYPE_JA in pt):
         return True
     # A 'vinyl'/'merch' category tag is decisive when product_type doesn't claim
     # coffee (records with no product_type but a 'vinyl' tag).
     if any(_NON_COFFEE_TAG.search(t) for t in tags):
         return False
     if pt and _NON_COFFEE_TYPE.search(pt):
+        return False
+    # Japanese non-coffee product_types (goods/food/gift/drink/apparel) — matched
+    # by substring since CJK text has no regex word boundaries.
+    if pt and any(j in pt for j in _NON_COFFEE_TYPE_JA):
         return False
     return True
 
@@ -248,6 +275,40 @@ _VENDOR_ALIASES: dict[str, str] = {
 # by the www-stripped domain (see _name_from_domain); the override always wins.
 _SITE_ROASTER_OVERRIDES: dict[str, str] = {
     "catandcloud.com": "Cat & Cloud",
+    # Prolog files single-origin coffees under origin-country "vendors" (Peru,
+    # Colombia, …) and puts "Prolog Coffee" mostly on merch/subscriptions, so once
+    # merch is filtered the modal coffee vendor is an origin, not the roaster.
+    "prologcoffee.com": "Prolog Coffee",
+    # WooCommerce stores whose Store API exposes no `brands`, so the scraper falls
+    # back to the host and the roaster would display as a bare domain. Mapped to the
+    # proper name (from the discovery POI annotations / known base-list roasters).
+    "ancoats-coffee.co.uk": "Ancoats Coffee Co",
+    "armadilloroasters.com": "Armadillo Coffee Roasters",
+    "armisticecoffeeco.com": "Armistice Coffee Roasters",
+    "barringtoncoffee.com": "Barrington Coffee Roasting Company",
+    "brewedawakenings.us": "Brewed Life Coffee Co",
+    "bristol-twenty.co.uk": "Bristol Twenty Coffee Company",
+    "cartelroasting.co": "Cartel Roasting Co.",
+    "cityleaguecoffee.com": "City League Coffee Roasters",
+    "copenhagencoffeelab.com": "Copenhagen Coffee Lab",
+    "florcoffee.com": "Flor de Café International Coffee Company",
+    "heartandgraft.co.uk": "Heart and Graft Coffee Roastery",
+    "kaladicoffee.com": "Kaladi Coffee Roasters",
+    "lineacaffe.com": "Linea Coffee Roasting + Caffe",
+    "lucecoffeeroasters.com": "Luce Ave Coffee Roasters",
+    "nogocoffee.com": "No Go Coffee Co.",
+    "ritualcoffee.com": "Ritual Coffee Roasters",
+    # ritualcoffee.org is a DIFFERENT roaster (Cheltenham, UK) the scraper also
+    # names "Ritual Coffee Roasters" — qualify it so the two don't collide.
+    "ritualcoffee.org": "Ritual Coffee Roasters (Cheltenham)",
+    # Tokyo (added 2026-06-30, verified live). The Shopify `vendor` isn't the
+    # roaster name: Light Up files coffees under its location "三鷹" (Mitaka);
+    # Single O Japan and Passage smash the brand into a lowercase token; Woodberry
+    # shouts it in all caps. Map each to its proper display name.
+    "lightupcoffee.com": "Light Up Coffee",
+    "singleo.jp": "Single O Japan",
+    "passagecoffee.com": "Passage Coffee",
+    "woodberrycoffee.com": "Woodberry Coffee Roasters",
 }
 
 
