@@ -75,3 +75,177 @@ https://glitchcoffeeroasters.myshopify.com
 # filters under product_type "Coffee Equipment"; classify_coffee's hard
 # non-coffee categories drop those so only the ~20 single-origin beans attribute.
 https://fuglencoffee.jp
+
+# Vetted from the 2026-06-27 roaster_discovery bulk import (was 545 unvetted
+# candidates; 468 dropped as cafes/retailers/thin or mega catalogs). These 77
+# carry an explicit roaster name signal (Roastery/Roasters/Roasting). Vetting
+# notes: scratchpad vet_{keep,drop,review}.tsv at time of triage.
+# Achilles Coffee Roasters — San Diego, US — shopify (38 products)
+https://achillescoffeeroasters.com
+# Afficionado Coffee Roasters — New York, US — shopify (15 products)
+https://afficionadocoffee.com
+# Alfie & Co Coffee Roasters — Glasgow, GB — shopify (18 products)
+https://alfiecoffee.co.uk
+# Alibi Coffee Co. — Los Angeles, US — shopify (11 products)
+https://alibicoffeecompany.com
+# Amir Roastery Inc.محمصة أمير — Ottawa, CA — shopify (50 products)
+https://amirroastery.com
+# Ancoats Coffee Co — Manchester, GB — woocommerce (9 products)
+https://ancoats-coffee.co.uk
+# Andytown Roastery — San Francisco, US — shopify (14 products)
+https://andytownsf.com
+# Armadillo Coffee Roasters — Austin, US — woocommerce (40 products)
+https://armadilloroasters.com
+# Armistice Coffee Roasters — Seattle, US — woocommerce (4 products)
+https://armisticecoffeeco.com
+# Black Rifle Coffee Company — San Antonio, US — shopify (9 products)
+https://blackriflecoffee.com
+# Brewed Life Coffee Co — Portland, US — woocommerce (6 products)
+https://brewedawakenings.us
+# Bristol Twenty Coffee Company — Bristol, GB — woocommerce (45 products)
+https://bristol-twenty.co.uk
+# Brooklyn Roasting Company — New York, US — shopify (40 products)
+https://brooklynroasting.com
+# Blackwater Coffee Roasters — Houston, US — shopify (9 products)
+https://bwcroasters.com
+# Cartel Roasting Co. — Phoenix, US — woocommerce (17 products)
+https://cartelroasting.co
+# Cascadia Coffee Roasters — Portland, US — shopify (12 products)
+https://cascadiaroasters.com
+# City League Coffee Roasters — Brooklyn, US — woocommerce (22 products)
+https://cityleaguecoffee.com
+# Clifton Coffee Roasters — Bristol, GB — shopify (45 products)
+https://cliftoncoffee.co.uk
+# Cultivar Coffee Roasting — Dallas, US — shopify (39 products)
+https://cultivarcoffee.com
+# Dear Green Coffee Roasters — Glasgow, GB — shopify (37 products)
+https://deargreencoffee.com
+# Inspired Coffee Roasters - North Park — San Diego, US — shopify (12 products)
+https://drinkinspired.com
+# East Pole Coffee Co. — Atlanta, US — shopify (19 products)
+https://eastpole.coffee
+# Elevate Coffee Company — Phoenix, US — shopify (46 products)
+https://elevatecoffee.com
+# Estate Coffee Company — San Antonio, US — shopify (7 products)
+https://estatecoffeecompany.com
+# Ethica Coffee Roasters — Toronto, CA — shopify (26 products)
+https://ethicaroasters.com
+# Felix Roasting Co. — New York, US — shopify (49 products)
+https://felixroastingco.com
+# Flor de Café International Coffee Company — San Antonio, US — woocommerce (15 products)
+https://florcoffee.com
+# Heart and Graft Coffee Roastery — Manchester, GB — woocommerce (29 products)
+https://heartandgraft.co.uk
+# Hole In The Wall Coffee Roasting — New York, US — shopify (8 products)
+https://holeinthewallcoffeeco.com
+# Home Coffee Roasters — San Francisco, US — shopify (9 products)
+https://homecoffeesf.com
+# Honest To Pete Roasters — Vancouver, CA — shopify (5 products)
+https://honesttopete.com
+# Huckleberry Roasters — Denver, US — shopify (39 products)
+https://huckleberryroasters.com
+# Imbibe Coffee Roasters — Dublin, IE — shopify (21 products)
+https://imbibe.ie
+# Irving Farm Coffee Company — New York, US — shopify (27 products)
+https://irvingfarm.com
+# Java Roasters — Toronto, CA — shopify (21 products)
+https://javaroasters.ca
+# Java Roastery — Birmingham, GB — shopify (46 products)
+https://javaroastery.co.uk
+# Jubilee Roasting Co. — Denver, US — shopify (25 products)
+https://jubileeroastingco.com
+# Kaladi Coffee Roasters — Denver, US — woocommerce (26 products)
+https://kaladicoffee.com
+# Kinship Coffee Roasters — New York, US — shopify (7 products)
+https://kinshipcoffeeroasters.com
+# La Colombe Coffee Roasters — Austin, US — shopify (33 products)
+https://lacolombe.com
+# Linea Coffee Roasting + Caffe — San Francisco, US — woocommerce (41 products)
+https://lineacaffe.com
+# Luce Ave Coffee Roasters — Houston, US — woocommerce (36 products)
+https://lucecoffeeroasters.com
+# Mothership Coffee Roasters — Las Vegas, US — shopify (13 products)
+https://mothershipcoffee.com
+# Moxie Coffee Co. — Phoenix, US — shopify (45 products)
+https://moxiecoffeeco.com
+# Mozarts Coffee Roasters — Austin, US — shopify (36 products)
+https://mozartscoffee.com
+# Mr Eion Coffee Roaster — Edinburgh, GB — shopify (25 products)
+https://mreion.com
+# No Go Coffee Co. — Ottawa, CA — woocommerce (18 products)
+https://nogocoffee.com
+# Oddkin Coffee Roasters — Bristol, GB — shopify (28 products)
+https://oddkincoffee.com
+# Oslo Coffee Roasters (West Village) — New York, US — shopify (10 products)
+https://oslocoffee.com
+# Pallet Coffee Roasters — Vancouver, CA — shopify (34 products)
+https://palletcoffeeroasters.com
+# Papercup Coffee Company — Glasgow, GB — shopify (15 products)
+https://papercupcoffee.co.uk
+# Passero's Coffee Roasters — Philadelphia, US — shopify (32 products)
+https://passeroscoffee.com
+# Verve Coffee Roasters — Delray Beach, US — shopify (33 products)
+https://peets.com
+# Reunion Coffee Roasters — Toronto, CA — shopify (25 products)
+https://reunioncoffeeroasters.com
+# Ritual Coffee Roasters — Cheltenham, GB — shopify (26 products)
+https://ritualcoffee.org
+# Roasting Plant Coffee — San Francisco, US — shopify (5 products)
+https://roastingplant.com
+# Rocksteady Coffee Company. — Ottawa, CA — shopify (4 products)
+https://rocksteadycoffee.com
+# Royal Coffee Roasting Co — Las Vegas, US — shopify (5 products)
+https://royalcoffeeroasting.com
+# San Francisco Coffee Roasting Co — Atlanta, US — shopify (27 products)
+https://sanfranciscocoffeeroastingco.com
+# Seven Coffee Roasters — Seattle, US — shopify (10 products)
+https://sevencoffeeroasters.com
+# Seven Seas Roasting Co. — San Diego, US — shopify (44 products)
+https://sevenseasroasting.com
+# Sextant Coffee Roasters — San Francisco, US — shopify (14 products)
+https://sextantcoffee.com
+# Shiloh Coffee Roasters — Leeds, GB — shopify (23 products)
+https://shilohroasters.com
+# Stone Street Coffee Company — Brooklyn, US — shopify (50 products)
+https://stonestreetcoffee.com
+# Structure Roasters — Montréal, CA — shopify (11 products)
+https://structurecoffeeroasters.com
+# The Artery Community Roasters — Ottawa, CA — shopify (41 products)
+https://thearterycommunityroasters.com
+# Unique Coffee Roasters — New York, US — shopify (41 products)
+https://uniquecoffeeroasters.com
+# Upper Left Roasters — Portland, US — shopify (14 products)
+https://upperleftroasters.com
+# Vereda Central Coffee Roasters — Toronto, CA — shopify (5 products)
+https://veredacentral.ca
+# Verve Coffee Roasters — 港区, JP — shopify (12 products)
+https://vervecoffee.jp
+# Vesta Coffee Roasters — Las Vegas, US — shopify (36 products)
+https://vestacoffee.com
+# Visible Coffee Roasters — Seattle, US — shopify (9 products)
+https://visiblecoffeeroasters.com
+# Wagon Coffee Roasters — Denver, US — shopify (31 products)
+https://wagoncoffeeroasters.com
+# Water Avenue Coffee Company — Portland, US — shopify (19 products)
+https://wateravenuecoffee.com
+# WeBe Coffee Roasters — Phoenix, US — shopify (7 products)
+https://webe.coffee
+# Williams and Johnson Coffee Co — Edinburgh, GB — shopify (18 products)
+https://williamsandjohnson.com
+# Wogan Coffee Roasters — Bristol, GB — shopify (45 products)
+https://wogancoffee.com
+
+# Copenhagen / Denmark — added 2026-06-30. Verified via product_scraper --dry-run
+# (Shopify /products.json or the WooCommerce Store API; product counts are the
+# coffee-filtered dry-run totals). Coffee Collective (coffeecollective.dk) and
+# La Cabra (lacabra.com) are already listed above, so they're not repeated here.
+# April Coffee Roasters — Copenhagen, DK — shopify (58 products)
+https://aprilcoffeeroasters.com
+# Prolog Coffee — Copenhagen, DK — shopify (14 products)
+https://prologcoffee.com
+# Andersen & Maillard — Copenhagen, DK — shopify (8 products)
+https://andersenmaillard.dk
+# Impact Roasters — Copenhagen, DK — shopify (26 products)
+https://impactroasters.dk
+# Copenhagen Coffee Lab — Copenhagen, DK — woocommerce (31 products; host-named, see _SITE_ROASTER_OVERRIDES in products_loader)
+https://copenhagencoffeelab.com
