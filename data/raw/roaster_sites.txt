@@ -83,13 +83,20 @@ https://fuglencoffee.jp
 #   singleo.jp          vendor "singleojapan"              -> "Single O Japan"
 #   passagecoffee.com   vendor "passagecoffee"             -> "Passage Coffee"
 #   woodberrycoffee.com vendor "WOODBERRY COFFEE"          -> "Woodberry Coffee Roasters"
-# Raw Sugar Roast (vendor "Raw Sugar Roast") and Counterpart (vendor "Counterpart
-# Coffee") already report a clean modal vendor, so they need no override.
+# Raw Sugar Roast (vendor "Raw Sugar Roast") reports a clean modal vendor, so it
+# needs no override. Its location isn't auto-derivable (no Overture cafe links to
+# rawsugarroast.com), so it's pinned in data/raw/roaster_locations.json instead.
 https://lightupcoffee.com
 https://singleo.jp
 https://passagecoffee.com
 https://woodberrycoffee.com
 https://rawsugarroast.com
+
+# Counterpart Coffee — Squamish, CANADA, not Tokyo (corrected 2026-07-01). The
+# .com belongs to the Squamish, BC roaster (its Overture cafe + origin-named
+# catalog confirm it), NOT Tokyo's "Counterpart Coffee Gallery" (a different
+# business). Kept as legitimate Canada coverage; vendor "Counterpart Coffee" is
+# clean, no override. roaster_locations derives "Squamish, Canada" from its cafe.
 https://counterpartcoffee.com
 
 # Vetted from the 2026-06-27 roaster_discovery bulk import (was 545 unvetted
