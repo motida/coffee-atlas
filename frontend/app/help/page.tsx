@@ -19,6 +19,11 @@ const FEATURES = [
     desc: "Browse specialty roasters and the coffees they sell.",
   },
   {
+    href: "/roasting",
+    label: "Roasting",
+    desc: "How coffee is roasted — phases, cracks, and roast levels — plus an interactive simulator that animates a bean roasting through any of the reference profiles.",
+  },
+  {
     href: "/flavor",
     label: "Flavor",
     desc: "The Coffee Taster's Flavor Wheel — 110 attributes from the WCR Sensory Lexicon. Click an outer leaf for its definition.",
