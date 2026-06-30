@@ -16,6 +16,7 @@ import type {
   RegisterRequest,
   Region,
   RegionGeoProperties,
+  RoastProfile,
   Roaster,
   RoasterListItem,
   SearchResult,
@@ -150,6 +151,10 @@ export const getProductFlavors = (id: string) =>
 
 export const getProductOrigin = (id: string) =>
   fetchAPI<ProductOrigin>(`/products/${id}/origin`);
+
+// --- Roasting ---
+export const getRoastProfiles = (limit = 50, offset = 0) =>
+  fetchAPI<RoastProfile[]>(`/roasting/profiles?limit=${limit}&offset=${offset}`);
 
 // --- Roasters ---
 export const getRoasters = (
