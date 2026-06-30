@@ -11,6 +11,7 @@ import duckdb
 from backend.ingest.shop_scrapers.chains import (
     is_nonspecialty_chain,
     is_nonspecialty_domain,
+    is_social_or_aggregator_domain,
     is_specialty_chain,
 )
 from backend.ingest.shop_specialty import compute_specialty
@@ -81,6 +82,34 @@ def test_nonspecialty_domain_catches_hebrew_named_chains():
     assert not is_nonspecialty_domain("")
 
 
+def test_nonspecialty_domain_catches_japanese_named_chains():
+    # Japan's chains are stored in katakana/kanji (name folds to "") — caught by
+    # the franchise HQ domain. Exact-host, so the store./shop. subdomains the POI
+    # set uses are listed alongside the apex.
+    assert is_nonspecialty_chain("スターバックス") is False  # name signal is gone…
+    assert is_nonspecialty_domain("https://www.starbucks.co.jp/store/123")  # …domain catches it
+    assert is_nonspecialty_domain("https://store.starbucks.co.jp/x")
+    assert is_nonspecialty_domain("https://doutor.co.jp")
+    assert is_nonspecialty_domain("https://c-united.co.jp")  # Cafe Veloce operator
+    # A Tokyo specialty roaster's own domain is not blocklisted.
+    assert not is_nonspecialty_domain("https://onibuscoffee.com")
+    assert not is_nonspecialty_domain("https://bluebottlecoffee.jp")
+
+
+def test_social_or_aggregator_domain_is_suffix_matched():
+    # Social/review/blog hosts are not the shop's own homepage; suffix-matched so
+    # any subdomain is caught.
+    assert is_social_or_aggregator_domain("https://www.instagram.com/some_cafe")
+    assert is_social_or_aggregator_domain("https://tabelog.com/tokyo/A1301/")
+    assert is_social_or_aggregator_domain("https://r.gnavi.co.jp/abc123")  # subdomain
+    assert is_social_or_aggregator_domain("https://m.facebook.com/page")
+    assert is_social_or_aggregator_domain("ameblo.jp/blog")  # bare, no scheme
+    # A real homepage (even one that merely *links* to socials) is not flagged.
+    assert not is_social_or_aggregator_domain("https://onibuscoffee.com")
+    assert not is_social_or_aggregator_domain(None)
+    assert not is_social_or_aggregator_domain("")
+
+
 # --- Score + flag computation ---
 
 
@@ -145,6 +174,33 @@ def test_compute_specialty_excludes_chain_by_domain(db):
     flags = dict(db.execute("SELECT id, is_specialty FROM shop_shops").fetchall())
     assert flags["chain_dom"] is False  # domain blocklist overrides the description signal
     assert flags["indie"] is True
+
+
+def test_compute_specialty_discounts_description_from_social_host(db):
+    # A description scraped from a social/aggregator page is not the shop's own
+    # homepage copy, so it must not confer the 0.3 description signal. The website
+    # signal alone (0.1) stays below threshold, so the shop is not flagged.
+    _insert_shop(
+        db,
+        "social",
+        "Some Tokyo Cafe",
+        website="https://www.instagram.com/some_tokyo_cafe",
+        description="自家焙煎 specialty coffee — pour-over and espresso",
+    )
+    # The identical description on the shop's own homepage still qualifies.
+    _insert_shop(
+        db,
+        "homepage",
+        "Some Other Cafe",
+        website="https://someothercafe.jp",
+        description="自家焙煎 specialty coffee — pour-over and espresso",
+    )
+
+    compute_specialty(conn=db)
+
+    flags = dict(db.execute("SELECT id, is_specialty FROM shop_shops").fetchall())
+    assert flags["social"] is False  # description from a social host is discounted
+    assert flags["homepage"] is True  # same description on a real homepage qualifies
 
 
 def test_compute_specialty_is_idempotent(db):

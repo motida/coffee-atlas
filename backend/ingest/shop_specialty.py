@@ -12,7 +12,10 @@ The signal is a multi-source heuristic over the data we actually populate
       OR (NOT nonspecialty_chain AND score >= SPECIALTY_THRESHOLD)
 
   score = curated-roaster match (edges_shop_roaster) ........ 0.6
-        + scraper-vetted coffee description ................. 0.3
+        + scraper-vetted coffee description ................. 0.3   (not counted when
+                                                                     the website is a
+                                                                     social/aggregator
+                                                                     host — see chains)
         + roasts in house (when known) ..................... 0.2
         + rating >= RATING_THRESHOLD (when known) .......... 0.2
         + has its own website .............................. 0.1   (weak; not enough alone)
@@ -36,6 +39,7 @@ from backend.ingest._common import managed_connection
 from backend.ingest.shop_scrapers.chains import (
     is_nonspecialty_chain,
     is_nonspecialty_domain,
+    is_social_or_aggregator_domain,
     is_specialty_chain,
 )
 
@@ -77,11 +81,13 @@ def _classify_chains(conn: duckdb.DuckDBPyConnection) -> None:
     awkward as pure SQL and DuckDB Python UDFs need numpy here — so we classify
     names in Python and join the flags back in the set-based UPDATEs below. A
     shop is non-specialty if its name *or* its website domain matches a chain
-    (the domain catches branches Overture names only in Hebrew).
+    (the domain catches branches Overture names only in Hebrew/Japanese). We also
+    flag shops whose website is a social/aggregator host, so the score step can
+    discount a description scraped from a non-homepage.
     """
     conn.execute(
         "CREATE OR REPLACE TEMP TABLE _shop_chain_flags "
-        "(id TEXT, spec_chain BOOLEAN, nonspec_chain BOOLEAN)"
+        "(id TEXT, spec_chain BOOLEAN, nonspec_chain BOOLEAN, social_host BOOLEAN)"
     )
     rows = conn.execute("SELECT id, name, website FROM shop_shops").fetchall()
     flags = [
@@ -89,11 +95,12 @@ def _classify_chains(conn: duckdb.DuckDBPyConnection) -> None:
             sid,
             is_specialty_chain(name),
             is_nonspecialty_chain(name) or is_nonspecialty_domain(website),
+            is_social_or_aggregator_domain(website),
         )
         for sid, name, website in rows
     ]
     if flags:
-        conn.executemany("INSERT INTO _shop_chain_flags VALUES (?, ?, ?)", flags)
+        conn.executemany("INSERT INTO _shop_chain_flags VALUES (?, ?, ?, ?)", flags)
 
 
 def _count(conn: duckdb.DuckDBPyConnection, where: str = "") -> int:
@@ -122,7 +129,8 @@ def compute_specialty(
                         (CASE WHEN EXISTS (
                             SELECT 1 FROM edges_shop_roaster e WHERE e.shop_id = s.id
                          ) THEN ? ELSE 0 END)
-                      + (CASE WHEN s.description IS NOT NULL THEN ? ELSE 0 END)
+                      + (CASE WHEN s.description IS NOT NULL AND NOT f.social_host
+                              THEN ? ELSE 0 END)
                       + (CASE WHEN s.roasts_in_house IS TRUE THEN ? ELSE 0 END)
                       + (CASE WHEN s.rating >= ? THEN ? ELSE 0 END)
                       + (CASE WHEN s.website IS NOT NULL AND TRIM(s.website) <> ''
