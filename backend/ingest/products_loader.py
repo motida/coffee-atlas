@@ -301,6 +301,14 @@ _SITE_ROASTER_OVERRIDES: dict[str, str] = {
     # ritualcoffee.org is a DIFFERENT roaster (Cheltenham, UK) the scraper also
     # names "Ritual Coffee Roasters" — qualify it so the two don't collide.
     "ritualcoffee.org": "Ritual Coffee Roasters (Cheltenham)",
+    # Tokyo (added 2026-06-30, verified live). The Shopify `vendor` isn't the
+    # roaster name: Light Up files coffees under its location "三鷹" (Mitaka);
+    # Single O Japan and Passage smash the brand into a lowercase token; Woodberry
+    # shouts it in all caps. Map each to its proper display name.
+    "lightupcoffee.com": "Light Up Coffee",
+    "singleo.jp": "Single O Japan",
+    "passagecoffee.com": "Passage Coffee",
+    "woodberrycoffee.com": "Woodberry Coffee Roasters",
 }
 
 

@@ -76,6 +76,22 @@ https://glitchcoffeeroasters.myshopify.com
 # non-coffee categories drop those so only the ~20 single-origin beans attribute.
 https://fuglencoffee.jp
 
+# Tokyo batch 2 — added 2026-06-30. Verified live: HTTP 200 + products present in
+# each site's Shopify /products.json. Vendor strings vary, so four get a
+# _SITE_ROASTER_OVERRIDES entry in products_loader.py (the override always wins):
+#   lightupcoffee.com   vendor "三鷹" (its Mitaka location) -> "Light Up Coffee"
+#   singleo.jp          vendor "singleojapan"              -> "Single O Japan"
+#   passagecoffee.com   vendor "passagecoffee"             -> "Passage Coffee"
+#   woodberrycoffee.com vendor "WOODBERRY COFFEE"          -> "Woodberry Coffee Roasters"
+# Raw Sugar Roast (vendor "Raw Sugar Roast") and Counterpart (vendor "Counterpart
+# Coffee") already report a clean modal vendor, so they need no override.
+https://lightupcoffee.com
+https://singleo.jp
+https://passagecoffee.com
+https://woodberrycoffee.com
+https://rawsugarroast.com
+https://counterpartcoffee.com
+
 # Vetted from the 2026-06-27 roaster_discovery bulk import (was 545 unvetted
 # candidates; 468 dropped as cafes/retailers/thin or mega catalogs). These 77
 # carry an explicit roaster name signal (Roastery/Roasters/Roasting). Vetting
