@@ -275,12 +275,29 @@ _VENDOR_ALIASES: dict[str, str] = {
 # by the www-stripped domain (see _name_from_domain); the override always wins.
 _SITE_ROASTER_OVERRIDES: dict[str, str] = {
     "catandcloud.com": "Cat & Cloud",
-    # WooCommerce store with no `brands` field, so the modal "vendor" is the host.
-    "copenhagencoffeelab.com": "Copenhagen Coffee Lab",
     # Prolog files single-origin coffees under origin-country "vendors" (Peru,
     # Colombia, …) and puts "Prolog Coffee" mostly on merch/subscriptions, so once
     # merch is filtered the modal coffee vendor is an origin, not the roaster.
     "prologcoffee.com": "Prolog Coffee",
+    # WooCommerce stores whose Store API exposes no `brands`, so the scraper falls
+    # back to the host and the roaster would display as a bare domain. Mapped to the
+    # proper name (from the discovery POI annotations / known base-list roasters).
+    "ancoats-coffee.co.uk": "Ancoats Coffee Co",
+    "armadilloroasters.com": "Armadillo Coffee Roasters",
+    "armisticecoffeeco.com": "Armistice Coffee Roasters",
+    "barringtoncoffee.com": "Barrington Coffee Roasting Company",
+    "brewedawakenings.us": "Brewed Life Coffee Co",
+    "bristol-twenty.co.uk": "Bristol Twenty Coffee Company",
+    "cartelroasting.co": "Cartel Roasting Co.",
+    "cityleaguecoffee.com": "City League Coffee Roasters",
+    "copenhagencoffeelab.com": "Copenhagen Coffee Lab",
+    "florcoffee.com": "Flor de Café International Coffee Company",
+    "heartandgraft.co.uk": "Heart and Graft Coffee Roastery",
+    "kaladicoffee.com": "Kaladi Coffee Roasters",
+    "lineacaffe.com": "Linea Coffee Roasting + Caffe",
+    "lucecoffeeroasters.com": "Luce Ave Coffee Roasters",
+    "nogocoffee.com": "No Go Coffee Co.",
+    "ritualcoffee.com": "Ritual Coffee Roasters",
 }
 
 
