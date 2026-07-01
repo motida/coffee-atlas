@@ -182,7 +182,7 @@ Seed data: Google Places API, Yelp Fusion API, or Overture Maps Foundation open 
 #### 8. Products (`products.ttl`)
 Classes: `CoffeeProduct` (single-origin or blend)
 Key properties: `roastedBy` (→ Roaster), `roastLevel`, `process`, `isBlend`, `price`, `netWeightGrams`, `consistsOf` (→ Variety), `hasFlavor` (→ FlavorAttribute), `fromOrigin` (→ Country/Region)
-Seed data: scraped roaster product catalogs (Shopify storefront JSON + embedded JSON-LD) from a curated roaster list. The scraper drops non-coffee items; the `products` ingest stage is network-heavy and excluded from `just bootstrap` (run explicitly, like `shops`).
+Seed data: scraped roaster product catalogs (Shopify storefront JSON + embedded JSON-LD) from the roaster frontier (`data/raw/roaster_sites.txt`) — hand-seeded and grown by the `roaster_discovery` stage. The scraper drops non-coffee items; the `products` ingest stage is network-heavy and excluded from `just bootstrap` (run explicitly, like `shops`).
 
 ### Cross-Domain Object Properties
 - `Variety → hasFlavor → FlavorAttribute`
@@ -216,7 +216,9 @@ Seed data: scraped roaster product catalogs (Shopify storefront JSON + embedded 
 
 The `backend.ingest.pipeline` module runs these stages in order (run all with
 `--all`, or one at a time with `--stage <name>`). `just bootstrap` runs the
-local stages; the network-heavy `shops` and `products` stages are run explicitly.
+local stages; the network-heavy stages (`shops`, `descriptions`, `products`,
+`roaster_discovery`) and the data-dependent `roaster_locations` / `specialty`
+are run explicitly.
 
 1. `lexicon` — parse WCR Sensory Lexicon, populate `flav_attributes` (T-Box stable)
 2. `varieties` — load WCR Varieties Catalog into `var_varieties`

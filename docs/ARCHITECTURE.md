@@ -415,11 +415,15 @@ Stage  4: processing_descriptions ─ Curated prose ─────────�
 Stage  5: processing_flavor       ─ Hand-mapped table ──────▶ edges_processing_flavor
 Stage  6: geocode                 ─ Nominatim + ISO centroids ▶ lat/lng on org_countries/regions
 Stage  7: shops                   ─ Overture Maps POI ───────▶ shop_shops   (network; skipped in bootstrap)
-Stage  8: distribution            ─ ICO / FAOSTAT seed ──────▶ dist_*
-Stage  9: roasting                ─ Curated seed JSON ───────▶ roast_profiles, roast_roasters
-Stage 10: products                ─ Roaster catalog scrape ──▶ prod_products (network; skipped in bootstrap)
-Stage 11: embeddings              ─ Gemini API ──────────────▶ *_embedding columns
-Stage 12: graph                   ─ Computed ─────────────────▶ edges_* tables
+Stage  8: descriptions            ─ Shop-homepage scrape ────▶ shop_shops.description (network; skipped in bootstrap)
+Stage  9: distribution            ─ ICO / FAOSTAT seed ──────▶ dist_*
+Stage 10: roasting                ─ Curated seed JSON ───────▶ roast_profiles, roast_roasters
+Stage 11: products                ─ Roaster catalog scrape ──▶ prod_products (network; skipped in bootstrap)
+Stage 12: roaster_locations       ─ Curated map + shop derive ▶ roast_roasters.location
+Stage 13: embeddings              ─ Gemini API ──────────────▶ *_embedding columns
+Stage 14: graph                   ─ Computed ─────────────────▶ edges_* tables
+Stage 15: specialty               ─ Multi-signal heuristic ──▶ shop_shops.is_specialty
+Stage 16: roaster_discovery       ─ Probe shop sites ────────▶ roaster_site_candidates.txt (network; review queue, no DB rows)
 ```
 
 Order matters: the flavor taxonomy must exist before varieties can link to it; coordinates must exist before the map can render; embeddings require text fields to be populated.

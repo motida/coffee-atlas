@@ -11,7 +11,7 @@
 | [FAOSTAT](https://www.fao.org/faostat) | Country-level trade flows |
 | [Overture Maps](https://overturemaps.org) | Coffee shop POI data |
 | Hand-curated roasting seed (`data/raw/roasting_seed.json`) | 11 canonical roast profiles + 10 notable roasters |
-| Roaster product catalogs (Shopify storefront JSON + JSON-LD) | Coffee product listings with tasting notes, scraped from a curated roaster list |
+| Roaster product catalogs (Shopify storefront JSON + JSON-LD) | Coffee product listings with tasting notes, scraped from the roaster frontier (`data/raw/roaster_sites.txt`) — hand-seeded and grown by the `roaster_discovery` stage |
 
 ## Ingest pipeline
 
@@ -26,18 +26,25 @@ uv run python -m backend.ingest.pipeline --stage cqi                     # CQI c
 uv run python -m backend.ingest.pipeline --stage processing_descriptions # Curated method descriptions
 uv run python -m backend.ingest.pipeline --stage processing_flavor       # Processing→flavor edges
 uv run python -m backend.ingest.pipeline --stage geocode                 # Geocode origins
-uv run python -m backend.ingest.pipeline --stage shops                   # Coffee shops (Overture, S3)
+uv run python -m backend.ingest.pipeline --stage shops                   # Coffee shops (Overture, S3) [network]
+uv run python -m backend.ingest.pipeline --stage descriptions            # Scrape shop homepages for descriptions [network]
 uv run python -m backend.ingest.pipeline --stage distribution            # Certifications, importers, trade routes
 uv run python -m backend.ingest.pipeline --stage roasting                # Roast profiles + suitability edges
-uv run python -m backend.ingest.pipeline --stage products                # Scrape roaster product catalogs
+uv run python -m backend.ingest.pipeline --stage products                # Scrape roaster product catalogs [network]
+uv run python -m backend.ingest.pipeline --stage roaster_locations       # Backfill roaster locations (curated + shop-derived)
 uv run python -m backend.ingest.pipeline --stage embeddings              # Vector embeddings
 uv run python -m backend.ingest.pipeline --stage graph                   # Build graph edges
-uv run python -m backend.ingest.pipeline --all                           # Run all stages
+uv run python -m backend.ingest.pipeline --stage specialty               # Flag specialty shops (reads graph)
+uv run python -m backend.ingest.pipeline --stage roaster_discovery       # Discover new roaster storefronts [network]
+uv run python -m backend.ingest.pipeline --all                           # Run all stages in order
 ```
 
-`pipeline --all` runs every stage. `just bootstrap` / `just ingest-all` run
-every stage **except** the two network-heavy ones (`shops`, `products`) — run
-those explicitly.
+`pipeline --all` runs every stage in order. `just bootstrap` / `just ingest-all`
+run only the local stages — they **exclude** the network-heavy ones (`shops`,
+`descriptions`, `products`, `roaster_discovery`) and the stages that are a no-op
+without shop/product data (`roaster_locations`, `specialty`). Run those
+explicitly; see [Roaster frontier](#roaster-frontier--discovery) below for the
+products/roaster flow.
 
 The embeddings stage accepts `--tables` to restrict the run to specific
 target tables — useful for embedding one freshly loaded domain:
@@ -104,10 +111,10 @@ Both are local and fast, and run as part of `just ingest-all` / `just bootstrap`
 
 ## Products stage
 
-The `products` stage scrapes coffee product catalogs from a curated list of
-specialty roasters (Shopify storefront JSON + embedded JSON-LD), drops
-non-coffee items, and loads the result into `prod_products`. Like `shops`, it
-is **network-heavy and excluded from `just bootstrap`** — run it explicitly:
+The `products` stage scrapes coffee product catalogs from the roaster frontier
+in `data/raw/roaster_sites.txt` (Shopify storefront JSON + embedded JSON-LD),
+drops non-coffee items, and loads the result into `prod_products`. Like `shops`,
+it is **network-heavy and excluded from `just bootstrap`** — run it explicitly:
 
 ```bash
 uv run python -m backend.ingest.pipeline --stage products
@@ -119,3 +126,29 @@ country / region / roast profile, matched conservatively against the loaded
 entity tables) and structural edges (roaster → product, shop → roaster, and
 shop → product → variety, which finally populates `edges_shop_variety`). Run
 `graph` after both `products` and `shops`.
+
+Roasters scraped here arrive with no location, so run `roaster_locations` after
+`products` to backfill `roast_roasters.location` (curated map first, then derive
+from each roaster's own Overture shop), and re-run `embeddings --tables
+prod_products` (the product reload clears `description_embedding`) before `graph`.
+
+## Roaster frontier & discovery
+
+The `products` scrape only crawls hosts listed in `data/raw/roaster_sites.txt`.
+That frontier started as a small hand-curated seed; the `roaster_discovery`
+stage grows it without per-URL curation:
+
+```bash
+uv run python -m backend.ingest.pipeline --stage roaster_discovery
+```
+
+It reads specialty (or `roasts_in_house`) shops from `shop_shops` that have a
+website, drops any host already in the frontier or already a
+`roast_roasters.website`, de-duplicates by host, and probes each remaining host
+for a public catalog (reusing the products scraper's Shopify/WooCommerce
+fetchers + coffee filter). Confirmed hits are written to a **review staging
+file**, `data/processed/roaster_site_candidates.txt` (same format as
+`roaster_sites.txt`) — it writes **no** DB rows and does not edit the frontier.
+A person vets the candidates and moves approved URLs into `roaster_sites.txt`,
+after which the normal `products` → `roaster_locations` → `embeddings` → `graph`
+flow ingests them.

@@ -44,7 +44,9 @@ To only create the (empty) tables without loading any data:
 uv run python -m backend.db.schema   # or: just db-create
 ```
 
-Bootstrap runs every stage except the network-heavy `shops`/`products`; see
+Bootstrap runs only the local stages — it excludes the network-heavy ones
+(`shops`, `descriptions`, `products`, `roaster_discovery`) and the stages that
+are a no-op without that data (`roaster_locations`, `specialty`); see
 [Data Sources & Pipeline](DATA.md) for running those individually.
 
 ## 4. Run
