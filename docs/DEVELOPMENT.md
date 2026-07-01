@@ -14,7 +14,7 @@ coffee-atlas/
 │   ├── db/                # DuckDB connection, schema, seeds
 │   ├── models/            # Pydantic models (one per domain)
 │   ├── routers/           # API routes (one per domain)
-│   ├── services/          # Embeddings, geocoding, enrichment
+│   ├── services/          # Embeddings, geocoding, recommendations, auth
 │   └── ingest/            # Data loaders (CQI, WCR, Overture shops,
 │                          # roaster product scrapers) + pipeline
 ├── frontend/              # Next.js 14 application
@@ -23,7 +23,7 @@ coffee-atlas/
 │   └── lib/               # API client + TypeScript types
 ├── deploy/                # Hugging Face Space scaffold (api + web)
 ├── tests/                 # pytest (backend) + vitest (frontend)
-├── data/                  # Raw, processed, and Parquet data files
+├── data/                  # Raw seed data (processed/ + parquet/ are generated)
 ├── justfile               # Task runner (just bootstrap, just dev, ...)
 ├── pyproject.toml         # Python deps (uv/hatchling)
 ├── Dockerfile             # Multi-stage build

@@ -50,10 +50,35 @@ the backend is running.
 | `GET /api/v1/graph/path` | Shortest path between nodes |
 | `GET /api/v1/search/semantic` | Semantic similarity search |
 | `GET /api/v1/search/text` | Full-text search |
+| **Recommendations** | |
+| `GET /api/v1/recommend/{type}/{id}` | Similar same-type entities ("you might also like") |
+| `GET /api/v1/recommend/for-you` | Personalized feed from favorites + notes (needs sign-in) |
+| **Auth** † | |
+| `POST /api/v1/auth/register` | Create an account, set the session cookie |
+| `POST /api/v1/auth/login` | Log in, set the session cookie |
+| `POST /api/v1/auth/logout` | Clear the session cookie |
+| `GET /api/v1/auth/me` | Current user (401 if signed out) |
+| **Account** † | |
+| `GET /api/v1/account/favorites` | List saved entities (`?entity_type=`) |
+| `POST /api/v1/account/favorites` | Save an entity (idempotent) |
+| `DELETE /api/v1/account/favorites/{id}` | Remove a saved entity |
+| `GET /api/v1/account/notes` | List cupping notes (`?entity_type=&entity_id=`) |
+| `POST /api/v1/account/notes` | Add a cupping note (product/variety) |
+| `PATCH /api/v1/account/notes/{id}` | Update a cupping note |
+| `DELETE /api/v1/account/notes/{id}` | Delete a cupping note |
+| **Meta** | |
+| `GET /api/v1/version` | Running API version |
+
+† **Auth and account** endpoints are backed by a separate Postgres user store
+(the read-only DuckDB content store can't take request-time writes). They return
+`503` when `DATABASE_URL` is not configured, as does `/recommend/for-you`.
 
 ## Query patterns
 
-- List endpoints support `?limit=`, `?offset=`, `?sort=`, `?filter[field]=value`.
+- List endpoints paginate with `?limit=` and `?offset=`. Filtering uses named
+  params where supported: `species` (varieties), `category` (processing
+  methods), `roaster_id` / `is_blend` (products), and `search` / `sort`
+  (roasters).
 - Geo endpoints return GeoJSON `FeatureCollection` objects, ready for MapLibre.
 - Graph endpoints accept `start_id`, `max_depth`, `edge_types[]` and return
   adjacency lists (BFS over the relational edge tables).
