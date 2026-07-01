@@ -1,11 +1,14 @@
+"""Variety domain endpoints: the WCR catalog and each variety's flavor profile."""
+
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
 import duckdb
+from fastapi import APIRouter, Depends, Query
 
-from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
+from backend.db.columns import FLAVOR_COLS, prefixed
+from backend.db.connection import fetchall_dicts, get_db
 from backend.models.varieties import VarietyRead
-from backend.routers._helpers import require_entity
+from backend.routers._helpers import fetchone_or_404, require_entity
 
 router = APIRouter(prefix="/api/v1/varieties", tags=["varieties"])
 
@@ -33,10 +36,9 @@ def list_varieties(
 
 @router.get("/{variety_id}", response_model=VarietyRead)
 def get_variety(variety_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = fetchone_dict(db.execute("SELECT * FROM var_varieties WHERE id = ?", [variety_id]))
-    if row is None:
-        raise HTTPException(status_code=404, detail="Variety not found")
-    return row
+    return fetchone_or_404(
+        db.execute("SELECT * FROM var_varieties WHERE id = ?", [variety_id]), "Variety"
+    )
 
 
 @router.get("/{variety_id}/flavor")
@@ -47,10 +49,8 @@ def get_variety_flavor(
     # Explicit column list: never ship the 3072-float name_embedding to clients.
     return fetchall_dicts(
         db.execute(
-            """
-            SELECT f.id, f.name, f.category, f.subcategory, f.description,
-                   f.intensity_reference, f.sensory_reference, f.parent_id,
-                   e.strength
+            f"""
+            SELECT {prefixed(FLAVOR_COLS, "f")}, e.strength
             FROM flav_attributes f
             JOIN edges_variety_flavor e ON e.flavor_id = f.id
             WHERE e.variety_id = ?

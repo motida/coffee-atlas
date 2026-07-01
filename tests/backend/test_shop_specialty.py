@@ -16,7 +16,6 @@ from backend.ingest.shop_scrapers.chains import (
 )
 from backend.ingest.shop_specialty import compute_specialty
 
-
 # --- Chain classifier ---
 
 

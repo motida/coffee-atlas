@@ -1,10 +1,13 @@
+"""Roasting domain endpoints: roast profiles and roasters (with product counts)."""
+
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
 import duckdb
+from fastapi import APIRouter, Depends, Query
 
-from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
+from backend.db.connection import fetchall_dicts, get_db
 from backend.models.roasting import RoasterListItem, RoasterRead, RoastProfileRead
+from backend.routers._helpers import fetchone_or_404
 
 router = APIRouter(prefix="/api/v1/roasting", tags=["roasting"])
 
@@ -22,10 +25,9 @@ def list_profiles(
 
 @router.get("/profiles/{profile_id}", response_model=RoastProfileRead)
 def get_profile(profile_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = fetchone_dict(db.execute("SELECT * FROM roast_profiles WHERE id = ?", [profile_id]))
-    if row is None:
-        raise HTTPException(status_code=404, detail="Roast profile not found")
-    return row
+    return fetchone_or_404(
+        db.execute("SELECT * FROM roast_profiles WHERE id = ?", [profile_id]), "Roast profile"
+    )
 
 
 @router.get("/roasters", response_model=list[RoasterListItem])
@@ -62,7 +64,6 @@ def list_roasters(
 
 @router.get("/roasters/{roaster_id}", response_model=RoasterRead)
 def get_roaster(roaster_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = fetchone_dict(db.execute("SELECT * FROM roast_roasters WHERE id = ?", [roaster_id]))
-    if row is None:
-        raise HTTPException(status_code=404, detail="Roaster not found")
-    return row
+    return fetchone_or_404(
+        db.execute("SELECT * FROM roast_roasters WHERE id = ?", [roaster_id]), "Roaster"
+    )

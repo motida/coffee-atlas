@@ -1,14 +1,16 @@
+"""Shop domain endpoints: specialty-shop discovery, map GeoJSON, and detail."""
+
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
 import duckdb
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from backend.db.columns import PRODUCT_COLS
-from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
+from backend.db.columns import PRODUCT_COLS, prefixed
+from backend.db.connection import fetchall_dicts, get_db
 from backend.db.geojson import feature_collection, point_feature
 from backend.models.products import ProductRead
 from backend.models.shops import ShopRead
-from backend.routers._helpers import require_entity
+from backend.routers._helpers import fetchone_or_404, require_entity
 
 router = APIRouter(prefix="/api/v1/shops", tags=["shops"])
 
@@ -117,12 +119,9 @@ def get_nearby_shops(
 
 @router.get("/{shop_id}", response_model=ShopRead)
 def get_shop(shop_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = fetchone_dict(
-        db.execute(f"SELECT {SHOP_PUBLIC_COLS} FROM shop_shops WHERE id = ?", [shop_id])
+    return fetchone_or_404(
+        db.execute(f"SELECT {SHOP_PUBLIC_COLS} FROM shop_shops WHERE id = ?", [shop_id]), "Shop"
     )
-    if row is None:
-        raise HTTPException(status_code=404, detail="Shop not found")
-    return row
 
 
 @router.get("/{shop_id}/products", response_model=list[ProductRead])
@@ -131,11 +130,10 @@ def get_shop_products(
 ) -> list[dict[str, Any]]:
     """Products this shop serves (via the roaster it partners with)."""
     require_entity(db, "shop_shops", shop_id, "Shop")
-    cols = ", ".join(f"p.{c}" for c in PRODUCT_COLS.split(", "))
     return fetchall_dicts(
         db.execute(
             f"""
-            SELECT {cols}, r.name AS roaster_name
+            SELECT {prefixed(PRODUCT_COLS, "p")}, r.name AS roaster_name
             FROM prod_products p
             JOIN edges_shop_product e ON e.product_id = p.id
             LEFT JOIN roast_roasters r ON p.roaster_id = r.id

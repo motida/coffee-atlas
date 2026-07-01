@@ -16,18 +16,18 @@ from backend.db.schema import create_tables
 from backend.routers import (
     account,
     auth,
-    varieties,
+    distribution,
+    flavor,
+    graph,
+    meta,
     origins,
     processing,
-    roasting,
-    flavor,
-    distribution,
-    shops,
     products,
-    graph,
-    search,
     recommend,
-    meta,
+    roasting,
+    search,
+    shops,
+    varieties,
 )
 from backend.services.auth import validate_jwt_secret
 

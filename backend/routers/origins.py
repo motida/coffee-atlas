@@ -1,11 +1,14 @@
+"""Origin domain endpoints: producing countries, regions, and their map GeoJSON."""
+
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
 import duckdb
+from fastapi import APIRouter, Depends, Query
 
-from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
+from backend.db.connection import fetchall_dicts, get_db
 from backend.db.geojson import feature_collection, point_feature
 from backend.models.origins import CountryRead, RegionRead
+from backend.routers._helpers import fetchone_or_404
 
 router = APIRouter(prefix="/api/v1/origins", tags=["origins"])
 
@@ -52,15 +55,13 @@ def get_regions_geo(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str
 
 @router.get("/regions/{region_id}", response_model=RegionRead)
 def get_region(region_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = fetchone_dict(db.execute("SELECT * FROM org_regions WHERE id = ?", [region_id]))
-    if row is None:
-        raise HTTPException(status_code=404, detail="Region not found")
-    return row
+    return fetchone_or_404(
+        db.execute("SELECT * FROM org_regions WHERE id = ?", [region_id]), "Region"
+    )
 
 
 @router.get("/{origin_id}", response_model=CountryRead)
 def get_origin(origin_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = fetchone_dict(db.execute("SELECT * FROM org_countries WHERE id = ?", [origin_id]))
-    if row is None:
-        raise HTTPException(status_code=404, detail="Origin not found")
-    return row
+    return fetchone_or_404(
+        db.execute("SELECT * FROM org_countries WHERE id = ?", [origin_id]), "Origin"
+    )

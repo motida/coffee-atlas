@@ -17,19 +17,10 @@ keys so the account page can build detail-page hrefs from a favorite's
 
 from fastapi import HTTPException
 
+from backend.db.entities import CONTENT_ENTITY_TABLES
+
 # Any content entity can be favorited.
-FAVORITE_ENTITY_TABLES: dict[str, str] = {
-    "variety": "var_varieties",
-    "country": "org_countries",
-    "region": "org_regions",
-    "farm": "org_farms",
-    "processing": "proc_methods",
-    "roast_profile": "roast_profiles",
-    "roaster": "roast_roasters",
-    "product": "prod_products",
-    "shop": "shop_shops",
-    "flavor": "flav_attributes",
-}
+FAVORITE_ENTITY_TABLES = CONTENT_ENTITY_TABLES
 
 # Cupping notes only make sense on something you brew/taste.
 CUPPING_ENTITY_TABLES: dict[str, str] = {

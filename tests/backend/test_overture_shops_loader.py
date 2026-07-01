@@ -6,7 +6,6 @@ manually; not exercised here to keep tests offline and fast.
 
 from __future__ import annotations
 
-
 import pytest
 
 from backend.ingest.overture_shops_loader import (

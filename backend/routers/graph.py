@@ -14,22 +14,13 @@ import duckdb
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend.db.connection import get_db
+from backend.db.entities import CONTENT_ENTITY_TABLES
 from backend.models.graph import GraphEdge, GraphNode, PathResult, TraversalResult
 
 router = APIRouter(prefix="/api/v1/graph", tags=["graph"])
 
-VERTEX_TABLES: dict[str, str] = {
-    "variety": "var_varieties",
-    "country": "org_countries",
-    "region": "org_regions",
-    "farm": "org_farms",
-    "flavor": "flav_attributes",
-    "processing": "proc_methods",
-    "roast_profile": "roast_profiles",
-    "product": "prod_products",
-    "roaster": "roast_roasters",
-    "shop": "shop_shops",
-}
+# Every content entity is a vertex in the knowledge graph.
+VERTEX_TABLES = CONTENT_ENTITY_TABLES
 
 
 @dataclass(frozen=True)

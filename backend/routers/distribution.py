@@ -7,8 +7,8 @@ animated trade-flow arcs layer on the landing map.
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
 import duckdb
+from fastapi import APIRouter, Depends, Query
 
 from backend.db.connection import fetchall_dicts, get_db
 from backend.db.geojson import feature_collection, linestring_feature

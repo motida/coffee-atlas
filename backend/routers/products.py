@@ -1,25 +1,26 @@
+"""Product domain endpoints: roaster catalogs and each product's varieties,
+flavors, and named origins."""
+
 from typing import Any
 
 import duckdb
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
-from backend.db.columns import PRODUCT_COLS, VARIETY_COLS
-from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
+from backend.db.columns import FLAVOR_COLS, PRODUCT_COLS, VARIETY_COLS, prefixed
+from backend.db.connection import fetchall_dicts, get_db
 from backend.models.flavor import FlavorAttributeRead
 from backend.models.products import ProductRead
 from backend.models.varieties import VarietyRead
-from backend.routers._helpers import require_entity
+from backend.routers._helpers import fetchone_or_404, require_entity
 
 router = APIRouter(prefix="/api/v1/products", tags=["products"])
 
-# Flavor columns excluding the embedding vector.
-_FLAVOR_COLS = (
-    "id, name, category, subcategory, description, "
-    "intensity_reference, sensory_reference, parent_id, created_at, updated_at"
-)
+# Product flavor rows are serialized as FlavorAttributeRead, which carries the
+# audit timestamps the bare FLAVOR_COLS list omits.
+_FLAVOR_COLS = f"{FLAVOR_COLS}, created_at, updated_at"
 
 _SELECT = (
-    f"SELECT {', '.join(f'p.{c}' for c in PRODUCT_COLS.split(', '))}, r.name AS roaster_name "
+    f"SELECT {prefixed(PRODUCT_COLS, 'p')}, r.name AS roaster_name "
     "FROM prod_products p LEFT JOIN roast_roasters r ON p.roaster_id = r.id"
 )
 
@@ -47,10 +48,7 @@ def list_products(
 
 @router.get("/{product_id}", response_model=ProductRead)
 def get_product(product_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[str, Any]:
-    row = fetchone_dict(db.execute(f"{_SELECT} WHERE p.id = ?", [product_id]))
-    if row is None:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return row
+    return fetchone_or_404(db.execute(f"{_SELECT} WHERE p.id = ?", [product_id]), "Product")
 
 
 @router.get("/{product_id}/varieties", response_model=list[VarietyRead])
@@ -59,11 +57,10 @@ def get_product_varieties(
 ) -> list[dict[str, Any]]:
     """Varieties this product consists of (single-origin: one; blend: several)."""
     require_entity(db, "prod_products", product_id, "Product")
-    cols = ", ".join(f"v.{c}" for c in VARIETY_COLS.split(", "))
     return fetchall_dicts(
         db.execute(
             f"""
-            SELECT {cols} FROM var_varieties v
+            SELECT {prefixed(VARIETY_COLS, "v")} FROM var_varieties v
             JOIN edges_product_variety e ON e.variety_id = v.id
             WHERE e.product_id = ? ORDER BY v.name
             """,
@@ -78,11 +75,10 @@ def get_product_flavors(
 ) -> list[dict[str, Any]]:
     """Flavor attributes the product's tasting notes mention."""
     require_entity(db, "prod_products", product_id, "Product")
-    cols = ", ".join(f"f.{c}" for c in _FLAVOR_COLS.split(", "))
     return fetchall_dicts(
         db.execute(
             f"""
-            SELECT {cols} FROM flav_attributes f
+            SELECT {prefixed(_FLAVOR_COLS, "f")} FROM flav_attributes f
             JOIN edges_product_flavor e ON e.flavor_id = f.id
             WHERE e.product_id = ? ORDER BY f.name
             """,

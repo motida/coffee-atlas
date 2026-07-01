@@ -41,6 +41,10 @@ packages = ["backend"]
 line-length = 100
 target-version = "py314"
 
+[tool.ruff.lint]
+# Default E/F plus import sorting (I) so import blocks stay ordered consistently.
+extend-select = ["I"]
+
 [tool.ty.environment]
 python-version = "3.14"
 

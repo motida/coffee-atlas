@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from rdflib import BNode, Literal, URIRef
 
 from ontology.scripts.export_triples import (
     _classify_object,
@@ -12,7 +13,6 @@ from ontology.scripts.export_triples import (
     parse_triples,
     write_triples,
 )
-from rdflib import BNode, Literal, URIRef
 
 
 def _write_ttl(path: Path, body: str) -> Path:

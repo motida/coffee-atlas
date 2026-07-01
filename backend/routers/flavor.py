@@ -1,10 +1,14 @@
+"""Flavor domain endpoints: the WCR sensory-lexicon wheel and attribute detail."""
+
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
 import duckdb
+from fastapi import APIRouter, Depends
 
-from backend.db.connection import fetchall_dicts, fetchone_dict, get_db
+from backend.db.columns import FLAVOR_COLS
+from backend.db.connection import fetchall_dicts, get_db
 from backend.models.flavor import FlavorAttributeRead
+from backend.routers._helpers import fetchone_or_404
 
 router = APIRouter(prefix="/api/v1/flavor", tags=["flavor"])
 
@@ -14,9 +18,7 @@ def get_flavor_wheel(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[st
     """Return the full flavor wheel as a hierarchical JSON tree."""
     rows = fetchall_dicts(
         db.execute(
-            "SELECT id, name, category, subcategory, description, "
-            "intensity_reference, sensory_reference, parent_id "
-            "FROM flav_attributes ORDER BY category, subcategory, name"
+            f"SELECT {FLAVOR_COLS} FROM flav_attributes ORDER BY category, subcategory, name"
         )
     )
     tree: dict[str, Any] = {}
@@ -31,7 +33,7 @@ def get_flavor_wheel(db: duckdb.DuckDBPyConnection = Depends(get_db)) -> dict[st
 def get_flavor_attribute(
     attribute_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 ) -> dict[str, Any]:
-    row = fetchone_dict(db.execute("SELECT * FROM flav_attributes WHERE id = ?", [attribute_id]))
-    if row is None:
-        raise HTTPException(status_code=404, detail="Flavor attribute not found")
-    return row
+    return fetchone_or_404(
+        db.execute("SELECT * FROM flav_attributes WHERE id = ?", [attribute_id]),
+        "Flavor attribute",
+    )
