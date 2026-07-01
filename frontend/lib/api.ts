@@ -31,6 +31,25 @@ import type {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
+type QueryValue = string | number | boolean | string[] | undefined | null;
+
+// Build a "?a=1&b=2" query string from defined params. undefined/null values
+// are dropped, arrays append one entry per value, and an empty result yields ""
+// so it can be concatenated onto any endpoint unconditionally.
+function qs(params: Record<string, QueryValue>): string {
+  const sp = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) continue;
+    if (Array.isArray(value)) {
+      for (const v of value) sp.append(key, v);
+    } else {
+      sp.set(key, String(value));
+    }
+  }
+  const s = sp.toString();
+  return s ? `?${s}` : "";
+}
+
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}/api/v1${endpoint}`;
   const res = await fetch(url, {
@@ -51,11 +70,8 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 }
 
 // --- Varieties ---
-export const getVarieties = (limit = 20, offset = 0, species?: string) => {
-  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-  if (species) params.set("species", species);
-  return fetchAPI<Variety[]>(`/varieties?${params.toString()}`);
-};
+export const getVarieties = (limit = 20, offset = 0, species?: string) =>
+  fetchAPI<Variety[]>(`/varieties${qs({ limit, offset, species })}`);
 
 export const getVariety = (id: string) => fetchAPI<Variety>(`/varieties/${id}`);
 
@@ -64,7 +80,7 @@ export const getVarietyFlavor = (id: string) =>
 
 // --- Origins ---
 export const getOrigins = (limit = 20, offset = 0) =>
-  fetchAPI(`/origins?limit=${limit}&offset=${offset}`);
+  fetchAPI(`/origins${qs({ limit, offset })}`);
 
 export const getOrigin = (id: string) => fetchAPI<Country>(`/origins/${id}`);
 
@@ -77,11 +93,8 @@ export const getRegionsGeo = () =>
   fetchAPI<GeoJSONFeatureCollection<RegionGeoProperties>>(`/origins/regions/geo`);
 
 // --- Processing ---
-export const getProcessingMethods = (limit = 20, offset = 0, category?: string) => {
-  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-  if (category) params.set("category", category);
-  return fetchAPI<ProcessingMethod[]>(`/processing/methods?${params.toString()}`);
-};
+export const getProcessingMethods = (limit = 20, offset = 0, category?: string) =>
+  fetchAPI<ProcessingMethod[]>(`/processing/methods${qs({ limit, offset, category })}`);
 
 export const getProcessingMethod = (id: string) =>
   fetchAPI<ProcessingMethod>(`/processing/methods/${id}`);
@@ -100,9 +113,7 @@ export const getFlavorAttribute = (id: string) =>
 
 // --- Distribution ---
 export const getTradeRoutes = (limit = 100, offset = 0) =>
-  fetchAPI<TradeRoute[]>(
-    `/distribution/trade-routes?limit=${limit}&offset=${offset}`,
-  );
+  fetchAPI<TradeRoute[]>(`/distribution/trade-routes${qs({ limit, offset })}`);
 
 export const getTradeRoutesGeo = () =>
   fetchAPI<GeoJSONFeatureCollection<TradeRouteGeoProperties>>(
@@ -111,35 +122,27 @@ export const getTradeRoutesGeo = () =>
 
 // --- Shops ---
 export const getShops = (limit = 20, offset = 0) =>
-  fetchAPI(`/shops?limit=${limit}&offset=${offset}`);
+  fetchAPI(`/shops${qs({ limit, offset })}`);
 
 export const getShop = (id: string) => fetchAPI<Shop>(`/shops/${id}`);
 
 export const getShopsGeo = (
   bbox?: [number, number, number, number],
   limit = 5000,
-) => {
-  const params = new URLSearchParams({ limit: String(limit) });
-  if (bbox) params.set("bbox", bbox.join(","));
-  return fetchAPI<GeoJSONFeatureCollection<ShopGeoProperties>>(
-    `/shops/geo?${params.toString()}`,
+) =>
+  fetchAPI<GeoJSONFeatureCollection<ShopGeoProperties>>(
+    `/shops/geo${qs({ limit, bbox: bbox?.join(",") })}`,
   );
-};
 
 export const getNearbyShops = (lat: number, lng: number, radiusKm = 5) =>
-  fetchAPI<NearbyShop[]>(
-    `/shops/nearby?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`,
-  );
+  fetchAPI<NearbyShop[]>(`/shops/nearby${qs({ lat, lng, radius_km: radiusKm })}`);
 
 export const getShopProducts = (id: string) =>
   fetchAPI<Product[]>(`/shops/${id}/products`);
 
 // --- Products ---
-export const getProducts = (limit = 20, offset = 0, roasterId?: string) => {
-  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-  if (roasterId) params.set("roaster_id", roasterId);
-  return fetchAPI<Product[]>(`/products?${params.toString()}`);
-};
+export const getProducts = (limit = 20, offset = 0, roasterId?: string) =>
+  fetchAPI<Product[]>(`/products${qs({ limit, offset, roaster_id: roasterId })}`);
 
 export const getProduct = (id: string) => fetchAPI<Product>(`/products/${id}`);
 
@@ -154,19 +157,17 @@ export const getProductOrigin = (id: string) =>
 
 // --- Roasting ---
 export const getRoastProfiles = (limit = 50, offset = 0) =>
-  fetchAPI<RoastProfile[]>(`/roasting/profiles?limit=${limit}&offset=${offset}`);
+  fetchAPI<RoastProfile[]>(`/roasting/profiles${qs({ limit, offset })}`);
 
 // --- Roasters ---
 export const getRoasters = (
   limit = 100,
   offset = 0,
   opts?: { search?: string; sort?: "count" | "name" },
-) => {
-  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-  if (opts?.search) params.set("search", opts.search);
-  if (opts?.sort) params.set("sort", opts.sort);
-  return fetchAPI<RoasterListItem[]>(`/roasting/roasters?${params.toString()}`);
-};
+) =>
+  fetchAPI<RoasterListItem[]>(
+    `/roasting/roasters${qs({ limit, offset, search: opts?.search, sort: opts?.sort })}`,
+  );
 
 export const getRoaster = (id: string) => fetchAPI<Roaster>(`/roasting/roasters/${id}`);
 
@@ -177,29 +178,21 @@ export const graphTraverse = (
   signal?: AbortSignal,
 ) =>
   fetchAPI<TraversalResult>(
-    `/graph/traverse?start_id=${startId}&max_depth=${maxDepth}`,
+    `/graph/traverse${qs({ start_id: startId, max_depth: maxDepth })}`,
     { signal },
   );
 
 export const graphPath = (startId: string, endId: string) =>
-  fetchAPI(`/graph/path?start_id=${startId}&end_id=${endId}`);
+  fetchAPI(`/graph/path${qs({ start_id: startId, end_id: endId })}`);
 
 // --- Search ---
-const buildSearchUrl = (
+const searchUrl = (
   base: string,
   query: string,
   limit: number,
   entityTypes?: string[],
   species?: string,
-) => {
-  const params = new URLSearchParams({
-    query,
-    limit: String(limit),
-  });
-  for (const t of entityTypes ?? []) params.append("entity_types", t);
-  if (species) params.set("species", species);
-  return `${base}?${params.toString()}`;
-};
+) => `${base}${qs({ query, limit, entity_types: entityTypes, species })}`;
 
 export const searchSemantic = (
   query: string,
@@ -208,7 +201,7 @@ export const searchSemantic = (
   species?: string,
 ) =>
   fetchAPI<SearchResult[]>(
-    buildSearchUrl("/search/semantic", query, limit, entityTypes, species),
+    searchUrl("/search/semantic", query, limit, entityTypes, species),
   );
 
 export const searchText = (
@@ -218,18 +211,16 @@ export const searchText = (
   species?: string,
 ) =>
   fetchAPI<SearchResult[]>(
-    buildSearchUrl("/search/text", query, limit, entityTypes, species),
+    searchUrl("/search/text", query, limit, entityTypes, species),
   );
 
 // --- Recommendations ---
 export const getRecommendations = (entityType: string, id: string, limit = 6) =>
-  fetchAPI<Recommendation[]>(
-    `/recommend/${entityType}/${id}?limit=${limit}`,
-  );
+  fetchAPI<Recommendation[]>(`/recommend/${entityType}/${id}${qs({ limit })}`);
 
 export const getRecommendationsForYou = (entityType = "product", limit = 10) =>
   fetchAPI<Recommendation[]>(
-    `/recommend/for-you?entity_type=${entityType}&limit=${limit}`,
+    `/recommend/for-you${qs({ entity_type: entityType, limit })}`,
   );
 
 // --- Auth ---
@@ -248,10 +239,8 @@ export const logout = () => fetchAPI<void>("/auth/logout", { method: "POST" });
 export const getMe = () => fetchAPI<User>("/auth/me");
 
 // --- Account: favorites ---
-export const getFavorites = (entityType?: string) => {
-  const qs = entityType ? `?entity_type=${encodeURIComponent(entityType)}` : "";
-  return fetchAPI<Favorite[]>(`/account/favorites${qs}`);
-};
+export const getFavorites = (entityType?: string) =>
+  fetchAPI<Favorite[]>(`/account/favorites${qs({ entity_type: entityType })}`);
 
 export const addFavorite = (entityType: string, entityId: string) =>
   fetchAPI<Favorite>("/account/favorites", jsonBody({ entity_type: entityType, entity_id: entityId }));
@@ -260,13 +249,10 @@ export const removeFavorite = (id: string) =>
   fetchAPI<void>(`/account/favorites/${id}`, { method: "DELETE" });
 
 // --- Account: cupping notes ---
-export const getNotes = (entityType?: string, entityId?: string) => {
-  const params = new URLSearchParams();
-  if (entityType) params.set("entity_type", entityType);
-  if (entityId) params.set("entity_id", entityId);
-  const qs = params.toString();
-  return fetchAPI<CuppingNote[]>(`/account/notes${qs ? `?${qs}` : ""}`);
-};
+export const getNotes = (entityType?: string, entityId?: string) =>
+  fetchAPI<CuppingNote[]>(
+    `/account/notes${qs({ entity_type: entityType, entity_id: entityId })}`,
+  );
 
 export interface NoteInput {
   entity_type: string;
