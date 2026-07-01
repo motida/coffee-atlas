@@ -2,7 +2,7 @@
 # catalog — Shopify /products.json or the WooCommerce Store API. The scraper
 # auto-detects the platform per site, so this list need not be sorted by it.
 # Used as the crawl frontier for backend.ingest.shop_scrapers.product_scraper,
-# since shop_shops.roasts_in_house is unpopulated (see memory).
+# since the Overture shop import does not populate shop_shops.roasts_in_house.
 # Format: one site root per line; blank lines and # comments are ignored.
 
 https://www.blackwhiteroasters.com
@@ -101,8 +101,7 @@ https://counterpartcoffee.com
 
 # Vetted from the 2026-06-27 roaster_discovery bulk import (was 545 unvetted
 # candidates; 468 dropped as cafes/retailers/thin or mega catalogs). These 77
-# carry an explicit roaster name signal (Roastery/Roasters/Roasting). Vetting
-# notes: scratchpad vet_{keep,drop,review}.tsv at time of triage.
+# carry an explicit roaster name signal (Roastery/Roasters/Roasting).
 # Achilles Coffee Roasters — San Diego, US — shopify (38 products)
 https://achillescoffeeroasters.com
 # Afficionado Coffee Roasters — New York, US — shopify (15 products)

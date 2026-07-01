@@ -19,7 +19,7 @@ import httpx
 DEFAULT_CENTROIDS = Path("data/raw/country_centroids.json")
 DEFAULT_CACHE = Path("data/processed/nominatim_cache.json")
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
-USER_AGENT = "coffee-atlas/0.1 (motida2@gmail.com)"
+USER_AGENT = "coffee-atlas/0.1 (+https://github.com/motida/coffee-atlas)"
 
 # CQI country names that don't match the ISO 3166 reference dataset verbatim.
 COUNTRY_ALIASES: dict[str, str] = {
