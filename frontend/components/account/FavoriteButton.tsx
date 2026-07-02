@@ -25,10 +25,23 @@ export function FavoriteButton({
       setFavoriteId(null);
       return;
     }
+    // Cancellation drops stale responses on rapid same-type navigation —
+    // otherwise the previous entity's lookup can mark this page "Saved" and
+    // a click would delete the wrong favorite row.
+    let cancelled = false;
+    setFavoriteId(null);
     api
       .getFavorites(entityType)
-      .then((favs) => setFavoriteId(favs.find((f) => f.entity_id === entityId)?.id ?? null))
-      .catch(() => setFavoriteId(null));
+      .then((favs) => {
+        if (!cancelled)
+          setFavoriteId(favs.find((f) => f.entity_id === entityId)?.id ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setFavoriteId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [user, entityType, entityId]);
 
   async function toggle() {
@@ -46,6 +59,14 @@ export function FavoriteButton({
         const fav = await api.addFavorite(entityType, entityId);
         setFavoriteId(fav.id);
       }
+    } catch (err) {
+      // A 401 means the session cookie expired while the tab was open —
+      // re-auth instead of a click that silently does nothing.
+      if (err instanceof api.APIError && err.status === 401) {
+        router.push("/auth/login");
+        return;
+      }
+      console.error("Favorite toggle failed:", err);
     } finally {
       setBusy(false);
     }

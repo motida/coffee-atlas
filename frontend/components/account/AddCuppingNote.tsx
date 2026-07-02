@@ -48,6 +48,14 @@ export function AddCuppingNote({
       setBrewMethod("");
       setOpen(false);
       setSaved(true);
+    } catch (err) {
+      // A 401 means the session cookie expired while the tab was open --
+      // re-auth instead of a submit that silently does nothing.
+      if (err instanceof api.APIError && err.status === 401) {
+        router.push("/auth/login");
+        return;
+      }
+      console.error("Saving cupping note failed:", err);
     } finally {
       setBusy(false);
     }

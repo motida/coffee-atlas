@@ -49,8 +49,12 @@ export default function ExplorePage() {
     const trimmed = query.trim();
     // Nothing to do without either a query or a species filter to browse by.
     if (trimmed.length === 0 && !species) {
+      // Invalidate any in-flight request, or its late response would
+      // repopulate results under the now-empty search box.
+      reqIdRef.current++;
       setResults([]);
       setError(null);
+      setLoading(false);
       return;
     }
 
