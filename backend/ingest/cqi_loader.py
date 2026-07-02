@@ -171,6 +171,43 @@ def _restore_enrichment(conn: duckdb.DuckDBPyConnection) -> None:
         conn.execute(f"DROP TABLE _enrich_{table}")
 
 
+# Whole ROWS owned by other stages that the FK-ordered rebuild nonetheless
+# deletes: importer-only countries inserted by the distribution stage, and the
+# edge tables seeded by the processing_flavor and graph stages. Unlike
+# enrichment columns (restored by UPDATE onto re-created rows), these rows are
+# never re-created by this stage, so they are snapshotted whole and re-inserted.
+# Each edge table maps to the parent-exists filter its restore must satisfy —
+# parents that dropped out of the CQI source stay gone, and their edges with
+# them (product/flavor parents live in tables this stage never touches).
+_FOREIGN_EDGE_TABLES: dict[str, str] = {
+    "edges_processing_flavor": "method_id IN (SELECT id FROM proc_methods)",
+    "edges_product_region": "region_id IN (SELECT id FROM org_regions)",
+    "edges_product_country": "country_id IN (SELECT id FROM org_countries)",
+}
+
+
+def _snapshot_foreign_rows(conn: duckdb.DuckDBPyConnection) -> None:
+    """Copy other stages' rows into temp tables before the FK-ordered delete."""
+    for table in ("org_countries", *_FOREIGN_EDGE_TABLES):
+        conn.execute(f"CREATE OR REPLACE TEMP TABLE _foreign_{table} AS SELECT * FROM {table}")
+
+
+def _restore_foreign_rows(conn: duckdb.DuckDBPyConnection) -> None:
+    """Re-insert other stages' rows the rebuild did not re-create itself.
+
+    Countries first, so restored importer-only countries satisfy the
+    edges_product_country parent filter.
+    """
+    conn.execute(
+        "INSERT INTO org_countries SELECT * FROM _foreign_org_countries "
+        "WHERE id NOT IN (SELECT id FROM org_countries)"
+    )
+    conn.execute("DROP TABLE _foreign_org_countries")
+    for table, parent_filter in _FOREIGN_EDGE_TABLES.items():
+        conn.execute(f"INSERT INTO {table} SELECT * FROM _foreign_{table} WHERE {parent_filter}")
+        conn.execute(f"DROP TABLE _foreign_{table}")
+
+
 def _read_cqi(arabica: Path, robusta: Path) -> pl.DataFrame:
     frames: list[pl.DataFrame] = []
     for path in (arabica, robusta):
@@ -283,9 +320,12 @@ def load_cqi_data(
 
     Idempotent: edges and origin/processing rows are rebuilt via delete+insert in
     FK order (DuckDB's ON CONFLICT DO UPDATE can't update FK-referenced rows).
-    Enrichment that later stages add — geocoded coordinates, iso_code, embeddings —
-    is snapshotted before the rebuild and restored by id afterward, so a standalone
-    re-run is non-destructive.
+    Everything other stages own that the rebuild disturbs is snapshotted before
+    the delete and restored afterward — enrichment columns (geocoded coordinates,
+    iso_code, embeddings) by id-matched UPDATE, and whole foreign rows
+    (importer-only countries from the distribution stage, the processing_flavor /
+    graph stages' edge tables) by re-insert — so a standalone re-run is
+    non-destructive.
     Pass `conn` for in-memory test connections; otherwise a connection is opened
     against `db_path` or the configured default.
     """
@@ -299,6 +339,7 @@ def load_cqi_data(
         built = _build_rows(df, name_to_id)
 
         _snapshot_enrichment(conn)
+        _snapshot_foreign_rows(conn)
 
         for table in (
             "edges_farm_variety",
@@ -339,6 +380,7 @@ def load_cqi_data(
             )
 
         _restore_enrichment(conn)
+        _restore_foreign_rows(conn)
 
         if built.country_variety:
             conn.executemany(
