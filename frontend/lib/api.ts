@@ -27,6 +27,7 @@ import type {
   TraversalResult,
   User,
   Variety,
+  VarietyFlavorLink,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -88,7 +89,7 @@ export const getVarieties = (limit = 20, offset = 0, species?: string) =>
 export const getVariety = (id: string) => fetchAPI<Variety>(`/varieties/${id}`);
 
 export const getVarietyFlavor = (id: string) =>
-  fetchAPI<FlavorAttribute[]>(`/varieties/${id}/flavor`);
+  fetchAPI<VarietyFlavorLink[]>(`/varieties/${id}/flavor`);
 
 // --- Origins ---
 export const getOrigins = (limit = 20, offset = 0) =>

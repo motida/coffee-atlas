@@ -103,6 +103,21 @@ export interface FlavorAttribute extends Timestamped {
   parent_id: string | null;
 }
 
+/** A flavor attribute linked to a variety, with the edge's strength.
+ *  Shape returned by /varieties/{id}/flavor (flavor leaf + strength;
+ *  no timestamps). */
+export interface VarietyFlavorLink {
+  id: string;
+  name: string;
+  category: string | null;
+  subcategory: string | null;
+  description: string | null;
+  intensity_reference: string | null;
+  sensory_reference: string | null;
+  parent_id: string | null;
+  strength: number | null;
+}
+
 /** Leaf shape returned by /api/v1/flavor/wheel (omits created_at / updated_at / name_embedding). */
 export interface FlavorWheelLeaf {
   id: string;

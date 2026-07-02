@@ -15,3 +15,11 @@ class FlavorAttributeBase(BaseModel):
 
 class FlavorAttributeRead(FlavorAttributeBase, ReadModel):
     pass
+
+
+class FlavorStrengthRead(FlavorAttributeBase):
+    """Flavor leaf plus the linking edge's strength — the shape
+    /varieties/{id}/flavor returns (no timestamps, never the embedding)."""
+
+    id: str
+    strength: float | None = None
