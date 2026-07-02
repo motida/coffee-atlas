@@ -93,6 +93,16 @@ EDGES: list[EdgeDef] = [
         dst_type="processing",
         dst_col="method_id",
     ),
+    # ProcessingMethod -> enhances/diminishes -> FlavorAttribute (curated seed,
+    # populated by the processing_flavor stage).
+    EdgeDef(
+        table="edges_processing_flavor",
+        edge_type="processing_flavor",
+        src_type="processing",
+        src_col="method_id",
+        dst_type="flavor",
+        dst_col="flavor_id",
+    ),
     # RoastProfile -> suitableFor -> Variety (populated by the roasting loader
     # from each profile's suitable_for rule).
     EdgeDef(

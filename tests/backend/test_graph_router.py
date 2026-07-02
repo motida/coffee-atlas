@@ -167,3 +167,18 @@ def test_path_budget_exhausted_404(client, monkeypatch):
     r = client.get("/api/v1/graph/path", params={"start_id": "c1", "end_id": "flav1"})
     assert r.status_code == 404
     assert "budget" in r.json()["detail"]
+
+
+def test_traverse_crosses_processing_flavor(client, graph_db):
+    """edges_processing_flavor is one of the 18 edge tables and must be
+    traversable — it was previously missing from the router's EDGES list, so
+    processing <-> flavor was invisible to /graph/traverse and /graph/path."""
+    graph_db.execute(
+        "INSERT INTO edges_processing_flavor (id, method_id, flavor_id, effect) "
+        "VALUES ('e6', 'p1', 'flav1', 'enhances')"
+    )
+    r = client.get("/api/v1/graph/traverse", params={"start_id": "p1", "max_depth": 1})
+    ids = {n["id"] for n in r.json()["nodes"]}
+    assert "flav1" in ids
+    edge_types = {e["edge_type"] for e in r.json()["edges"]}
+    assert "processing_flavor" in edge_types
