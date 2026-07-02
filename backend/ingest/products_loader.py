@@ -279,6 +279,8 @@ _SITE_ROASTER_OVERRIDES: dict[str, str] = {
     # Colombia, …) and puts "Prolog Coffee" mostly on merch/subscriptions, so once
     # merch is filtered the modal coffee vendor is an origin, not the roaster.
     "prologcoffee.com": "Prolog Coffee",
+    # Same origin-as-modal-vendor failure ("Colombia").
+    "obtr-coffee.com": "Oubaitouri Coffee Roasters",
     # WooCommerce stores whose Store API exposes no `brands`, so the scraper falls
     # back to the host and the roaster would display as a bare domain. Mapped to the
     # proper name (from the discovery POI annotations / known base-list roasters).
