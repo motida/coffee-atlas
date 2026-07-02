@@ -225,10 +225,10 @@ are run explicitly.
 3. `cqi` — clean + normalize CQI CSV → `org_*`, `proc_methods`, + cupping-derived edges
 4. `processing_descriptions` — attach curated prose to `proc_methods`
 5. `processing_flavor` — seed `edges_processing_flavor` from a hand-mapped table
-6. `geocode` — batch-geocode origins (Nominatim + ISO centroids), store coordinates
-7. `shops` — Overture Maps POI load → `shop_shops` *(network; skipped in bootstrap)*
-8. `descriptions` — scrape shop homepages for a description → `shop_shops.description`, for the cities in `data/raw/scrape_cities.txt` *(network; skipped in bootstrap; no-op when the city list is empty)*. Main signal feeding `specialty`.
-9. `distribution` — certifications, importers, trade routes → `dist_*`
+6. `distribution` — certifications, importers, trade routes → `dist_*`. Inserts importer-only countries into `org_countries`, so it runs before `geocode` — trade routes whose endpoints lack coordinates drop off the map layer
+7. `geocode` — batch-geocode origins (Nominatim + ISO centroids), store coordinates (blank-filling, idempotent)
+8. `shops` — Overture Maps POI load → `shop_shops` *(network; skipped in bootstrap)*
+9. `descriptions` — scrape shop homepages for a description → `shop_shops.description`, for the cities in `data/raw/scrape_cities.txt` *(network; skipped in bootstrap; no-op when the city list is empty)*. Main signal feeding `specialty`.
 10. `roasting` — roast profiles + roasters seed → `roast_profiles`, `roast_roasters`, `edges_roast_variety`
 11. `products` — scrape roaster catalogs → `prod_products` *(network; skipped in bootstrap)*
 12. `roaster_locations` — fill `roast_roasters.location` from two sources, curated-first: (a) a curated `name → location` map (`data/raw/roaster_locations.json`, authoritative), then (b) auto-derive — for roasters still blank, match the roaster `website` host to a `shop_shops.website` (the roaster's own Overture cafe) and build `"City, Country"`, normalizing Overture's ISO country code to a full name via `data/raw/country_centroids.json`. Roasters added by the `products` scrape arrive with no location; both sources only UPDATE (never insert/delete, so they sidestep the FK reload hazard and are idempotent) and fill blanks only by default. The country (last comma segment) is the grouping key on the frontend Roasters page. *(run after `products`; the derive source also needs the `shops` stage to have populated `shop_shops`)*
@@ -468,8 +468,8 @@ tables → export triples → `just ingest-all`). To run it by hand:
 2. `just db-create` — create DuckDB tables (`python -m backend.db.schema`)
 3. `just ontology-export` — export T-Box triples into `ontology_triples`
 4. `just ingest-all` — runs the local stages in order: `lexicon`, `varieties`,
-   `cqi`, `processing_descriptions`, `processing_flavor`, `geocode`,
-   `distribution`, `roasting`, `embeddings`, `graph`
+   `cqi`, `processing_descriptions`, `processing_flavor`, `distribution`,
+   `geocode`, `roasting`, `embeddings`, `graph`
 5. The network-heavy stages stay out of `ingest-all` — run them explicitly:
    `just ingest shops`, `just ingest descriptions` (cities from
    `data/raw/scrape_cities.txt`), then `just ingest products`,
@@ -482,7 +482,7 @@ tables → export triples → `just ingest-all`). To run it by hand:
 > Note: `just ingest-all` runs the local stages only — it excludes the
 > network-heavy ones (`shops`, `descriptions`, `products`) and `specialty` (a
 > no-op without shop data). `python -m backend.ingest.pipeline --all` runs all
-> 15, including those.
+> 16, including those.
 
 ---
 

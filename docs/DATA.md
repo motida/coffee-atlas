@@ -25,10 +25,10 @@ uv run python -m backend.ingest.pipeline --stage varieties               # WCR v
 uv run python -m backend.ingest.pipeline --stage cqi                     # CQI cupping data
 uv run python -m backend.ingest.pipeline --stage processing_descriptions # Curated method descriptions
 uv run python -m backend.ingest.pipeline --stage processing_flavor       # Processing→flavor edges
-uv run python -m backend.ingest.pipeline --stage geocode                 # Geocode origins
+uv run python -m backend.ingest.pipeline --stage distribution            # Certifications, importers, trade routes (adds importer-only countries)
+uv run python -m backend.ingest.pipeline --stage geocode                 # Geocode origins (incl. the importer-only countries above)
 uv run python -m backend.ingest.pipeline --stage shops                   # Coffee shops (Overture, S3) [network]
 uv run python -m backend.ingest.pipeline --stage descriptions            # Scrape shop homepages for descriptions [network]
-uv run python -m backend.ingest.pipeline --stage distribution            # Certifications, importers, trade routes
 uv run python -m backend.ingest.pipeline --stage roasting                # Roast profiles + suitability edges
 uv run python -m backend.ingest.pipeline --stage products                # Scrape roaster product catalogs [network]
 uv run python -m backend.ingest.pipeline --stage roaster_locations       # Backfill roaster locations (curated + shop-derived)

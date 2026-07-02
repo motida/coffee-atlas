@@ -53,8 +53,8 @@ ingest-all:
     just ingest cqi
     just ingest processing_descriptions
     just ingest processing_flavor
-    just ingest geocode
     just ingest distribution
+    just ingest geocode
     just ingest roasting
     just ingest embeddings
     just ingest graph

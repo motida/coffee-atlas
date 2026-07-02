@@ -212,10 +212,14 @@ STAGE_REGISTRY: dict[str, Callable[[list[str] | None], None]] = {
     "cqi": _run_cqi,
     "processing_descriptions": _run_processing_descriptions,
     "processing_flavor": _run_processing_flavor,
+    # distribution before geocode: it inserts importer-only countries with no
+    # coordinates, and geocode (blank-filling, idempotent) is the only stage
+    # that sets them — the other way round, those countries never geocode and
+    # their trade routes vanish from /distribution/trade-routes/geo.
+    "distribution": _run_distribution,
     "geocode": _run_geocode,
     "shops": _run_shops,
     "descriptions": _run_descriptions,
-    "distribution": _run_distribution,
     "roasting": _run_roasting,
     "products": _run_products,
     "roaster_locations": _run_roaster_locations,
