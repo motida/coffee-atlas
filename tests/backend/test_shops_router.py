@@ -55,6 +55,24 @@ def test_nearby_returns_only_specialty(client):
     assert {row["id"] for row in r.json()} == {"s1"}
 
 
+def test_nearby_at_exact_shop_coordinates(client, shops_db):
+    # Regression: at this latitude the Haversine acos argument rounds to
+    # 1.0000000000000002 when the query point equals the shop's coordinates,
+    # and DuckDB's acos raises "ACOS is undefined outside [-1,1]" -> HTTP 500
+    # unless the argument is clamped. The shop detail page queries /nearby
+    # with exactly the shop's own coordinates.
+    shops_db.execute(
+        "INSERT INTO shop_shops (id, name, latitude, longitude, is_specialty) VALUES "
+        "('s3', 'Communal Coffee', 32.73367593, -117.16245889, true)"
+    )
+    r = client.get(
+        "/api/v1/shops/nearby",
+        params={"lat": 32.73367593, "lng": -117.16245889, "radius_km": 5},
+    )
+    assert r.status_code == 200
+    assert any(row["id"] == "s3" and row["distance_km"] == 0.0 for row in r.json())
+
+
 def test_detail_still_resolves_non_specialty(client):
     # Detail stays permissive so saved favorites / deep links don't break.
     r = client.get("/api/v1/shops/s2")
