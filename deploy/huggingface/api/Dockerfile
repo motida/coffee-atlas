@@ -8,7 +8,14 @@ COPY pyproject.toml uv.lock ./
 COPY backend/ ./backend/
 COPY ontology/ ./ontology/
 
-RUN uv pip install --system --no-cache .
+# Dependencies come pinned from uv.lock — `uv pip install .` re-resolves from
+# pyproject ranges on every build, so a Space rebuild could silently bump
+# duckdb/fastapi past the CI-tested versions. --frozen also fails the build
+# if the lockfile drifts from pyproject.toml.
+RUN uv export --frozen --no-dev --no-emit-project -o /tmp/requirements.txt && \
+    uv pip install --system --no-cache -r /tmp/requirements.txt && \
+    uv pip install --system --no-cache --no-deps . && \
+    rm /tmp/requirements.txt
 
 RUN useradd -m -u 1000 user && \
     mkdir -p /app/data && \
