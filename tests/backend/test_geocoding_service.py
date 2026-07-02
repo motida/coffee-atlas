@@ -93,3 +93,20 @@ def test_nominatim_persists_cache_between_instances(tmp_path: Path):
     assert pt is not None
     assert pt.latitude == pytest.approx(1.0)
     assert client_b.calls == 0
+
+
+def test_distribution_seed_countries_all_resolve():
+    """Every country name the distribution seed inserts into org_countries must
+    resolve to a centroid — an unresolved importer country never gets
+    coordinates, and its trade routes silently drop off
+    /distribution/trade-routes/geo (which requires all four endpoint coords).
+    Regression for Russia / South Korea, whose seed spellings don't match the
+    ISO 3166 dataset verbatim."""
+    seed = json.loads(Path("data/raw/distribution_seed.json").read_text(encoding="utf-8"))
+    names = {i["country"] for i in seed["importers"] if i.get("country")}
+    for route in seed["trade_routes"]:
+        names.add(route["exporter"])
+        names.add(route["importer"])
+    table = load_country_centroids()
+    unresolved = sorted(n for n in names if resolve_country(n, table) is None)
+    assert unresolved == []

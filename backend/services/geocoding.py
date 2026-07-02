@@ -21,7 +21,8 @@ DEFAULT_CACHE = Path("data/processed/nominatim_cache.json")
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 USER_AGENT = "coffee-atlas/0.1 (+https://github.com/motida/coffee-atlas)"
 
-# CQI country names that don't match the ISO 3166 reference dataset verbatim.
+# Country names from the CQI CSVs and the distribution seed that don't match
+# the ISO 3166 reference dataset verbatim.
 COUNTRY_ALIASES: dict[str, str] = {
     "Vietnam": "Viet Nam",
     "Laos": "Lao People's Democratic Republic",
@@ -30,6 +31,8 @@ COUNTRY_ALIASES: dict[str, str] = {
     "Cote d?Ivoire": "Côte d'Ivoire",
     "United States (Hawaii)": "United States",
     "United States (Puerto Rico)": "Puerto Rico",
+    "Russia": "Russian Federation",
+    "South Korea": "Korea, Republic of",
 }
 
 
