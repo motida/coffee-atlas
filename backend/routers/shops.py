@@ -99,11 +99,14 @@ def get_nearby_shops(
             f"""
             SELECT * FROM (
                 SELECT {SHOP_PUBLIC_COLS}, (
-                    6371 * acos(
+                    -- Clamped to [-1, 1]: float rounding pushes the argument
+                    -- just above 1 when the query point coincides with a shop,
+                    -- and DuckDB's acos raises instead of returning NaN.
+                    6371 * acos(LEAST(1.0, GREATEST(-1.0,
                         cos(radians(?)) * cos(radians(latitude))
                         * cos(radians(longitude) - radians(?))
                         + sin(radians(?)) * sin(radians(latitude))
-                    )
+                    )))
                 ) AS distance_km
                 FROM shop_shops
                 WHERE latitude IS NOT NULL AND is_specialty
