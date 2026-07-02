@@ -240,8 +240,19 @@ def _scope_slug(cities: list[tuple[str, str]]) -> str:
     return f"{first}-and{len(cities) - 1}more-{digest}"
 
 
+# Outcomes that are permanent — a resume should NOT re-scrape these. Transient
+# failures (fetch_error, and http_error like 429/5xx) are omitted so they
+# retry, mirroring product_scraper._TERMINAL_STATUSES. A description a shop
+# permanently lacks (empty/junk) or can't have (skip: no URL) stays done.
+_TERMINAL_STATUSES = {"ok", "empty", "junk", "skip"}
+
+
 def load_done_ids(scope_key: str) -> set[str]:
-    """Read every JSONL log matching this scope and collect already-processed ids."""
+    """Collect ids with a permanent outcome from every JSONL log in this scope.
+
+    Shops whose last attempt failed transiently stay eligible, so a re-run
+    after a network blip retries them instead of reporting nothing to scrape.
+    """
     done: set[str] = set()
     for path in CACHE_DIR.glob(f"{scope_key}__*.jsonl"):
         with path.open() as f:
@@ -251,7 +262,7 @@ def load_done_ids(scope_key: str) -> set[str]:
                 except json.JSONDecodeError:
                     continue
                 shop_id = record.get("shop_id")
-                if shop_id is not None:
+                if shop_id is not None and record.get("status") in _TERMINAL_STATUSES:
                     done.add(shop_id)
     return done
 
