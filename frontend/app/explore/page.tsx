@@ -18,7 +18,17 @@ const ENTITY_TYPES = [
   { id: "product", label: "Products" },
 ] as const;
 
-const SEMANTIC_TYPES = new Set(["variety", "flavor", "shop", "roast_profile", "product"]);
+// Mirrors the backend's EMBEDDING_COLS (backend/routers/search.py): the six
+// entity types with stored embeddings. Types absent here (country, region,
+// roaster) have no embeddings, so sending them to /search/semantic returns [].
+const SEMANTIC_TYPES = new Set([
+  "variety",
+  "flavor",
+  "processing",
+  "shop",
+  "roast_profile",
+  "product",
+]);
 
 const SEMANTIC_HINTS = [
   "fruity floral light roast",
@@ -142,7 +152,17 @@ export default function ExplorePage() {
 
       <SearchControls
         mode={mode}
-        onModeChange={setMode}
+        onModeChange={(m) => {
+          setMode(m);
+          // Chips for non-semantic types are hidden in semantic mode; drop
+          // them from the selection too, or an invisible filter silently
+          // zeroes every semantic search.
+          if (m === "semantic") {
+            setSelectedTypes(
+              (prev) => new Set(Array.from(prev).filter((t) => SEMANTIC_TYPES.has(t))),
+            );
+          }
+        }}
         visibleTypes={visibleTypes}
         selectedTypes={selectedTypes}
         onToggleType={toggleType}
@@ -158,8 +178,8 @@ export default function ExplorePage() {
 
       {mode === "semantic" && query.length === 0 && !species && (
         <div className="mb-6 rounded-lg border border-coffee-200 bg-coffee-50 px-4 py-3 text-xs text-coffee-700">
-          Semantic search uses Gemini embeddings over varieties + flavor
-          attributes. Try:{" "}
+          Semantic search uses Gemini embeddings over varieties, flavors,
+          processing methods, shops, roasts and products. Try:{" "}
           {SEMANTIC_HINTS.map((h, i) => (
             <span key={h}>
               <button
