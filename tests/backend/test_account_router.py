@@ -185,3 +185,23 @@ def test_cross_user_isolation(client: TestClient) -> None:
     # Alice still has them.
     assert len(alice.get("/api/v1/account/favorites").json()) == 1
     assert len(alice.get("/api/v1/account/notes").json()) == 1
+
+
+def test_note_patch_explicit_null_notes_422(client: TestClient) -> None:
+    """An explicit "notes": null must 422 at validation, not reach Postgres —
+    the column is NOT NULL, and the NotNullViolation previously surfaced as an
+    unhandled 500."""
+    user = _new_user("nullnote@example.com")
+    add = user.post(
+        "/api/v1/account/notes",
+        json={"entity_type": "product", "entity_id": "p1", "notes": "Original"},
+    )
+    note_id = add.json()["id"]
+
+    res = user.patch(f"/api/v1/account/notes/{note_id}", json={"notes": None})
+    assert res.status_code == 422
+
+    # Nulling a nullable field (score) stays allowed.
+    ok = user.patch(f"/api/v1/account/notes/{note_id}", json={"score": None})
+    assert ok.status_code == 200
+    assert ok.json()["notes"] == "Original"

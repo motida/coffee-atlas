@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from backend.models._base import ReadModel
 
@@ -40,6 +40,16 @@ class CuppingNoteUpdate(BaseModel):
     notes: str | None = None
     score: float | None = Field(default=None, ge=0, le=100)
     brew_method: str | None = None
+
+    @field_validator("notes")
+    @classmethod
+    def _notes_not_null(cls, v: str | None) -> str | None:
+        # None here is only ever an explicit null in the payload (the validator
+        # doesn't run for the unset default). The column is NOT NULL, so reject
+        # with a 422 instead of letting Postgres raise into a 500.
+        if v is None:
+            raise ValueError("notes cannot be null; omit the field to leave it unchanged")
+        return v
 
 
 class CuppingNoteRead(CuppingNoteBase, ReadModel):
