@@ -14,10 +14,10 @@ import { AddCuppingNote } from "@/components/account/AddCuppingNote";
 import { FavoriteButton } from "@/components/account/FavoriteButton";
 import { Recommendations } from "@/components/explore/Recommendations";
 import { useEntityDetail } from "@/lib/hooks";
-import type { FlavorAttribute, Variety } from "@/lib/types";
+import type { Variety, VarietyFlavorLink } from "@/lib/types";
 
 export default function VarietyPage({ params }: { params: { id: string } }) {
-  const [flavors, setFlavors] = useState<FlavorAttribute[]>([]);
+  const [flavors, setFlavors] = useState<VarietyFlavorLink[]>([]);
   const { entity: variety, error } = useEntityDetail<Variety>(
     params.id,
     getVariety,

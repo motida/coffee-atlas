@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query
 
 from backend.db.columns import FLAVOR_COLS, prefixed
 from backend.db.connection import fetchall_dicts, get_db
+from backend.models.flavor import FlavorStrengthRead
 from backend.models.varieties import VarietyRead
 from backend.routers._helpers import fetchone_or_404, require_entity
 
@@ -41,7 +42,7 @@ def get_variety(variety_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
     )
 
 
-@router.get("/{variety_id}/flavor")
+@router.get("/{variety_id}/flavor", response_model=list[FlavorStrengthRead])
 def get_variety_flavor(
     variety_id: str, db: duckdb.DuckDBPyConnection = Depends(get_db)
 ) -> list[dict[str, Any]]:
