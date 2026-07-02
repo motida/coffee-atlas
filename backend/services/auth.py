@@ -22,10 +22,11 @@ from psycopg.rows import DictRow
 from backend.config import settings
 from backend.db.pg import get_pg
 
-# FastAPI's Cookie(alias=...) needs a literal at definition time, so the cookie
-# name is a module constant here; settings.COOKIE_NAME (same default) is used on
-# the Set-Cookie side and shares this value.
-CA_SESSION_COOKIE = "ca_session"
+# A valid bcrypt hash of no account's password, compared against when a login
+# email is unknown so bcrypt runs on both paths — otherwise the unknown-email
+# 401 returns in ~2ms vs ~200ms for a known email, and response latency
+# enumerates registered addresses.
+DUMMY_PASSWORD_HASH = "$2b$12$lPplaZDwFTtkW3yxev5JpOYizKlC6TRo1UycSIal6EVV4SBROr1Z2"
 
 # Client-facing user columns — never includes password_hash.
 _USER_COLS: LiteralString = "id, email, display_name, is_active, created_at, updated_at"
@@ -107,7 +108,7 @@ def _load_active_user(pg: psycopg.Connection[DictRow], user_id: str) -> dict[str
 
 def get_current_user(
     pg: psycopg.Connection[DictRow] = Depends(get_pg),
-    token: str | None = Cookie(default=None, alias=CA_SESSION_COOKIE),
+    token: str | None = Cookie(default=None, alias=settings.COOKIE_NAME),
 ) -> dict[str, Any]:
     """FastAPI dependency: the authenticated user row, or 401."""
     if not token:
@@ -120,7 +121,7 @@ def get_current_user(
 
 def get_current_user_optional(
     pg: psycopg.Connection[DictRow] = Depends(get_pg),
-    token: str | None = Cookie(default=None, alias=CA_SESSION_COOKIE),
+    token: str | None = Cookie(default=None, alias=settings.COOKIE_NAME),
 ) -> dict[str, Any] | None:
     """Like ``get_current_user`` but returns None instead of raising 401."""
     if not token:

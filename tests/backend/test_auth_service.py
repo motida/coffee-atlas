@@ -73,3 +73,25 @@ def test_validate_jwt_secret_rejects_empty_or_weak(
     monkeypatch.setattr(settings, "JWT_SECRET", weak)
     with pytest.raises(RuntimeError):
         auth.validate_jwt_secret()
+
+
+def test_dummy_password_hash_is_valid_bcrypt():
+    """The login timing equalizer must be a real bcrypt hash: verify runs
+    without raising and matches no password."""
+    from backend.services.auth import DUMMY_PASSWORD_HASH, verify_password
+
+    assert verify_password("anything", DUMMY_PASSWORD_HASH) is False
+
+
+def test_cookie_read_alias_matches_settings():
+    """The Set-Cookie side uses settings.COOKIE_NAME; the read side must bind
+    the same name or setting the documented COOKIE_NAME env var silently
+    breaks every authenticated request."""
+    import inspect
+
+    from backend.config import settings
+    from backend.services.auth import get_current_user, get_current_user_optional
+
+    for dep in (get_current_user, get_current_user_optional):
+        token_param = inspect.signature(dep).parameters["token"]
+        assert token_param.default.alias == settings.COOKIE_NAME

@@ -11,6 +11,7 @@ from backend.config import settings
 from backend.db.pg import get_pg
 from backend.models.users import LoginRequest, UserCreate, UserRead
 from backend.services.auth import (
+    DUMMY_PASSWORD_HASH,
     create_access_token,
     get_current_user,
     hash_password,
@@ -74,7 +75,12 @@ def login(
             [body.email],
         )
         row = cur.fetchone()
-    if row is None or not verify_password(body.password, row["password_hash"]):
+    # Verify against a dummy hash when the email is unknown, so bcrypt runs on
+    # both paths and response latency doesn't enumerate registered addresses.
+    password_ok = verify_password(
+        body.password, row["password_hash"] if row else DUMMY_PASSWORD_HASH
+    )
+    if row is None or not password_ok:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     _set_session_cookie(response, row["id"])
     return row
