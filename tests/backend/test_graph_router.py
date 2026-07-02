@@ -139,3 +139,31 @@ def test_path_404_when_disconnected(client):
 def test_path_404_for_unknown_id(client):
     r = client.get("/api/v1/graph/path", params={"start_id": "c1", "end_id": "nope"})
     assert r.status_code == 404
+
+
+def test_traverse_node_budget_truncates(client, monkeypatch):
+    """The server-side work budget must stop a traversal that would otherwise
+    fan out unbounded (depth alone doesn't cap cost on high-degree nodes) and
+    flag the response as truncated."""
+    import backend.routers.graph as graph_router
+
+    monkeypatch.setattr(graph_router, "MAX_TRAVERSE_NODES", 2)
+    r = client.get("/api/v1/graph/traverse", params={"start_id": "c1", "max_depth": 5})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["truncated"] is True
+    assert len(data["nodes"]) <= 2
+
+
+def test_traverse_within_budget_not_truncated(client):
+    r = client.get("/api/v1/graph/traverse", params={"start_id": "c1", "max_depth": 5})
+    assert r.json()["truncated"] is False
+
+
+def test_path_budget_exhausted_404(client, monkeypatch):
+    import backend.routers.graph as graph_router
+
+    monkeypatch.setattr(graph_router, "MAX_PATH_VISITED", 1)
+    r = client.get("/api/v1/graph/path", params={"start_id": "c1", "end_id": "flav1"})
+    assert r.status_code == 404
+    assert "budget" in r.json()["detail"]

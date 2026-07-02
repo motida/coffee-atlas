@@ -18,6 +18,8 @@ class GraphEdge(BaseModel):
 class TraversalResult(BaseModel):
     nodes: list[GraphNode]
     edges: list[GraphEdge]
+    # True when the server-side node/edge budget stopped the traversal early.
+    truncated: bool = False
 
 
 class PathResult(BaseModel):

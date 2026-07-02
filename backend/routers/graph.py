@@ -179,6 +179,15 @@ EDGES: list[EdgeDef] = [
     ),
 ]
 
+# Server-side work budget. Depth alone doesn't bound cost: the shop/product
+# edge tables fan a depth-5 sweep from a well-connected country out to ~7k
+# nodes / 122k edges (~20 MB JSON, ~40k sequential queries) on this public,
+# unauthenticated endpoint. The UI requests depth 1-2; these caps keep any
+# single request bounded while leaving normal traversals untouched.
+MAX_TRAVERSE_NODES = 1000
+MAX_TRAVERSE_EDGES = 5000
+MAX_PATH_VISITED = 20_000
+
 
 def _lookup_node(conn: duckdb.DuckDBPyConnection, node_id: str) -> GraphNode | None:
     """Find which vertex table owns this id; return a GraphNode or None."""
@@ -261,11 +270,15 @@ def traverse_graph(
     edges_out: list[GraphEdge] = []
     frontier: deque[tuple[GraphNode, int]] = deque([(start, 0)])
 
-    while frontier:
+    truncated = False
+    while frontier and not truncated:
         current, depth = frontier.popleft()
         if depth >= max_depth:
             continue
         for neighbor, edge in _neighbors(db, current.id, current.entity_type, filter_set):
+            if len(visited) >= MAX_TRAVERSE_NODES or len(edges_out) >= MAX_TRAVERSE_EDGES:
+                truncated = True
+                break
             edge_key = (edge.source_id, edge.target_id, edge.edge_type)
             if edge_key not in seen_edges:
                 seen_edges.add(edge_key)
@@ -274,7 +287,7 @@ def traverse_graph(
                 visited[neighbor.id] = neighbor
                 frontier.append((neighbor, depth + 1))
 
-    return TraversalResult(nodes=list(visited.values()), edges=edges_out)
+    return TraversalResult(nodes=list(visited.values()), edges=edges_out, truncated=truncated)
 
 
 @router.get("/path", response_model=PathResult)
@@ -298,20 +311,25 @@ def find_path(
     nodes_seen: dict[str, GraphNode] = {start.id: start}
     frontier: deque[tuple[GraphNode, int]] = deque([(start, 0)])
 
-    while frontier:
+    truncated = False
+    while frontier and not truncated:
         current, depth = frontier.popleft()
         if depth >= max_depth:
             continue
         for neighbor, edge in _neighbors(db, current.id, current.entity_type, None):
             if neighbor.id in nodes_seen:
                 continue
+            if len(nodes_seen) >= MAX_PATH_VISITED:
+                truncated = True
+                break
             nodes_seen[neighbor.id] = neighbor
             parents[neighbor.id] = (current.id, edge)
             if neighbor.id == end_id:
                 return _reconstruct_path(start_id, end_id, parents, nodes_seen)
             frontier.append((neighbor, depth + 1))
 
-    raise HTTPException(status_code=404, detail="no path found")
+    detail = "no path found within the search budget" if truncated else "no path found"
+    raise HTTPException(status_code=404, detail=detail)
 
 
 def _reconstruct_path(
