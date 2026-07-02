@@ -50,6 +50,18 @@ function qs(params: Record<string, QueryValue>): string {
   return s ? `?${s}` : "";
 }
 
+/** Thrown for non-2xx responses; carries the HTTP status so callers can
+ *  distinguish e.g. an expired session (401) from other failures. */
+export class APIError extends Error {
+  constructor(
+    public readonly status: number,
+    statusText: string,
+  ) {
+    super(`API error: ${status} ${statusText}`);
+    this.name = "APIError";
+  }
+}
+
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}/api/v1${endpoint}`;
   const res = await fetch(url, {
@@ -60,7 +72,7 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
     ...options,
   });
   if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
+    throw new APIError(res.status, res.statusText);
   }
   // 204 No Content (e.g. logout, delete) has no body to parse.
   if (res.status === 204) {

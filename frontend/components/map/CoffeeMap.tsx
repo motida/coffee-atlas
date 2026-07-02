@@ -117,6 +117,8 @@ export default function CoffeeMap() {
   // valid view. Used to auto-focus on the visitor's location once, without
   // overriding a restored position when navigating back into the map.
   const firstOpenRef = useRef(initialView === DEFAULT_VIEW);
+  // Guards fetchShops against out-of-order bbox responses (see fetchShops).
+  const shopsReqRef = useRef(0);
   const [zoom, setZoom] = useState(initialView.zoom);
   const [countries, setCountries] =
     useState<GeoJSONFeatureCollection<CountryGeoProperties> | null>(null);
@@ -145,10 +147,15 @@ export default function CoffeeMap() {
   const fetchShops = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
+    // Monotonic request id: every call (including a zoom-out that clears the
+    // layer) invalidates in-flight responses, so an out-of-order bbox result
+    // can't show shops for the wrong viewport or repopulate a cleared layer.
+    const myId = ++shopsReqRef.current;
     const zoom = map.getZoom();
     if (zoom < SHOPS_MIN_ZOOM) {
       setShops(null);
       setShopsCapped(false);
+      setShopsLoading(false);
       return;
     }
     const b = map.getBounds();
@@ -161,11 +168,14 @@ export default function CoffeeMap() {
     setShopsLoading(true);
     getShopsGeo(bbox, SHOPS_FETCH_LIMIT)
       .then((fc) => {
+        if (myId !== shopsReqRef.current) return;
         setShops(fc);
         setShopsCapped(fc.features.length >= SHOPS_FETCH_LIMIT);
       })
       .catch((e) => console.error("Failed to load shops:", e))
-      .finally(() => setShopsLoading(false));
+      .finally(() => {
+        if (myId === shopsReqRef.current) setShopsLoading(false);
+      });
   }, []);
 
   // On first open only, ask the browser for the visitor's real-time location

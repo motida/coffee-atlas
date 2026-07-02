@@ -15,10 +15,24 @@ export function useEntityDetail<T>(
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Reset on id change so a same-type navigation (variety -> variety) shows
+    // the loading state instead of the previous entity, and a past failure
+    // doesn't stick the page on its error view. The cancelled flag drops
+    // out-of-order responses from an earlier id.
+    let cancelled = false;
+    setEntity(null);
+    setError(null);
     fetchEntity(id)
-      .then(setEntity)
-      .catch((e) => setError(String(e)));
+      .then((e) => {
+        if (!cancelled) setEntity(e);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(String(e));
+      });
     loadRelated?.(id);
+    return () => {
+      cancelled = true;
+    };
     // Re-run only when the id changes; the fetch callbacks are recreated each
     // render and intentionally excluded.
     // eslint-disable-next-line react-hooks/exhaustive-deps
