@@ -253,6 +253,8 @@ export interface GraphEdge {
 export interface TraversalResult {
   nodes: GraphNode[];
   edges: GraphEdge[];
+  /** True when the server-side node/edge budget stopped the traversal early. */
+  truncated?: boolean;
 }
 
 export interface PathResult {
