@@ -22,13 +22,8 @@ class Settings(BaseSettings):
     COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
 
     GEMINI_API_KEY: str = ""
-    GOOGLE_PLACES_API_KEY: str = ""
-
-    BACKEND_PORT: int = 8000
-    FRONTEND_PORT: int = 3000
 
     ENABLE_EMBEDDINGS: bool = True
-    ENABLE_GRAPH: bool = True
 
 
 settings = Settings()

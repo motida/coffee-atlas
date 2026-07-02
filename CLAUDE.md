@@ -63,8 +63,9 @@ coffee-atlas/
 │   │   └── search.py                   # Semantic similarity search
 │   ├── services/
 │   │   ├── embeddings.py               # Gemini embedding generation
-│   │   ├── enrichment.py               # LLM-based entity extraction
-│   │   └── geocoding.py                # Geocoding service (provider TBD)
+│   │   ├── auth.py                     # bcrypt + JWT-cookie auth
+│   │   ├── recommendations.py          # Hybrid embedding+graph recommender
+│   │   └── geocoding.py                # Country centroids + Nominatim
 │   └── ingest/
 │       ├── cqi_loader.py               # Coffee Quality Institute data
 │       ├── wcr_varieties_loader.py     # World Coffee Research catalog
@@ -427,17 +428,15 @@ JWT_SECRET=                        # python -c "import secrets;print(secrets.tok
 COOKIE_SECURE=true                 # false for local http dev
 # JWT_ALGORITHM=HS256, ACCESS_TOKEN_TTL_MINUTES=10080, COOKIE_NAME=ca_session, COOKIE_SAMESITE=lax
 
-# APIs
+# APIs (leave empty for the documented text-search fallback)
 GEMINI_API_KEY=...
-GOOGLE_PLACES_API_KEY=...          # Optional, for shop data
 
-# Server
+# Server (BACKEND_PORT feeds `just dev-backend`; the frontend proxy reads
+# BACKEND_URL at build time, default http://localhost:8000)
 BACKEND_PORT=8000
-FRONTEND_PORT=3000
 
 # Feature flags
 ENABLE_EMBEDDINGS=true
-ENABLE_GRAPH=true
 
 # Ingest options (read at ingest time; optional)
 OVERTURE_RELEASE=2026-06-17.0      # Overture release for the shops stage (old releases age out of S3)
