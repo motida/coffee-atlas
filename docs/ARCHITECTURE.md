@@ -413,10 +413,10 @@ Stage  2: varieties               ─ WCR Web Catalog ────────�
 Stage  3: cqi                     ─ Kaggle CSV ──────────────▶ org_*, proc_methods (~1,300 rows)
 Stage  4: processing_descriptions ─ Curated prose ──────────▶ proc_methods.description
 Stage  5: processing_flavor       ─ Hand-mapped table ──────▶ edges_processing_flavor
-Stage  6: geocode                 ─ Nominatim + ISO centroids ▶ lat/lng on org_countries/regions
-Stage  7: shops                   ─ Overture Maps POI ───────▶ shop_shops   (network; skipped in bootstrap)
-Stage  8: descriptions            ─ Shop-homepage scrape ────▶ shop_shops.description (network; skipped in bootstrap)
-Stage  9: distribution            ─ ICO / FAOSTAT seed ──────▶ dist_*
+Stage  6: distribution            ─ ICO / FAOSTAT seed ──────▶ dist_* (before geocode: it adds importer-only countries)
+Stage  7: geocode                 ─ Nominatim + ISO centroids ▶ lat/lng on org_countries/regions
+Stage  8: shops                   ─ Overture Maps POI ───────▶ shop_shops   (network; skipped in bootstrap)
+Stage  9: descriptions            ─ Shop-homepage scrape ────▶ shop_shops.description (network; skipped in bootstrap)
 Stage 10: roasting                ─ Curated seed JSON ───────▶ roast_profiles, roast_roasters
 Stage 11: products                ─ Roaster catalog scrape ──▶ prod_products (network; skipped in bootstrap)
 Stage 12: roaster_locations       ─ Curated map + shop derive ▶ roast_roasters.location
