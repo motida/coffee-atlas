@@ -205,3 +205,22 @@ def test_semantic_search_falls_back_without_key(client, monkeypatch):
     assert results, "fallback should still surface text matches"
     # Text-search fallback carries no similarity score.
     assert all(row["similarity"] is None for row in results)
+
+
+def test_text_search_wildcards_match_literally(client, search_db):
+    """LIKE metacharacters in the query must match literally, not as wildcards.
+    '100%' previously matched every string containing '100'; '%' matched
+    everything."""
+    search_db.execute(
+        "INSERT INTO var_varieties (id, name, species) VALUES "
+        "('v100', '100% Bourbon', 'Arabica'), "
+        "('v100b', '100 Percent Kona', 'Arabica')"
+    )
+    hits = {r["id"] for r in client.get("/api/v1/search/text", params={"query": "100%"}).json()}
+    assert hits == {"v100"}
+    # A bare '%' matches only strings containing a literal percent sign,
+    # not everything.
+    hits = {r["id"] for r in client.get("/api/v1/search/text", params={"query": "%"}).json()}
+    assert hits == {"v100"}
+    # Underscore is literal too: 'SL_8' must not match 'SL28'.
+    assert client.get("/api/v1/search/text", params={"query": "SL_8"}).json() == []

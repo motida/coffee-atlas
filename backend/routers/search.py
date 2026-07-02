@@ -92,14 +92,17 @@ def text_search(
     if not sources:
         return []
 
-    pattern = f"%{query.lower()}%"
+    # Escape LIKE metacharacters so wildcards typed into the search box match
+    # literally ("100%" must not match every string containing "100").
+    escaped = query.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    pattern = f"%{escaped}%"
     per = _per_source_limit(limit, len(sources))
     rows: list[SearchResult] = []
     for entity_type, table, label_col, desc_col in sources:
-        match_clauses = [f"LOWER({label_col}) LIKE ?"]
+        match_clauses = [f"LOWER({label_col}) LIKE ? ESCAPE '\\'"]
         params: list[Any] = [pattern]
         if desc_col is not None:
-            match_clauses.append(f"LOWER(COALESCE({desc_col}, '')) LIKE ?")
+            match_clauses.append(f"LOWER(COALESCE({desc_col}, '')) LIKE ? ESCAPE '\\'")
             params.append(pattern)
         where = f"({' OR '.join(match_clauses)})"
         if species is not None:
