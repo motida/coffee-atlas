@@ -141,6 +141,56 @@ def test_reingest_preserves_enrichment(db, fixture_csvs):
     assert len(embedding) == 3072
 
 
+def test_reingest_preserves_other_stages_rows(db, fixture_csvs):
+    """A standalone cqi re-run must not destroy whole rows owned by other
+    stages: importer-only countries from the distribution stage, and the
+    processing_flavor / graph stages' edge tables (deleted for FK order but
+    never rebuilt here). Regression for the org_countries wipe that left
+    dist_importers/dist_trade_routes referencing deleted rows."""
+    arabica, robusta = fixture_csvs
+    load_cqi_data(conn=db, arabica_path=arabica, robusta_path=robusta)
+
+    # Simulate the distribution stage adding an importer-only country, and the
+    # processing_flavor / graph stages seeding their edge tables.
+    db.execute(
+        "INSERT INTO org_countries (id, name, latitude, longitude) "
+        "VALUES ('c-de', 'Germany', 51.16, 10.45)"
+    )
+    db.execute("INSERT INTO flav_attributes (id, name) VALUES ('f1', 'Floral')")
+    db.execute("INSERT INTO prod_products (id, name) VALUES ('p1', 'Yirgacheffe Lot 1')")
+    method_id = db.execute("SELECT id FROM proc_methods WHERE name = 'Washed / Wet'").fetchone()[0]
+    country_id = db.execute("SELECT id FROM org_countries WHERE name = 'Ethiopia'").fetchone()[0]
+    region_id = db.execute("SELECT id FROM org_regions WHERE name = 'Yirgacheffe'").fetchone()[0]
+    db.execute(
+        "INSERT INTO edges_processing_flavor (id, method_id, flavor_id, effect) "
+        "VALUES ('e1', ?, 'f1', 'enhances')",
+        [method_id],
+    )
+    db.execute(
+        "INSERT INTO edges_product_country (id, product_id, country_id) VALUES ('e2', 'p1', ?)",
+        [country_id],
+    )
+    db.execute(
+        "INSERT INTO edges_product_region (id, product_id, region_id) VALUES ('e3', 'p1', ?)",
+        [region_id],
+    )
+
+    load_cqi_data(conn=db, arabica_path=arabica, robusta_path=robusta)
+
+    assert db.execute(
+        "SELECT name, latitude, longitude FROM org_countries WHERE id = 'c-de'"
+    ).fetchone() == ("Germany", 51.16, 10.45)
+    assert db.execute(
+        "SELECT method_id, flavor_id, effect FROM edges_processing_flavor WHERE id = 'e1'"
+    ).fetchone() == (method_id, "f1", "enhances")
+    assert db.execute(
+        "SELECT product_id, country_id FROM edges_product_country WHERE id = 'e2'"
+    ).fetchone() == ("p1", country_id)
+    assert db.execute(
+        "SELECT product_id, region_id FROM edges_product_region WHERE id = 'e3'"
+    ).fetchone() == ("p1", region_id)
+
+
 def test_processing_method_categorized(db, fixture_csvs):
     arabica, robusta = fixture_csvs
     load_cqi_data(conn=db, arabica_path=arabica, robusta_path=robusta)
