@@ -19,13 +19,6 @@ def get_connection() -> duckdb.DuckDBPyConnection:
     return conn
 
 
-def get_memory_connection() -> duckdb.DuckDBPyConnection:
-    """Create an in-memory DuckDB connection (for testing)."""
-    conn = duckdb.connect(":memory:")
-    _load_extensions(conn)
-    return conn
-
-
 # INSTALL outcome, attempted once per process: None = not yet tried. INSTALL
 # hits the filesystem (and the extension repo on a cold cache), so retrying it
 # on every request-scoped connection added a doomed network round-trip per
