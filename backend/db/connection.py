@@ -26,14 +26,34 @@ def get_memory_connection() -> duckdb.DuckDBPyConnection:
     return conn
 
 
+# INSTALL outcome, attempted once per process: None = not yet tried. INSTALL
+# hits the filesystem (and the extension repo on a cold cache), so retrying it
+# on every request-scoped connection added a doomed network round-trip per
+# request — previously made worse by also trying "pgq", which isn't the
+# extension's name (it's "duckpgq", parked: the community build crashes on
+# DuckDB 1.5.1; graph endpoints BFS the edge tables instead).
+_vss_installed: bool | None = None
+
+
 def _load_extensions(conn: duckdb.DuckDBPyConnection) -> None:
-    """Install and load DuckDB extensions (VSS, PGQ)."""
-    for ext in ("vss", "pgq"):
+    """Load the VSS extension: INSTALL once per process, LOAD per connection.
+
+    VSS is optional today — semantic search uses the built-in
+    array_cosine_similarity; the extension is only needed once HNSW indexing
+    lands — so every failure is non-fatal.
+    """
+    global _vss_installed
+    if _vss_installed is None:
         try:
-            conn.execute(f"INSTALL {ext}")
-            conn.execute(f"LOAD {ext}")
+            conn.execute("INSTALL vss")
+            _vss_installed = True
         except Exception:
-            pass  # Extension may not be available in all environments
+            _vss_installed = False
+    if _vss_installed:
+        try:
+            conn.execute("LOAD vss")  # per-connection, local, no network
+        except Exception:
+            pass
 
 
 def get_db() -> Generator[duckdb.DuckDBPyConnection, None, None]:
