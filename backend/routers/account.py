@@ -44,11 +44,39 @@ _NOTE_COLS: LiteralString = (
 _NOTE_UPDATABLE = {"notes", "score", "brew_method"}
 
 
+def _attach_entity_names(
+    db: duckdb.DuckDBPyConnection, favorites: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Set each favorite's ``name`` from its entity's DuckDB table.
+
+    Favorites store only ``(entity_type, entity_id)`` — the display name lives
+    in DuckDB, where a cross-database join can't reach it. Batched: one query
+    per distinct entity_type, not per favorite. A favorite whose entity has
+    vanished (content reload) or whose type is no longer supported keeps
+    ``name = None``; the frontend falls back to the id.
+    """
+    ids_by_type: dict[str, list[str]] = {}
+    for fav in favorites:
+        ids_by_type.setdefault(fav["entity_type"], []).append(fav["entity_id"])
+    names: dict[tuple[str, str], str] = {}
+    for etype, ids in ids_by_type.items():
+        table = FAVORITE_ENTITY_TABLES.get(etype)
+        if table is None:
+            continue
+        placeholders = ", ".join("?" for _ in ids)
+        rows = db.execute(f"SELECT id, name FROM {table} WHERE id IN ({placeholders})", ids)
+        names.update({(etype, rid): rname for rid, rname in rows.fetchall()})
+    for fav in favorites:
+        fav["name"] = names.get((fav["entity_type"], fav["entity_id"]))
+    return favorites
+
+
 # --- Favorites ---
 @router.get("/favorites", response_model=list[FavoriteRead])
 def list_favorites(
     entity_type: str | None = Query(None),
     user: dict[str, Any] = Depends(get_current_user),
+    db: duckdb.DuckDBPyConnection = Depends(get_db),
     pg: psycopg.Connection[DictRow] = Depends(get_pg),
 ) -> list[dict[str, Any]]:
     query: LiteralString = f"SELECT {_FAV_COLS} FROM usr_favorites WHERE user_id = %s"
@@ -59,7 +87,7 @@ def list_favorites(
     query += " ORDER BY created_at DESC"
     with pg.cursor() as cur:
         cur.execute(query, params)
-        return cur.fetchall()
+        return _attach_entity_names(db, cur.fetchall())
 
 
 @router.post("/favorites", response_model=FavoriteRead, status_code=201)
@@ -90,7 +118,7 @@ def add_favorite(
             )
             row = cur.fetchone()
     assert row is not None  # either freshly inserted or the pre-existing row
-    return row
+    return _attach_entity_names(db, [row])[0]
 
 
 @router.delete("/favorites/{favorite_id}", status_code=204)

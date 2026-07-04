@@ -317,6 +317,8 @@ export interface Favorite {
   user_id: string;
   entity_type: string;
   entity_id: string;
+  // Resolved server-side from the content DB; null if the entity vanished.
+  name: string | null;
   created_at: string;
 }
 

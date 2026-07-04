@@ -18,6 +18,10 @@ class FavoriteRead(BaseModel):
     user_id: str
     entity_type: str
     entity_id: str
+    # Display name resolved from the entity's DuckDB table at read time (not
+    # stored in Postgres). None when the entity no longer exists after a
+    # content reload.
+    name: str | None = None
     created_at: datetime
 
 

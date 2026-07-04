@@ -56,6 +56,7 @@ def test_favorite_crud_and_idempotency(client: TestClient) -> None:
     assert add.status_code == 201
     fav_id = add.json()["id"]
     assert add.json()["entity_type"] == "variety"
+    assert add.json()["name"] == "Geisha"  # display name resolved from DuckDB
 
     # Idempotent: same (type, id) returns the same row, no duplicate.
     again = user.post(
@@ -67,6 +68,7 @@ def test_favorite_crud_and_idempotency(client: TestClient) -> None:
     listed = user.get("/api/v1/account/favorites")
     assert listed.status_code == 200
     assert len(listed.json()) == 1
+    assert listed.json()[0]["name"] == "Geisha"
 
     # Filter by entity_type.
     assert len(user.get("/api/v1/account/favorites?entity_type=variety").json()) == 1

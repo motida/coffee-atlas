@@ -56,15 +56,16 @@ export default function AccountPage() {
           <CardGrid>
             {favorites.map((fav) => {
               const href = entityHref(fav.entity_type, fav.entity_id);
-              const title = fav.entity_type;
+              const title = fav.name ?? fav.entity_id;
+              const subtitle = fav.entity_type.replace("_", " ");
               return (
                 <div key={fav.id} className="relative">
                   {href ? (
-                    <EntityCard href={href} title={title} subtitle={fav.entity_id} />
+                    <EntityCard href={href} title={title} subtitle={subtitle} />
                   ) : (
                     <div className="rounded-lg border border-coffee-200 bg-white px-4 py-3">
                       <div className="text-sm font-medium text-coffee-900">{title}</div>
-                      <div className="mt-0.5 text-xs text-gray-500">{fav.entity_id}</div>
+                      <div className="mt-0.5 text-xs text-gray-500">{subtitle}</div>
                     </div>
                   )}
                   <button
