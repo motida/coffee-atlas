@@ -45,7 +45,8 @@ deploy/huggingface/.staging/
 
 # Environment
 .env
-.env.local
+.env.*
+!.env.example
 .direnv/
 
 # IDE
