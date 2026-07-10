@@ -567,3 +567,21 @@ https://windowseatcoffee.com
 https://wrcoffee.com
 https://zabcafe.com
 https://zennorcoffee.co.uk
+
+# Batch — Oslo, added 2026-07-14. Verified (HTTP 200 + coffee products in the
+# catalog endpoint). Shopify unless noted. Fuglen's Oslo storefront is
+# fuglencoffee.no (fuglencoffee.jp above is the Tokyo branch); Solberg & Hansen
+# serve their shop from the .com domain; Stockfleths is WooCommerce.
+https://timwendelboe.no
+https://fuglencoffee.no
+https://srw.no
+https://kaffa.no
+https://solberghansen.com
+https://stockfleths.no
+
+# Oslo batch 2 — promoted from roaster_discovery 2026-07-14 (annotations in the
+# staging file; catalogs re-verified by hand). Temperato was left staged: it is
+# an espresso-machine retailer, not a roaster.
+https://hibikaffe.no
+https://lippe.no
+https://nordoslo.no

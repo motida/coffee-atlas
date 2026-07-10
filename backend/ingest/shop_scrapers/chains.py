@@ -65,6 +65,24 @@ _NONSPECIALTY_CHAIN_NAMES: tuple[str, ...] = (
     "Roladin",
     "Cafe Cafe",
     "Cafécafé",
+    # Norway (Oslo coverage). Nordic mass-market coffee chains, kiosk brands
+    # that sell coffee, and the large Oslo bakery-café chains (their meta
+    # descriptions mention "bakery"/"coffee", which passes the description
+    # keyword filter). Kaffebrenneriet roasts in-house but is a ~30-branch
+    # commercial chain — the Peet's of Oslo, not a specialty café.
+    "Espresso House",
+    "Wayne's Coffee",
+    "Waynes Coffee",
+    "Kaffebrenneriet",
+    "Deli de Luca",
+    "Narvesen",
+    "Baker Hansen",
+    "W.B. Samson",
+    "WB Samson",
+    "United Bakeries",
+    "Godt Brød",
+    "Backstube",
+    "Jordbærpikene",
 )
 
 _SPECIALTY_CHAIN_NAMES: tuple[str, ...] = (
@@ -128,6 +146,20 @@ _NONSPECIALTY_CHAIN_DOMAINS: tuple[str, ...] = (
     "gongcha.co.jp",  # bubble-tea chain
     "deandeluca.co.jp",
     "italiantomato.co.jp",
+    # Norway — Oslo coverage. Latin names make the name list do most of the
+    # work; the domains below catch branches whose POI name is a location
+    # variant ("Espresso House Storo") linking the shared chain homepage.
+    "espressohouse.com",
+    "waynescoffee.no",
+    "kaffebrenneriet.no",
+    "delideluca.no",
+    "narvesen.no",
+    "bakerhansen.no",
+    "wbsamson.no",
+    "unitedbakeries.no",
+    "godtbrod.no",
+    "backstube.no",
+    "jordbaerpikene.no",
 )
 
 # Social / review-aggregator / blog platforms. When a shop's only listed
