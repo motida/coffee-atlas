@@ -68,7 +68,17 @@ _NON_COFFEE_TITLE = re.compile(
     r"glass\s?ware|shot\s+glass|measuring|lids?|sleeves?|"
     r"hot\s+cups?|cold\s+cups?|paper\s+cups?|tamp(?:ing)?\s+mat|drip\s+mat|"
     r"rinza|tablets?|to-?go|cap|hat|crewneck|long\s+sleeve|trucker|keep\s?cup|"
-    r"gift\s+card|e-?gift|matcha|cupping)\b",
+    r"gift\s+card|e-?gift|matcha|cupping|"
+    # paper filters / filter baskets ("filter" alone is a roast style, so only
+    # these compound forms are safe to hard-block)
+    r"paper\s+filters?|filter\s+baskets?|filter\s+papers?|masking\s+tape|"
+    # Norwegian gear/merch (Oslo roasters: KAFFA, Stockfleths, Lippe sell
+    # machines, grinders and drinkware whose names never match the English
+    # terms above). Stem-matched because Norwegian compounds: "espressomaskin",
+    # "kaffekvern", "termokanne", "gjenbrukskopp", "presskanne".
+    r"\w*maskin\w*|\w*kvern\w*|\w*kanner?|\w*kopps?|kaffefilter\w*|"
+    r"gavekort|plakat\w*|n[øo]kkelring\w*|reservedel\w*|utstyr\w*|"
+    r"rengj[øo]r\w*|avkalk\w*|teposer|l[øo]svekt-te|mandler|sjokolade\w*)\b",
     re.I,
 )
 
@@ -311,6 +321,15 @@ _SITE_ROASTER_OVERRIDES: dict[str, str] = {
     "singleo.jp": "Single O Japan",
     "passagecoffee.com": "Passage Coffee",
     "woodberrycoffee.com": "Woodberry Coffee Roasters",
+    # Oslo (added 2026-07-14). Stockfleths is WooCommerce with no `brands` in
+    # the Store API, so without this it would display as a bare domain.
+    # Tim Wendelboe files most coffees under the vendor slug "tim-wendelboe-no",
+    # so the modal vendor is the slug, not the brand.
+    "stockfleths.no": "Stockfleths",
+    "timwendelboe.no": "Tim Wendelboe",
+    # WooCommerce-no-brands (would fall back to the bare domain).
+    "lippe.no": "Lippe Coffee Roastery",
+    "nordoslo.no": "Norð Oslo Brenneri",
 }
 
 

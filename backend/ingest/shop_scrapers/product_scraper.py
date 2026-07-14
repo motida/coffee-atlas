@@ -98,7 +98,16 @@ PROCESSES: dict[str, str] = {
 _NON_COFFEE = re.compile(
     r"\b(gift\s*card|grinder|kettle|dripper|carafe|mug|tumbler|t-?shirt|apparel|"
     r"tote|beanie|hat|sticker|book|hoodie|crewneck|subscription|"
-    r"vinyl|records?|albums?|wearables?)\b",
+    r"vinyl|records?|albums?|wearables?|"
+    # Norwegian gear/merch (Oslo roasters sell equipment alongside beans, and
+    # the English terms above never match "espressomaskin"/"kaffekvern").
+    # Compound-friendly: maskin/kvern/kanne/kopp are matched as stems because
+    # Norwegian glues them into "espressomaskin", "termokanne", "gjenbrukskopp".
+    r"\w*maskin\w*|\w*kvern\w*|\w*kanner?|\w*kopps?|kaffefilter\w*|"
+    r"gavekort|plakat\w*|n[øo]kkelring\w*|reservedel\w*|utstyr\w*|"
+    r"rengj[øo]r\w*|avkalk\w*|teposer|l[øo]svekt-te|mandler|sjokolade\w*|"
+    # English gear terms precise enough not to collide with filter-roast coffee
+    r"paper\s+filters?|filter\s+baskets?)\b",
     re.I,
 )
 

@@ -278,3 +278,40 @@ def test_woo_price_units():
     )
     assert _woo_price({"price": "0", "currency_minor_unit": 2}) is None  # $0 placeholder
     assert _woo_price({}) is None
+
+
+def test_looks_like_coffee_norwegian_gear_filtered():
+    """Norwegian equipment/merch names must be dropped. Regression: the Oslo
+    roasters (KAFFA, Stockfleths, Lippe) sell espresso machines, grinders and
+    cups whose Norwegian names slipped the English-only _NON_COFFEE list."""
+    from backend.ingest.shop_scrapers.product_scraper import looks_like_coffee
+
+    gear = [
+        "Rocket Appartamento TCA Espressomaskin Stål",
+        "Rocket Spluga Sort Espressokvern",
+        "Rancilio Silvia espressomaskin med sort Stile elektronisk kaffekvern og kaffe",
+        "Neo pakke med hvit termokanne",
+        "Presskanne glass 8 kopps Typica",
+        "Gjenbrukskopp liten (2,3 dl) hvit",
+        "Filtropa kaffefilter No. 4",
+        "KAFFA x Renate Thor Plakat Limited Edition Fruktig",
+        "Typica Nøkkelring Hellekanne Sølv",
+        "Stagg EKG (0.9L, EU, 220V) Reservedel Hellekanne",
+        "Abaca paper filters – trapezoid",
+        "VST Filter Basket",
+        "Sverre Sætre Drasjerte mandler med kakao",
+        "Trippel luksus med de fineste teposer fra Newby",
+    ]
+    for title in gear:
+        assert not looks_like_coffee(title, None, []), title
+
+    coffee = [
+        "Kaffebønner Peru La Palestina SL9 Økologisk",
+        "Kenya AA Rung'eto, 250g",
+        "Finca El Puente Geisha",
+        "Papua New Guinea - Madan Estate",
+        "Filter Roast — Ethiopia Chelbesa",
+        "Suke Quto 1 kilo bulk",
+    ]
+    for title in coffee:
+        assert looks_like_coffee(title, None, []), title

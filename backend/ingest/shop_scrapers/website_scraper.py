@@ -62,6 +62,11 @@ COFFEE_KEYWORDS = re.compile(
     r"barista|drip|pour\s*over|cold\s*brew|beans?|cup(?:ping)?|"
     r"bakery|pastry|pastries|tea\s*shop|tea\s*house|"
     r"breakfast|brunch|deli)\b"
+    # Norwegian (Oslo coverage; the stems also cover Danish/Swedish/German
+    # cognates). Prefix-anchored but suffix-open, because Norwegian compounds
+    # and definite articles extend the stem: "kaffebrenneri", "kaffebønner",
+    # "bakeriet", "espressomaskiner" — a trailing \b would miss all of these.
+    r"|\b(?:kaffe|brenneri|bakeri|konditori|espresso)\w*"
     r"|(?:קפה|אספרסו|"  # Hebrew: coffee, espresso
     r"コーヒー|珈琲|カフェ|エスプレッソ|焙煎|"  # Japanese: coffee, coffee, cafe, espresso, roast
     r"กาแฟ|คาเฟ่|เอสเพรสโซ)",  # Thai: coffee, cafe, espresso

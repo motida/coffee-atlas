@@ -362,3 +362,36 @@ def test_empty_records_no_crash(db):
     counts = load_products([], db)
     assert (counts.products, counts.roasters, counts.dropped_non_coffee) == (0, 0, 0)
     assert db.execute("SELECT COUNT(*) FROM prod_products").fetchone()[0] == 0
+
+
+def test_classify_coffee_norwegian_gear_and_filters():
+    """Load-time regression for the Oslo catalogs: Norwegian equipment names
+    ("espressomaskin", "kaffekvern") and paper-filter/filter-basket products
+    slipped the English-only title blocklist and entered prod_products."""
+    gear = [
+        "Rocket Appartamento TCA Espressomaskin Stål",
+        "Rocket Spluga Sort Espressokvern",
+        "Neo pakke med hvit termokanne",
+        "Presskanne glass 8 kopps Typica",
+        "Gjenbrukskopp liten (2,3 dl) hvit",
+        "Filtropa kaffefilter No. 4",
+        "KAFFA x Renate Thor Plakat Limited Edition Fruktig",
+        "Typica Nøkkelring Hellekanne Sølv",
+        "Abaca paper filters – trapezoid",
+        "VST Filter Basket",
+        "Peet's Paper Filters #4",
+        'Green Masking Tape - 3 Rolls - 1" Width',
+        "Trippel luksus med de fineste teposer fra Newby",
+    ]
+    for title in gear:
+        assert classify_coffee(title, None, []) is False, title
+
+    coffee = [
+        "Kaffebønner Peru La Palestina SL9 Økologisk",
+        "Kenya AA Rung'eto, 250g",
+        "Filter Roast — Ethiopia Chelbesa",
+        "Suke Quto 1 kilo bulk",
+        "Stockfleths Espresso 1 kilo bulk",
+    ]
+    for title in coffee:
+        assert classify_coffee(title, "Coffee", []) is True, title

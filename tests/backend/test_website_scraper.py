@@ -46,3 +46,30 @@ def test_load_done_ids_transient_then_ok(tmp_path, monkeypatch):
         ],
     )
     assert ws.load_done_ids("tokyo-jp") == {"s1"}
+
+
+def test_extract_description_norwegian_coffee_terms():
+    """Norwegian descriptions must pass the coffee-keyword filter. Regression:
+    the Oslo scrape dropped real specialty copy ("kaffebarkjede", "Kaffebønner
+    brent i Oslo") as junk because only English/Hebrew/Japanese/Thai terms
+    matched. Norwegian compounds extend the stem, so the match is suffix-open."""
+    cases = [
+        "Stockfleths er en lokal kaffebarkjede med kvalitetsfokus og lang historie",
+        "Solberg & Hansen kjøper kaffe av svært høy kvalitet direkte fra bønder",
+        "Et lite kaffebrenneri på Grünerløkka med egne kaffebønner",
+        "Håndverksbakeriet med konditori i sentrum",
+        "Vi selger espressomaskiner og bryggeutstyr",
+    ]
+    for text in cases:
+        html = f'<meta name="description" content="{text}">'
+        assert ws.extract_description(html, "Some Shop") == text, text
+
+
+def test_extract_description_still_drops_non_coffee():
+    """The Norwegian stems must not let non-coffee businesses through."""
+    for text in [
+        "Pizza levering din favoritt pizza i Oslo, overtidsmat og takeaway",
+        "En bar og arena for arkitektur og bykultur i 12. etasje i bygningen",
+    ]:
+        html = f'<meta name="description" content="{text}">'
+        assert ws.extract_description(html, "Some Shop") is None, text

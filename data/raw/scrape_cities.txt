@@ -101,6 +101,21 @@ Tel Aviv-Yafo,IL
 江戸川区,JP
 荒川区,JP
 
+# Oslo metro — loaded 2026-07-14 via OVERTURE_BBOX=10.40,59.75,11.10,60.05
+# (~545 shops). Overture stores the locality as plain "Oslo"; the suburbs
+# below are the larger surrounding localities inside the same bbox.
+Oslo,NO
+Sandvika,NO
+Lillestrøm,NO
+Asker,NO
+Strømmen,NO
+Lørenskog,NO
+Nesoddtangen,NO
+Kolbotn,NO
+Lysaker,NO
+Fornebu,NO
+Bekkestua,NO
+
 # Awaiting Overture shops coverage — the ingest bbox doesn't yet include
 # Thailand (only ~5 TH shops loaded), so these are no-ops until the shops
 # stage is re-run with a TH bbox.
