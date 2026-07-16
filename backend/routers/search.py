@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from backend.config import settings
 from backend.db.connection import get_db
 from backend.models.search import SearchResult
-from backend.services.embeddings import EmbeddingService
+from backend.services.embeddings import EmbeddingService, vector_param
 
 router = APIRouter(prefix="/api/v1/search", tags=["search"])
 
@@ -160,7 +160,7 @@ def semantic_search(
     for entity_type, table, label_col, desc_col, embedding_col in sources:
         cols = f"id, {label_col}" + (f", {desc_col}" if desc_col else "")
         where = f"{embedding_col} IS NOT NULL"
-        bind: list[Any] = [vector]
+        bind: list[Any] = [vector_param(vector)]
         if species is not None:
             where += " AND LOWER(species) = LOWER(?)"
             bind.append(species)

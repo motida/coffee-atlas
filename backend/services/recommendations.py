@@ -27,7 +27,7 @@ import psycopg
 from psycopg.rows import DictRow
 
 from backend.models.recommend import Recommendation
-from backend.services.embeddings import DIMENSIONS
+from backend.services.embeddings import DIMENSIONS, vector_param
 
 # How many embedding-nearest candidates to pull before graph re-ranking. Bounds
 # the graph leg's work to a small set (no full Cartesian product).
@@ -232,7 +232,7 @@ class RecommendationService:
         )
         # Param order must match placeholder order in the SQL text: centroid
         # (SELECT), seed_ids (WHERE id NOT IN (...)), then limit.
-        rows = db.execute(sql, [centroid, *seed_ids, limit]).fetchall()
+        rows = db.execute(sql, [vector_param(centroid), *seed_ids, limit]).fetchall()
         return [
             Recommendation(
                 id=row[0],
@@ -272,7 +272,7 @@ class RecommendationService:
             f"array_cosine_similarity({cfg.embedding_col}, ?::FLOAT[{DIMENSIONS}]) AS sim "
             f"FROM {cfg.table} WHERE {' AND '.join(where)} ORDER BY sim DESC LIMIT ?"
         )
-        rows = db.execute(sql, [seed_vec, entity_id, _CANDIDATE_POOL]).fetchall()
+        rows = db.execute(sql, [vector_param(seed_vec), entity_id, _CANDIDATE_POOL]).fetchall()
         return {row[0]: row[-1] for row in rows}
 
     def _graph_overlap(

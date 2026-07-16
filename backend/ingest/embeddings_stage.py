@@ -24,7 +24,7 @@ from dataclasses import dataclass
 import duckdb
 
 from backend.ingest._common import managed_connection
-from backend.services.embeddings import Embedder, EmbeddingService
+from backend.services.embeddings import DIMENSIONS, Embedder, EmbeddingService, vector_param
 
 
 @dataclass(frozen=True)
@@ -173,8 +173,9 @@ def _fk_safe_write_back(
     try:
         for row_id, vector in id_vectors:
             conn.execute(
-                f"UPDATE {target.table} SET {target.embedding_col} = $1 WHERE id = $2",
-                [vector, row_id],
+                f"UPDATE {target.table} "
+                f"SET {target.embedding_col} = $1::FLOAT[{DIMENSIONS}] WHERE id = $2",
+                [vector_param(vector), row_id],
             )
     finally:
         for ref in refs:
