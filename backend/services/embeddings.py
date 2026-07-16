@@ -15,6 +15,18 @@ RATE_LIMIT_PAUSE = 60  # Seconds to wait on 429 before retrying
 MAX_RETRIES = 3
 
 
+def vector_param(vector: list[float]) -> str:
+    """Serialize an embedding for binding as a DuckDB query parameter.
+
+    The duckdb client's Python-list-to-value transform costs ~170 ms for a
+    3072-element vector — dwarfing the queries it feeds. Binding the vector
+    as an array-literal string and letting the SQL-side ``::FLOAT[N]`` cast
+    parse it is ~100x faster and yields identical values (repr round-trips
+    doubles exactly; the cast truncates to float32 either way).
+    """
+    return "[" + ",".join(map(repr, vector)) + "]"
+
+
 class Embedder(Protocol):
     def embed(self, text: str) -> list[float]: ...
     def embed_batch(self, texts: list[str]) -> list[list[float]]: ...
