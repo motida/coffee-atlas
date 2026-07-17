@@ -448,13 +448,23 @@ OVERTURE_BBOX=                     # xmin,ymin,xmax,ymax to scope the shops scra
 The hosted demo is split across two providers (not the local `docker-compose`):
 
 - **Frontend → Vercel**, auto-deployed from `main` (root directory `frontend/`).
-- **API → Hugging Face Space** (`motidav-coffee-atlas-api`). Backend *code*
-  auto-deploys on push to `main` via CI; *data/DB* changes ship via
-  `deploy/huggingface/deploy.sh`. Both frontends proxy `/api/v1/*` to the Space.
+- **API → Render** (Docker web service, free tier). Backend *code* auto-deploys
+  on push to `main` (Render watches the repo). The ~350 MB content DB is **not**
+  in git — it lives in the public HF **dataset** `motidav/coffee-atlas-db` and is
+  baked into the image at build time; *DB changes* ship by re-uploading it there
+  and rebuilding. See `deploy/render/README.md`. The frontend proxies `/api/v1/*`
+  to the Render URL via `BACKEND_URL`.
+
+> **Migrated off Hugging Face (2026-07).** HF now requires a PRO subscription to
+> host Docker Spaces on free `cpu-basic`, so the api Space was retired. The old
+> `deploy/huggingface/` tooling (`deploy.sh`, `push_api_space.py`,
+> `recreate_api_space.py`) is **dead** — do not run it; `recreate_api_space.py`
+> in particular deletes the Space before a create that now 402s. The web Space is
+> likewise superseded by Vercel.
 
 Next.js rewrites are baked at build time, so the backend URL is passed via the
-Dockerfile `BACKEND_URL` ARG (a runtime env var won't override the built
-manifest). See `deploy/huggingface/DEPLOY.md`.
+Vercel `BACKEND_URL` env at build (a runtime env var won't override the built
+manifest).
 
 ---
 
