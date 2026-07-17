@@ -1,5 +1,14 @@
 # Deploying Coffee Atlas to Hugging Face Spaces
 
+> ⚠️ **DEPRECATED (2026-07).** Hugging Face now requires a PRO subscription to
+> host Docker Spaces on free `cpu-basic`, so Coffee Atlas no longer deploys here.
+> **The API runs on Render** (`deploy/render/README.md`) and the frontend on
+> Vercel. Everything below is retained for historical reference only. Do **not**
+> run `deploy.sh` / `push_api_space.py` / `recreate_api_space.py` — the api Space
+> is deleted, and `recreate_api_space.py` deletes-then-recreates, but the recreate
+> now fails with `402 Payment Required`.
+
+
 Two free Docker Spaces, one per service:
 
 | Space | Role | Port | Persistent? |

@@ -1,0 +1,32 @@
+# Render Blueprint for the Coffee Atlas API (Docker web service).
+#
+# Deploy: on render.com → New → Blueprint → connect this GitHub repo. Render
+# reads this file, builds deploy/render/Dockerfile (which pulls the content DB
+# from the public HF dataset at build time), and prompts for the three secrets
+# below. See deploy/render/README.md for the full walkthrough.
+#
+# Free tier: the instance sleeps after ~15 min idle and cold-starts in ~1 min.
+# The DB is baked into the image, so a cold start does NOT re-download it.
+services:
+  - type: web
+    name: coffee-atlas-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./deploy/render/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Required at runtime for /api/v1/search/semantic to embed the incoming
+      # query (the stored row embeddings already ship in the DB). Without it,
+      # semantic search silently falls back to plain text (LIKE) search.
+      - key: GEMINI_API_KEY
+        sync: false
+      # Postgres user-data store (accounts, favorites, notes). Without it, the
+      # /auth/* and /account/* routes 503 but all content endpoints stay up.
+      - key: DATABASE_URL
+        sync: false
+      # Signs the session JWT. Required whenever DATABASE_URL is set, or auth
+      # breaks. Generate: python -c "import secrets;print(secrets.token_urlsafe(48))"
+      - key: JWT_SECRET
+        sync: false
