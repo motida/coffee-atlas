@@ -75,6 +75,55 @@ def test_classify_coffee_japanese_product_types():
     assert classify_coffee("ONIBUS オリジナル カップ＆ソーサー", "グッズ", []) is False
 
 
+def test_classify_coffee_gear_brands():
+    # 2026-07 frontier QA: machines, spare parts and scales titled with only the
+    # brand/model (no generic equipment word). Real titles from the catalogs.
+    assert classify_coffee("Acaia Pearl Model S", None, []) is False
+    assert classify_coffee("La Marzocco Group Gasket Replacement", None, []) is False
+    assert classify_coffee("Jura E8 Piano Black 15648", None, []) is False
+    assert classify_coffee("Yard Sale - Nuova Simonelli MDJ", None, []) is False
+    assert classify_coffee("Espresso Dosing Ring - 58mm - Magnetic", None, []) is False
+    assert classify_coffee("Keurig® K3550 Commercial  Brewing System", None, []) is False
+    assert classify_coffee("KEURIG（キューリグ）コーヒーメーカー BS300（W）", None, []) is False
+    # ...but coffees that brush against the new terms stay:
+    assert classify_coffee("Brazil Yellow Acaiá", None, []) is True  # the variety
+    assert classify_coffee("ROCKET FLOWER – HUVER CASTILLO", None, []) is True
+    assert classify_coffee("STEADY ESPRESSO BLEND", None, []) is True
+
+
+def test_classify_coffee_hebrew_gear():
+    # IL roasters (minuto, chiccodicaffe, tsukcafe, coffeeorg, ruthcoffee) sell
+    # machines, grinders, scales and accessories alongside beans; titles are
+    # Hebrew with the odd Latin brand. Real titles from the catalogs.
+    assert classify_coffee("מכונת קפה אוטומטית Jura E8 – שחור", None, []) is False
+    assert classify_coffee("מטחנת קפה | Mahlkönig E64 WS", None, []) is False
+    assert classify_coffee("משקל קפה – ACAIA Pearl", None, []) is False
+    assert classify_coffee("טבליות ניקוי למכונת קפה", None, []) is False
+    assert classify_coffee("כד הקצפה 350 מ״ל בצבע נירוסטה", None, []) is False
+    assert classify_coffee("ערכת מאצ׳ה מלאה ללא מעמד לבוחשן", None, []) is False
+    # ...and the beans themselves survive:
+    assert classify_coffee("פולי קפה גואטמלה - ג'יניין אנטיגואה פסטורל", None, []) is True
+    assert classify_coffee("אינדונזיה לואק (חדש!)", None, []) is True
+    assert classify_coffee("תערובת הבית של קפה ברזילי", None, []) is True
+
+
+def test_classify_coffee_apparel_and_drinkware_plurals():
+    # 2026-07 frontier QA: the singular \b terms let plurals through, and some
+    # merch had no term at all. Real titles from the loaded catalog.
+    assert classify_coffee("Cozy Coffee Socks", None, []) is False
+    assert classify_coffee("!VIVA! Tees - Black", None, []) is False
+    assert classify_coffee("Bumper Stickers", None, []) is False
+    assert classify_coffee("Big Felix Sweatshirt", None, []) is False
+    assert classify_coffee("!VIVA! Oversized Jumper - Black", None, []) is False
+    assert classify_coffee("Coffee Plant Enamel Pin", None, []) is False
+    assert classify_coffee("tokidoki Narwhal Keychain", None, []) is False
+    assert classify_coffee("Kinto OCT Cup & Saucer", None, []) is False
+    assert classify_coffee("ManCoCo Black 12oz Reusable Insulated Cup", None, []) is False
+    assert classify_coffee("Joy Jen Studio Art Prints (A4)", None, []) is False
+    # ...but a real coffee named "Sweater Weather" is NOT eaten by "sweater":
+    assert classify_coffee("Sweater Weather Seasonal Espresso", None, []) is True
+
+
 def test_load_counts_and_drops(db):
     counts = load_products(_records(), db)
     assert counts.products == 5  # 3 Verve + 2 Onyx coffees

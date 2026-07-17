@@ -60,8 +60,16 @@ _NON_COFFEE_TITLE = re.compile(
     r"moccamaster|technivorm|chemex|aeropress|kalita|hario|fellow|wilfa|"
     r"baratza|comandante|gooseneck|breville|gaggia|rancilio|profitec|lelit|"
     r"rocket\s*espresso|v60|"
-    r"mug|tumbler|tote|hoodie|t-?shirt|tee|beanie|candle|poster|sticker|"
-    r"kanteen|bottle|sock|"
+    r"mug|tumbler|tote|hoodie|t-?shirts?|tees|beanies?|candle|posters?|stickers?|"
+    r"kanteen|bottle|socks?|"
+    # Apparel / drinkware / merch the singular \b terms missed — plurals that
+    # escaped the word boundary ("Socks", "Tees", "Stickers") and genuinely
+    # absent items (sweatshirts, jumpers, cup-and-saucer sets, keychains, enamel
+    # pins, reusable cups, art prints). 2026-07 frontier QA. "sweater" is guarded
+    # so it doesn't eat the real "Sweater Weather" seasonal espresso.
+    r"sweat\s?shirts?|sweaters?(?!\s+weather)|jumpers?|cardigans?|crewnecks?|"
+    r"keychains?|key\s?rings?|enamel\s+pins?|saucers?|reusable\s+cups?|"
+    r"insulated\s+cups?|onesies?|art\s+prints?|"
     r"sampler|bundle|gifts?|sample\s*set|tasting\s*set|cleaning|sets?|"
     # café supplies, drinkware, apparel, cupping classes, non-coffee beverages
     r"pitcher|tongs|whisk|brush|funnel|spoon|towel|apron|magnet|opener|cambro|"
@@ -78,7 +86,26 @@ _NON_COFFEE_TITLE = re.compile(
     # "kaffekvern", "termokanne", "gjenbrukskopp", "presskanne".
     r"\w*maskin\w*|\w*kvern\w*|\w*kanner?|\w*kopps?|kaffefilter\w*|"
     r"gavekort|plakat\w*|n[øo]kkelring\w*|reservedel\w*|utstyr\w*|"
-    r"rengj[øo]r\w*|avkalk\w*|teposer|l[øo]svekt-te|mandler|sjokolade\w*)\b",
+    r"rengj[øo]r\w*|avkalk\w*|teposer|l[øo]svekt-te|mandler|sjokolade\w*|"
+    # Espresso-machine / grinder / barista-gear brand and part names (2026-07
+    # frontier QA: roaster storefronts list machines, spare parts and scales
+    # whose titles carry only the brand, so the generic equipment words above
+    # never fire — e.g. "Jura E8", "Acaia Pearl", "La Marzocco Group Gasket").
+    # NB: the Brazilian variety is spelled "Acaiá" and stays unblocked.
+    r"la\s*marzocco|la\s*pavoni|acaia|jura|de.?longhi|nuova\s*simonelli|"
+    r"mahlk[oö]nig|fiorenzato|macap|appartamento|gaskets?|percolator\w*|"
+    r"dosing|reservoir|brewing\s+system|water\s+filters?|descal\w*|"
+    r"milk\s+(?:system|container|pipe|cooler)|cool\s+control|cafiza|wdt|bwt|"
+    r"コーヒーメーカー|"
+    # Hebrew gear/merch (IL roasters sell machines, grinders, scales and
+    # accessories alongside beans; stem-matched like the Norwegian block):
+    # machine, grinder, frother, kettle, tablets, portafilter-handle, basket,
+    # kit, jug, bottle, stand, lid, shirt, ring, cleaning, frothing, thermos,
+    # water/paper filter, measuring cup, coffee scale.
+    r"מכונ\w*|מטחנ\w*|מקציף\w*|קומקום\w*|טבליות|ידית\w*|סלסל\w*|ערכת|"
+    r"כד|בקבוק\w*|מעמד\w*|מכסה|חולצ\w*|טבעת|ניקוי|הקצפה|תרמוס|"
+    r"פילטר\s+מים|פילטרים\s+נייר|ניירות\s+פילטר|כוס\s+(?:מדידה|שקילה)|"
+    r"משקל\s+(?:קפה|למדידת))\b",
     re.I,
 )
 
@@ -330,6 +357,76 @@ _SITE_ROASTER_OVERRIDES: dict[str, str] = {
     # WooCommerce-no-brands (would fall back to the bare domain).
     "lippe.no": "Lippe Coffee Roastery",
     "nordoslo.no": "Norð Oslo Brenneri",
+    # 2026-07 frontier QA (PR #83's promoted sites, loaded 2026-07-14): sites
+    # whose modal vendor resolved to a bare domain (Woo-no-brands / Shopify
+    # vendor unset), a placeholder ("vendor-unknown", "N/A"), a vendor slug, an
+    # origin country ("Colombia"), or a company legal name ("Gifize spa").
+    # Display names verified against each site's og:site_name / <title> on
+    # 2026-07-17.
+    "310coffee-store.com": "Ginza 310 Coffee",
+    "alchemycoffee.co.uk": "Alchemy Coffee",
+    "andytownsf.com": "Andytown Coffee Roasters",
+    "ascensiondallas.com": "Ascension Coffee",
+    "birdsandbeans.ca": "Birds and Beans Coffee Roasters",
+    "bruleriesfaro.com": "Brûleries FARO",
+    "buycoffeecanada.com": "Buy Coffee Canada",
+    "cafegransasso.com": "Café Gran Sasso",
+    "cafemoto.com": "Cafe Moto",
+    "cafepista.com": "Café Pista",
+    "caffecalabria.com": "Caffè Calabria",
+    "cakeandculture.co.uk": "Cake & Culture",
+    "canardcafe.com": "Canard Café",
+    "chiccodicaffe.co.il": "Chicco di Caffè",
+    "coffeeam.com": "CoffeeAM",
+    "coffeeorg.co": "Coffee Organization",
+    "coffeerepub.com": "Coffee Republic",
+    "cuveecoffee.com": "Cuvée Coffee",
+    "cyclingespresso.cc": "Cycling Espresso",
+    "delanyscoffee.com": "Delany's Coffee House",
+    "filicorizecchini.com": "Filicori Zecchini",
+    # Mid-rebrand: redirects to slowandsteady.coffee (in maintenance when
+    # checked); named for the historical brand until the new one is confirmed.
+    "graphcoffee.com": "Graph Coffee",
+    "graysferrycoffee.com": "Grays Ferry Coffee",
+    "greatpricedcoffee.co.uk": "Great Priced Coffee",
+    # Rebranded: guilttripcoffee.com now redirects to guilty.coffee.
+    "guilttripcoffee.com": "Guilty Coffee",
+    "holeinthewallcoffeeco.com": "Hole In The Wall Coffee Co",
+    "imperialcoffee.com": "Imperial Coffee",
+    "impresso.coffee": "Impresso Coffee",
+    "infuzedcafe.com": "Infuzed Cafe",
+    "jera-coffee.co.il": "Jera Coffee Shop",
+    "johnnybeans.com": "Johnny Beans Coffee",
+    "lacuissoncafe.com": "La Cussion Cafe",
+    "leodiscoffee.co.uk": "Leodis Coffee",
+    "meastelo.com": "Meastelo",
+    "minuto.co.il": "Minuto Coffee",
+    "moco575.com": "Moco 575",
+    "mokanco.com": "Moka & Co",
+    "mreion.com": "Mr Eion Coffee Roaster",
+    "mrphin.com": "Mr. Phin",
+    "nibblenq.com": "Nibble NQ",
+    "northstarroast.com": "North Star Coffee Roasters",
+    "novocoffee.com": "Novo Coffee",
+    "pabloscoffee.com": "Pablo's Coffee",
+    "papertrailbikecafe.com": "PAPERtrail Bike Cafe",
+    "patera.ca": "Patera Coffee Roasters",
+    "peppino-coffee.com": "Peppino Coffee Roaster",
+    "philoscreations5.com": "Kurios Coffee Roasting Co.",
+    "quarterhorsecoffee.com": "Quarterhorse Coffee",
+    "rwandabean.com": "Rwanda Bean",
+    "scrop-coffee-roasters.com": "Scrop Coffee Roasters",
+    "servantcoffee.com": "Servant Coffee",
+    "silverskincoffee.ie": "Silverskin Coffee Roasters",
+    "sols-coffee.com": "Sol's Coffee",
+    "speckledax.com": "Speckled Ax",
+    "tallioscoffee.com": "Tallio's Coffee & Tea",
+    "terracoffee.co.uk": "Terra Coffee",
+    "theartofcoffee.ie": "The Art of Coffee",
+    "thomsonscoffee.com": "Thomson's Coffee",
+    "trulyscrummy.com": "Truly Scrummy",
+    "tsukcafe.co.il": "Tsukcafe",
+    "weaverscoffee.com": "Weaver's Coffee & Tea",
 }
 
 
