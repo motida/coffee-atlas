@@ -294,7 +294,6 @@ https://barrettscoffee.com
 https://bbcr.ca
 https://bean2bean.com
 https://beannbean.com
-https://beanwise.ca
 https://beatnik.cafe
 https://beeswellnesscafe.com
 https://betterbuzzcoffee.com
@@ -309,7 +308,6 @@ https://bobbythecoffeeguy.ca
 https://boldstreetcoffee.co.uk
 https://boonaboona.co.uk
 https://boyerscoffee.com
-https://brewitboutique.ca
 https://bristolcoffeecompany.co.uk
 https://brownbagcoffeeandtea.com
 https://brownbear.co
@@ -318,7 +316,6 @@ https://bsquared.jp
 https://buunnicoffee.com
 https://buycoffeecanada.com
 https://cafebarista.ca
-https://cafecen.ie
 https://cafedelambre.com
 https://cafedemitasse.com
 https://cafegransasso.com
@@ -336,7 +333,6 @@ https://canardcafe.com
 https://cartelcoffeelab.com
 https://cavallinicoffee.com
 https://centralperk.com
-https://centrecafefix.ca
 https://centro-ut.com
 https://cgcoffee.co.uk
 https://chicagofrenchpress.com
@@ -383,7 +379,6 @@ https://edgcoffee.com
 https://empirecoffeetea.com
 https://equator.ca
 https://escape.cafe
-https://faemacanada.com
 https://fifthsip.com
 https://figarocoffeehouse.com
 https://figure8coffeepurveyors.com
@@ -414,7 +409,6 @@ https://hellodemello.com
 https://henryshouseofcoffee.com
 https://herbshousecoffee.com
 https://highbrewcoffee.com
-https://hitcoffee.co.uk
 https://imperialcoffee.com
 https://impresso.coffee
 https://indulgencecoffee.co.uk
@@ -525,7 +519,6 @@ https://silverskincoffee.ie
 https://smallplanescoffee.com
 https://sols-coffee.com
 https://speckledax.com
-https://sterns.co.il
 https://summermooncoffee.com
 https://sweetleaflic.com
 https://sweetsciencecoffee.com
