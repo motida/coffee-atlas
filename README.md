@@ -11,11 +11,14 @@ enabling discovery through relationships rather than flat search.
 ## Live Demo
 
 - **App:** <https://coffee-atlas-tau.vercel.app>
-- **API docs:** <https://motidav-coffee-atlas-api.hf.space/docs>
+- **API docs:** <https://coffee-atlas-api.onrender.com/docs>
 
 > The frontend is hosted on Vercel (auto-deployed from `main`). The API runs on
-> a free Hugging Face Space that sleeps after inactivity — the first request may
-> take ~30s to wake the container.
+> Render's free tier, which sleeps after ~15 min of inactivity — the first
+> request may take ~1 min to wake the container. The content DB is hosted in the
+> public Hugging Face dataset
+> [`motidav/coffee-atlas-db`](https://huggingface.co/datasets/motidav/coffee-atlas-db)
+> and baked into the API image at build time (see `deploy/render/README.md`).
 
 ## Stack
 

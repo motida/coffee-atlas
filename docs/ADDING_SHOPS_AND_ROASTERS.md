@@ -12,9 +12,10 @@ split (read-only DuckDB content vs. Postgres user data) see
 > **Where data lives.** Shops and roasters are content, so they go into the
 > read-only DuckDB store (`shop_shops`, `roast_roasters`, `prod_products`,
 > `edges_*`). None of this touches Postgres. After ingesting locally you ship
-> the rebuilt DB to the hosted API with `deploy/huggingface/deploy.sh` (see
-> [DEPLOY.md](../deploy/huggingface/DEPLOY.md)) — code changes auto-deploy, but
-> **data changes do not**.
+> the rebuilt DB by uploading it to the Hugging Face dataset
+> `motidav/coffee-atlas-db` and rebuilding the Render image (see "Shipping a
+> new DB" in [deploy/render/README.md](../deploy/render/README.md)) — code
+> changes auto-deploy, but **data changes do not**.
 
 ---
 
@@ -306,7 +307,9 @@ moves approved URLs into `data/raw/roaster_sites.txt`**. Then loop back to
 | A roaster's **location label** | `data/raw/roaster_locations.json` — add `"Name": "City, Country"` | `just ingest roaster_locations` |
 
 After any of these, re-run `graph` (and `specialty` if shops changed), then ship
-the rebuilt DB with `deploy/huggingface/deploy.sh`.
+the rebuilt DB: compact it (`backend/db/compact.py`), upload it to the
+`motidav/coffee-atlas-db` HF dataset, and rebuild the Render image (see
+"Shipping a new DB" in [deploy/render/README.md](../deploy/render/README.md)).
 
 ---
 
