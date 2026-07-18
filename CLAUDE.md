@@ -117,7 +117,7 @@ coffee-atlas/
 │   ├── backend/
 │   └── frontend/
 ├── deploy/
-│   └── huggingface/                    # HF Space scaffold (api + web) + deploy.sh
+│   └── huggingface/                    # Retired HF Space scaffold (api) + deploy.sh
 ├── justfile                            # Task runner (just bootstrap, just dev, ...)
 ├── docker-compose.yml
 ├── Dockerfile

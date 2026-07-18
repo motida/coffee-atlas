@@ -6,7 +6,9 @@
 > Vercel. Everything below is retained for historical reference only. Do **not**
 > run `deploy.sh` / `push_api_space.py` / `recreate_api_space.py` — the api Space
 > is deleted, and `recreate_api_space.py` deletes-then-recreates, but the recreate
-> now fails with `402 Payment Required`.
+> now fails with `402 Payment Required`. The `coffee-atlas-web` Space has also
+> been deleted and its `web/` scaffold removed from this directory — references
+> to either below are historical.
 
 
 Two free Docker Spaces, one per service:
