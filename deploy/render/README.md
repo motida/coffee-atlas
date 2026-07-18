@@ -29,12 +29,28 @@ API on **Render's free tier** instead (Docker web service, no credit card).
 3. **Deploy.** Render builds the image (pulling the DB from the dataset) and
    starts it. Watch the build log; the Dockerfile self-checks the DB
    (`DB OK: <n> products`) and fails the build if the download is bad.
-4. **Repoint the frontend.** In the Vercel project settings, set
-   `BACKEND_URL=https://coffee-atlas-api.onrender.com` (use the actual URL Render
-   assigns) and redeploy the frontend — Next.js bakes the rewrite target at build
-   time, so a redeploy is required (see the root `CLAUDE.md`).
+4. **Repoint the frontend.** Copy the service's real URL from the Render
+   dashboard. Render appends a random suffix, so it is **not**
+   `https://coffee-atlas-api.onrender.com` (the base name is only illustrative)
+   but something like `https://coffee-atlas-<suffix>.onrender.com`. Set
+   `BACKEND_URL` to that exact URL in the Vercel project settings and redeploy the
+   frontend — Next.js bakes the rewrite target at build time, so a redeploy is
+   required (see the root `CLAUDE.md`). Keep the origin private: `BACKEND_URL` is a
+   *sensitive* Vercel var and the browser only ever reaches the Vercel proxy, never
+   the Render host directly — so don't paste the real host into this repo.
 
-Verify: `https://<render-url>/health` → `{"status":"ok","accounts":"enabled"}`.
+Verify against the **real suffixed host**:
+`https://coffee-atlas-<suffix>.onrender.com/health` →
+`{"status":"ok","accounts":"enabled"}`.
+
+> **Gotcha — "Render is down" that isn't.** Hitting the bare
+> `coffee-atlas-api.onrender.com` (base name, no suffix) returns a fast 404 with
+> header `x-render-routing: no-server`. That means "no service exists at this
+> hostname" — **not** that the API is down (a sleeping free instance cold-starts
+> on request; it never returns `no-server`). Grab the real host from the Render
+> dashboard, or check liveness through the proxy at
+> `https://<vercel-app>/api/v1/varieties?limit=1` (a 200 confirms the origin is
+> up; the response carries `x-render-origin-server: uvicorn`).
 
 ## Shipping a new DB
 
