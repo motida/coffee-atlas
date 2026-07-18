@@ -1,0 +1,45 @@
+# Keeps the Render free-tier API from hibernating.
+#
+# Render free web services spin down after ~15 min with no inbound traffic and
+# then cold-start (~50s) on the next request. This workflow curls the API's
+# /health endpoint every ~10 min; each request counts as activity and resets the
+# idle timer, so the instance stays warm 24/7.
+#
+# One-time setup: set the repo secret RENDER_HEALTHCHECK_URL to the real Render
+# health URL, e.g. https://coffee-atlas-fyzq.onrender.com/health (the origin is
+# kept out of this public repo on purpose — the frontend reaches it via the
+# Vercel proxy). Until the secret is set, the job is a graceful no-op.
+#
+# Note: GitHub disables scheduled workflows after 60 days of repo inactivity; any
+# push re-enables it. GitHub's cron is also best-effort and can slip 10-20 min
+# under load, which is why the interval (10 min) sits well under the 15 min sleep.
+name: Heartbeat
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {} # the job only makes an outbound curl; it needs no repo scopes
+
+concurrency:
+  group: heartbeat
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Ping Render /health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping
+        env:
+          URL: ${{ secrets.RENDER_HEALTHCHECK_URL }}
+        run: |
+          if [ -z "$URL" ]; then
+            echo "::warning::RENDER_HEALTHCHECK_URL not set — skipping. Configure the repo secret to enable the heartbeat."
+            exit 0
+          fi
+          # Retry so a request that lands on a slept instance actively wakes it
+          # (a cold start can take ~50s) instead of failing the run.
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 20 --max-time 90 "$URL" \
+            && echo "heartbeat ok"
