@@ -1,37 +1,48 @@
 # Keeps the Render free-tier API from hibernating.
 #
 # Render free web services spin down after ~15 min with no inbound traffic and
-# then cold-start (~50s) on the next request. This workflow curls the API's
-# /health endpoint every ~10 min; each request counts as activity and resets the
-# idle timer, so the instance stays warm 24/7.
+# then cold-start (~50s) on the next request.
+#
+# Why a loop instead of a frequent cron: GitHub's scheduler is best-effort and
+# in practice throttles busy `*/N` schedules hard — the original `*/10` cron
+# here actually fired 1–3 hours apart, so the API slept between pings. Cron
+# cadence can't be trusted to stay under Render's 15-min idle window. Instead,
+# each run of this job pings /health every 4 minutes for ~5.7 h (just under the
+# 6 h job limit for GitHub-hosted runners), and the schedule only has to fire
+# once per ~6 h window to hand off to a fresh run — comfortably within even
+# worst-case cron slippage. The concurrency group cancels the old loop when a
+# new run starts, so exactly one pinger is alive; cancelled runs in the Actions
+# tab are expected hand-offs, not failures.
 #
 # One-time setup: set the repo secret RENDER_HEALTHCHECK_URL to the real Render
 # health URL, e.g. https://coffee-atlas-fyzq.onrender.com/health (the origin is
 # kept out of this public repo on purpose — the frontend reaches it via the
 # Vercel proxy). Until the secret is set, the job is a graceful no-op.
 #
-# Note: GitHub disables scheduled workflows after 60 days of repo inactivity; any
-# push re-enables it. GitHub's cron is also best-effort and can slip 10-20 min
-# under load, which is why the interval (10 min) sits well under the 15 min sleep.
+# Note: GitHub disables scheduled workflows after 60 days of repo inactivity;
+# any push re-enables it.
 name: Heartbeat
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    # Nominally every 3 h; the off-hour minute avoids the congested :00 slot.
+    # Only needs to land once per ~5.7 h loop for continuous coverage.
+    - cron: "23 */3 * * *"
   workflow_dispatch:
 
-permissions: {} # the job only makes an outbound curl; it needs no repo scopes
+permissions: {} # the job only makes outbound curls; it needs no repo scopes
 
 concurrency:
   group: heartbeat
-  cancel-in-progress: false
+  cancel-in-progress: true # new run takes over the loop; never two pingers
 
 jobs:
   ping:
-    name: Ping Render /health
+    name: Ping Render /health (loop)
     runs-on: ubuntu-latest
+    timeout-minutes: 355 # hard stop under the 6 h GitHub-hosted job cap
     steps:
-      - name: Ping
+      - name: Ping loop
         env:
           URL: ${{ secrets.RENDER_HEALTHCHECK_URL }}
         run: |
@@ -39,7 +50,18 @@ jobs:
             echo "::warning::RENDER_HEALTHCHECK_URL not set — skipping. Configure the repo secret to enable the heartbeat."
             exit 0
           fi
-          # Retry so a request that lands on a slept instance actively wakes it
-          # (a cold start can take ~50s) instead of failing the run.
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 20 --max-time 90 "$URL" \
-            && echo "heartbeat ok"
+          # Loop slightly shorter than timeout-minutes so we exit cleanly
+          # instead of being killed by the runner.
+          end=$((SECONDS + 345 * 60))
+          while [ "$SECONDS" -lt "$end" ]; do
+            # Retry so a request that lands on a slept instance actively wakes
+            # it (a cold start can take ~50s). A failed ping warns but keeps
+            # the loop alive — transient outages shouldn't stop the heartbeat.
+            if curl -fsS --retry 5 --retry-all-errors --retry-delay 20 --max-time 90 "$URL" >/dev/null; then
+              echo "$(date -u +%FT%TZ) heartbeat ok"
+            else
+              echo "::warning::$(date -u +%FT%TZ) heartbeat failed after retries"
+            fi
+            sleep 240 # 4 min between pings, well under Render's ~15 min idle timer
+          done
+          echo "loop window elapsed; next scheduled run takes over"
