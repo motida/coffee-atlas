@@ -10,6 +10,7 @@ class ProductBase(BaseModel):
     process: str | None = None
     is_blend: bool | None = None
     price: float | None = None
+    currency: str | None = None  # ISO 4217, e.g. "USD" / "NOK"; None = unknown
     net_weight_grams: int | None = None
     url: str | None = None
     description: str | None = None

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { formatPrice } from "@/lib/text";
 
 interface EntityPageProps {
   type: string;
@@ -108,13 +109,22 @@ interface ProductCardProps {
   /** When set, the roaster name renders as a link to its detail page. */
   roasterId?: string | null;
   price?: number | null;
+  /** ISO 4217 code the price is denominated in; null falls back to "$". */
+  currency?: string | null;
 }
 
 /** Product card whose body links to the product, but whose roaster name is a
  *  separate link to the roaster. Uses the stretched-link pattern (the card's
  *  ::after overlay) so the two targets don't nest anchors. */
-export function ProductCard({ href, title, roasterName, roasterId, price }: ProductCardProps) {
-  const priceText = price !== null && price !== undefined ? `$${price}` : null;
+export function ProductCard({
+  href,
+  title,
+  roasterName,
+  roasterId,
+  price,
+  currency,
+}: ProductCardProps) {
+  const priceText = formatPrice(price, currency);
   return (
     <div className="relative rounded-lg border border-coffee-200 bg-white px-4 py-3 transition hover:border-coffee-400 hover:bg-coffee-50">
       <Link

@@ -188,6 +188,74 @@ def derive_roaster_locations_from_shops(
     return counts
 
 
+# --------------------------------------------------------------------------
+# Source 3: derive product currency from the roaster's location country
+# --------------------------------------------------------------------------
+
+# Full country name (the last comma segment of roast_roasters.location, as the
+# curated map / ISO-normalized derive write it) → ISO 4217 currency. Only the
+# countries the frontier actually spans; an unlisted country leaves currency
+# NULL rather than guessing.
+_COUNTRY_CURRENCY: dict[str, str] = {
+    "United States": "USD",
+    "Canada": "CAD",
+    "United Kingdom": "GBP",
+    "Ireland": "EUR",
+    "Germany": "EUR",
+    "France": "EUR",
+    "Netherlands": "EUR",
+    "Belgium": "EUR",
+    "Austria": "EUR",
+    "Spain": "EUR",
+    "Italy": "EUR",
+    "Portugal": "EUR",
+    "Finland": "EUR",
+    "Denmark": "DKK",
+    "Norway": "NOK",
+    "Sweden": "SEK",
+    "Switzerland": "CHF",
+    "Israel": "ILS",
+    "Japan": "JPY",
+    "Australia": "AUD",
+    "New Zealand": "NZD",
+}
+
+
+def backfill_product_currency(
+    db_path: str | None = None,
+    conn: duckdb.DuckDBPyConnection | None = None,
+) -> int:
+    """Set prod_products.currency from the roaster's location country.
+
+    Scraped storefront prices are denominated in the store's own currency; the
+    scraper records it where the platform declares it, and the products loader
+    falls back to the site's ccTLD — but records scraped before the currency
+    field existed on a generic TLD (.com/.coffee) still land NULL. A roaster in
+    Japan prices in JPY, so its location country (filled by the two sources
+    above, which is why this runs third) closes most of that gap.
+
+    UPDATE-only and blank-filling: never overwrites a scraper-declared currency,
+    so a re-run after a fresh scrape is a no-op for those rows. Returns the
+    number of products updated.
+    """
+    with managed_connection(db_path, conn) as conn:
+        updated = 0
+        for country, currency in _COUNTRY_CURRENCY.items():
+            row = conn.execute(
+                """
+                UPDATE prod_products SET currency = ?, updated_at = now()
+                WHERE currency IS NULL AND price IS NOT NULL
+                  AND roaster_id IN (
+                      SELECT id FROM roast_roasters
+                      WHERE trim(split_part(location, ',', -1)) = ?
+                  )
+                """,
+                [currency, country],
+            ).fetchone()
+            updated += int(row[0]) if row else 0
+    return updated
+
+
 if __name__ == "__main__":
     curated = backfill_roaster_locations()
     print(f"Curated: filled {curated.updated} ({curated.already_set} already set)")
@@ -198,3 +266,5 @@ if __name__ == "__main__":
         f"Derived from shops: filled {derived.derived} "
         f"({derived.already_set} already set, {derived.unmatched} unmatched)"
     )
+    currencies = backfill_product_currency()
+    print(f"Currency from roaster location: filled {currencies} products")

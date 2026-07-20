@@ -20,7 +20,7 @@ import { AddCuppingNote } from "@/components/account/AddCuppingNote";
 import { FavoriteButton } from "@/components/account/FavoriteButton";
 import { Recommendations } from "@/components/explore/Recommendations";
 import { useEntityDetail } from "@/lib/hooks";
-import { titleCase } from "@/lib/text";
+import { formatPrice, titleCase } from "@/lib/text";
 import type { FlavorAttribute, Product, ProductOrigin, Variety } from "@/lib/types";
 
 export default function ProductPage({ params }: { params: { id: string } }) {
@@ -82,7 +82,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           <Field label="Roast level" value={product.roast_level} />
           <Field label="Process" value={product.process} />
           <Field label="Type" value={kind} />
-          <Field label="Price" value={product.price !== null ? `$${product.price}` : null} />
+          <Field label="Price" value={formatPrice(product.price, product.currency)} />
           <Field
             label="Net weight"
             value={product.net_weight_grams !== null ? `${product.net_weight_grams} g` : null}

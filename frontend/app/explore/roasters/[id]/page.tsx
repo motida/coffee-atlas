@@ -12,6 +12,7 @@ import {
 } from "@/components/explore/EntityPage";
 import { FavoriteButton } from "@/components/account/FavoriteButton";
 import { useEntityDetail } from "@/lib/hooks";
+import { formatPrice } from "@/lib/text";
 import type { Product, Roaster } from "@/lib/types";
 
 export default function RoasterPage({ params }: { params: { id: string } }) {
@@ -70,7 +71,7 @@ export default function RoasterPage({ params }: { params: { id: string } }) {
               href={`/explore/products/${p.id}`}
               title={p.name}
               subtitle={
-                [p.is_blend ? "Blend" : "Single origin", p.price !== null ? `$${p.price}` : null]
+                [p.is_blend ? "Blend" : "Single origin", formatPrice(p.price, p.currency)]
                   .filter(Boolean)
                   .join(" · ") || undefined
               }

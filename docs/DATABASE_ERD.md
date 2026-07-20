@@ -178,6 +178,7 @@ erDiagram
         TEXT process
         BOOLEAN is_blend
         DOUBLE price
+        TEXT currency
         INTEGER net_weight_grams
         TEXT url
         TEXT description

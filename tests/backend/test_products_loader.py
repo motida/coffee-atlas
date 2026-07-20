@@ -14,6 +14,7 @@ def _rec(site: str, vendor: str, title: str, product_type: str | None, **kw: Any
         "product_type": product_type,
         "tags": kw.get("tags", []),
         "price": kw.get("price"),
+        "currency": kw.get("currency"),
         "net_weight_grams": kw.get("net_weight_grams"),
         "roast_level": kw.get("roast_level"),
         "process": kw.get("process"),
@@ -405,6 +406,58 @@ def test_classify_keeps_instant_coffee_type():
     # as long as its type is coffee — the new terms are type-only in the loader.
     assert classify_coffee("Long Player Blend", "Coffee", []) is True
     assert classify_coffee("Instant Coffee - Galactic Standard", "Coffee", []) is True
+
+
+def test_currency_from_record_stored(db):
+    # The scraper's currency is authoritative, whatever the site TLD says.
+    load_products(
+        [
+            _rec(
+                "https://timwendelboe.no",
+                "Tim Wendelboe",
+                "Finca Tamana",
+                "Coffee",
+                price=180.0,
+                currency="EUR",
+            )
+        ],
+        db,
+    )
+    assert db.execute("SELECT currency FROM prod_products").fetchone()[0] == "EUR"
+
+
+def test_currency_falls_back_to_cctld(db):
+    # Cache records that predate the scraper's currency field: a ccTLD names the
+    # store's country (and so its currency); a generic TLD stays NULL — unknown,
+    # not assumed USD.
+    load_products(
+        [
+            _rec("https://timwendelboe.no", "Tim Wendelboe", "Finca Tamana", "Coffee", price=180.0),
+            _rec("https://coffeecollective.dk", "Coffee Collective", "Kieni", "Coffee", price=20.0),
+            _rec(VERVE, "Verve Coffee", "Street Level", "Coffee", price=18.0),
+        ],
+        db,
+    )
+    rows = dict(
+        db.execute(
+            "SELECT r.website, p.currency FROM prod_products p "
+            "JOIN roast_roasters r ON p.roaster_id = r.id"
+        ).fetchall()
+    )
+    assert rows == {
+        "https://timwendelboe.no": "NOK",
+        "https://coffeecollective.dk": "DKK",
+        VERVE: None,
+    }
+
+
+def test_no_price_no_currency(db):
+    # A currency without a price denominates nothing — stays NULL even on a ccTLD.
+    load_products(
+        [_rec("https://timwendelboe.no", "Tim Wendelboe", "Finca Tamana", "Coffee")],
+        db,
+    )
+    assert db.execute("SELECT currency FROM prod_products").fetchone()[0] is None
 
 
 def test_empty_records_no_crash(db):

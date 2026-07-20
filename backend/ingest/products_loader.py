@@ -454,6 +454,41 @@ def _name_from_domain(site: str) -> str:
     return host.removeprefix("www.")
 
 
+# Country-code TLD → ISO 4217 currency, for scrape-cache records that predate
+# the scraper's `currency` field (the cache is resumable, so old records are
+# re-loaded verbatim and never re-scraped). A store on a ccTLD sells in that
+# country's currency; generic TLDs (.com/.coffee/...) stay None — unknown, not
+# assumed USD. Keyed by the final domain label, so .co.uk → "uk", .co.il → "il".
+_TLD_CURRENCY: dict[str, str] = {
+    "us": "USD",
+    "ca": "CAD",
+    "uk": "GBP",
+    "ie": "EUR",
+    "de": "EUR",
+    "fr": "EUR",
+    "nl": "EUR",
+    "be": "EUR",
+    "at": "EUR",
+    "es": "EUR",
+    "it": "EUR",
+    "pt": "EUR",
+    "fi": "EUR",
+    "no": "NOK",
+    "se": "SEK",
+    "dk": "DKK",
+    "ch": "CHF",
+    "il": "ILS",
+    "jp": "JPY",
+    "au": "AUD",
+    "nz": "NZD",
+}
+
+
+def _currency_from_site(site: str) -> str | None:
+    tld = _name_from_domain(site).rsplit(".", 1)[-1].lower()
+    return _TLD_CURRENCY.get(tld)
+
+
 def load_products(
     records: list[dict[str, Any]],
     conn: duckdb.DuckDBPyConnection,
@@ -498,6 +533,10 @@ def load_products(
         roasters[roaster_id] = (roaster_id, roaster_name, site or None)
 
         product_id = _uid("product", site, title)
+        price = rec.get("price")
+        # Scraper-declared currency wins; legacy cache records fall back to the
+        # site's ccTLD. No price → no currency to denominate.
+        currency = (rec.get("currency") or _currency_from_site(site)) if price is not None else None
         products[product_id] = (
             product_id,
             title,
@@ -505,7 +544,8 @@ def load_products(
             rec.get("roast_level"),
             rec.get("process"),
             rec.get("is_blend"),
-            rec.get("price"),
+            price,
+            currency,
             rec.get("net_weight_grams"),
             rec.get("url"),
             rec.get("description"),
@@ -529,8 +569,8 @@ def load_products(
             """
             INSERT INTO prod_products
                 (id, name, roaster_id, roast_level, process, is_blend, price,
-                 net_weight_grams, url, description)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 currency, net_weight_grams, url, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             list(products.values()),
         )

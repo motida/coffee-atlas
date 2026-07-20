@@ -152,6 +152,7 @@ class ScrapedProduct:
     product_type: str | None = None
     channel: str = "retail"  # "retail" | "wholesale"
     price: float | None = None
+    currency: str | None = None  # ISO 4217 code the price is denominated in
     net_weight_grams: int | None = None
     roast_level: str | None = None
     process: str | None = None
@@ -182,6 +183,16 @@ def _as_tag_list(tags: Any) -> list[str]:
 def _roaster_from_site(site_url: str) -> str:
     host = urlparse(site_url).netloc or site_url
     return host.removeprefix("www.")
+
+
+_CURRENCY_RE = re.compile(r"^[A-Za-z]{3}$")
+
+
+def normalize_currency(raw: Any) -> str | None:
+    """Validate a scraped currency value to an upper-case ISO 4217 code."""
+    if isinstance(raw, str) and _CURRENCY_RE.match(raw.strip()):
+        return raw.strip().upper()
+    return None
 
 
 def detect_roast_level(tags: list[str]) -> str | None:
@@ -246,8 +257,15 @@ def _price_and_grams(variants: Any) -> tuple[float | None, int | None]:
     return None, (min(weights) if weights else None)
 
 
-def parse_shopify_product(raw: dict[str, Any], site_url: str) -> ScrapedProduct | None:
-    """Normalize one Shopify product dict. Returns None for non-coffee items."""
+def parse_shopify_product(
+    raw: dict[str, Any], site_url: str, currency: str | None = None
+) -> ScrapedProduct | None:
+    """Normalize one Shopify product dict. Returns None for non-coffee items.
+
+    ``currency`` is store-wide, not per-product: /products.json prices are in the
+    shop's own currency but the payload never names it, so the fetch layer reads
+    it from the store's public /cart.js and passes it down here.
+    """
     title = (raw.get("title") or "").strip()
     if not title:
         return None
@@ -270,6 +288,7 @@ def parse_shopify_product(raw: dict[str, Any], site_url: str) -> ScrapedProduct 
         product_type=product_type,
         channel=_channel(product_type, tags),
         price=price,
+        currency=currency if price is not None else None,
         net_weight_grams=grams,
         roast_level=detect_roast_level(tags),
         process=detect_process(tags),
@@ -278,11 +297,13 @@ def parse_shopify_product(raw: dict[str, Any], site_url: str) -> ScrapedProduct 
     )
 
 
-def extract_shopify(payload: dict[str, Any], site_url: str) -> list[ScrapedProduct]:
+def extract_shopify(
+    payload: dict[str, Any], site_url: str, currency: str | None = None
+) -> list[ScrapedProduct]:
     """Normalize a Shopify /products.json payload into ScrapedProduct records."""
     out: list[ScrapedProduct] = []
     for raw in payload.get("products") or []:
-        product = parse_shopify_product(raw, site_url)
+        product = parse_shopify_product(raw, site_url, currency)
         if product is not None:
             out.append(product)
     return out
@@ -333,6 +354,13 @@ def _jsonld_price(offers: Any) -> float | None:
         return None
 
 
+def _jsonld_currency(offers: Any) -> str | None:
+    offer = offers[0] if isinstance(offers, list) and offers else offers
+    if not isinstance(offer, dict):
+        return None
+    return normalize_currency(offer.get("priceCurrency"))
+
+
 def _parse_jsonld_product(obj: dict[str, Any], site_url: str) -> ScrapedProduct | None:
     title = (obj.get("name") or "").strip()
     if not title:
@@ -347,6 +375,7 @@ def _parse_jsonld_product(obj: dict[str, Any], site_url: str) -> ScrapedProduct 
     elif isinstance(brand, str):
         roaster = brand.strip()
     text = f"{title} {description}"
+    price = _jsonld_price(obj.get("offers"))
     return ScrapedProduct(
         roaster=roaster or _roaster_from_site(site_url),
         title=title,
@@ -354,7 +383,8 @@ def _parse_jsonld_product(obj: dict[str, Any], site_url: str) -> ScrapedProduct 
         description=description,
         tags=[],
         channel="retail",
-        price=_jsonld_price(obj.get("offers")),
+        price=price,
+        currency=_jsonld_currency(obj.get("offers")) if price is not None else None,
         roast_level=_search_text(text, ROAST_LEVELS),
         process=_search_text(text, PROCESSES),
         is_blend=_BLEND_RE.search(text) is not None,
@@ -425,6 +455,13 @@ def _woo_price(prices: Any) -> float | None:
     return round(minor / divisor, 2)
 
 
+def _woo_currency(prices: Any) -> str | None:
+    """ISO code from the Store API's per-product `prices.currency_code`."""
+    if not isinstance(prices, dict):
+        return None
+    return normalize_currency(prices.get("currency_code"))
+
+
 def _woo_grams(formatted_weight: Any) -> int | None:
     """Parse `formatted_weight` ("1.5 lbs", "12 oz", "250 g") to grams.
 
@@ -487,6 +524,7 @@ def parse_woocommerce_product(raw: dict[str, Any], site_url: str) -> ScrapedProd
     # would trip, so it's read only from the tag/category pool.
     process = detect_process(tag_pool) or _search_text(title, PROCESSES)
 
+    price = _woo_price(raw.get("prices"))
     return ScrapedProduct(
         roaster=_woo_roaster(raw.get("brands"), site_url),
         title=title,
@@ -495,7 +533,8 @@ def parse_woocommerce_product(raw: dict[str, Any], site_url: str) -> ScrapedProd
         tags=tag_pool,
         product_type=raw.get("type") or None,
         channel=_channel(None, tag_pool),
-        price=_woo_price(raw.get("prices")),
+        price=price,
+        currency=_woo_currency(raw.get("prices")) if price is not None else None,
         net_weight_grams=_woo_grams(raw.get("formatted_weight")),
         roast_level=_woo_roast_level(tag_pool),
         process=process,
@@ -578,6 +617,24 @@ async def _fetch_shopify(
     return raw[:max_products], last_status
 
 
+async def _fetch_shopify_currency(client: httpx.AsyncClient, site_url: str) -> str | None:
+    """The store's currency from Shopify's public /cart.js (AJAX API).
+
+    /products.json prices are denominated in the store's own currency but the
+    payload never says which; /cart.js names it. Best-effort — any failure just
+    yields None (currency unknown), never an error.
+    """
+    try:
+        resp = await client.get(
+            f"{site_url}/cart.js", timeout=REQUEST_TIMEOUT, follow_redirects=True
+        )
+        if resp.status_code >= 400:
+            return None
+        return normalize_currency(resp.json().get("currency"))
+    except httpx.HTTPError, OSError, ValueError, AttributeError:
+        return None
+
+
 async def _fetch_woocommerce(
     client: httpx.AsyncClient, site_url: str, max_products: int
 ) -> tuple[list[dict[str, Any]], int | None]:
@@ -624,7 +681,8 @@ async def scrape_site(
             )
 
         if raw:
-            products = dedupe_products(extract_shopify({"products": raw}, site_url))
+            currency = await _fetch_shopify_currency(client, site_url)
+            products = dedupe_products(extract_shopify({"products": raw}, site_url, currency))
             return SiteResult(site_url, "ok", products, _ms(started))
 
         # No Shopify catalog — try the WooCommerce Store API next.

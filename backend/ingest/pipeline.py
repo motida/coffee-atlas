@@ -134,6 +134,7 @@ def _run_products(tables: list[str] | None = None) -> None:
 
 def _run_roaster_locations(tables: list[str] | None = None) -> None:
     from backend.ingest.roaster_locations_loader import (
+        backfill_product_currency,
         backfill_roaster_locations,
         derive_roaster_locations_from_shops,
     )
@@ -149,6 +150,10 @@ def _run_roaster_locations(tables: list[str] | None = None) -> None:
         f"Derived from shops: filled {derived.derived} roasters "
         f"({derived.already_set} already set, {derived.unmatched} unmatched)"
     )
+    # With locations in place, close the currency gap for products whose scrape
+    # record predates the currency field and whose site TLD was generic.
+    currencies = backfill_product_currency(settings.DUCKDB_PATH)
+    print(f"Currency from roaster location: filled {currencies} products")
 
 
 def _run_embeddings(tables: list[str] | None = None) -> None:
