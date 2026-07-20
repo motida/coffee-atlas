@@ -241,7 +241,7 @@ def backfill_product_currency(
     with managed_connection(db_path, conn) as conn:
         updated = 0
         for country, currency in _COUNTRY_CURRENCY.items():
-            updated += conn.execute(
+            row = conn.execute(
                 """
                 UPDATE prod_products SET currency = ?, updated_at = now()
                 WHERE currency IS NULL AND price IS NOT NULL
@@ -251,7 +251,8 @@ def backfill_product_currency(
                   )
                 """,
                 [currency, country],
-            ).fetchone()[0]
+            ).fetchone()
+            updated += int(row[0]) if row else 0
     return updated
 
 
