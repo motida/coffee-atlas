@@ -13,6 +13,7 @@ from backend.ingest.roaster_locations_loader import (
     DEFAULT_SOURCE,
     _country_name,
     _iso_to_name,
+    backfill_product_currency,
     backfill_roaster_locations,
     derive_roaster_locations_from_shops,
 )
@@ -207,3 +208,58 @@ def test_curated_then_derive_precedence(db, tmp_path):
     assert derived.already_set == 1 and derived.derived == 0
     loc = db.execute("SELECT location FROM roast_roasters WHERE id='r1'").fetchone()[0]
     assert loc == "Oslo, Norway"
+
+
+# --------------------------------------------------------------------------
+# Product currency from roaster location
+# --------------------------------------------------------------------------
+
+
+def _insert_product(db, pid, roaster_id, price=None, currency=None):
+    db.execute(
+        "INSERT INTO prod_products (id, name, roaster_id, price, currency) VALUES (?, ?, ?, ?, ?)",
+        [pid, f"Coffee {pid}", roaster_id, price, currency],
+    )
+
+
+def test_currency_backfilled_from_roaster_country(db):
+    _insert_roaster(db, "r-no", "Oslo Roaster", "Oslo, Norway")
+    _insert_roaster(db, "r-jp", "Tokyo Roaster", "Tokyo, Japan")
+    _insert_product(db, "p1", "r-no", price=189.0)
+    _insert_product(db, "p2", "r-jp", price=1200.0)
+
+    assert backfill_product_currency(conn=db) == 2
+    rows = dict(db.execute("SELECT id, currency FROM prod_products").fetchall())
+    assert rows == {"p1": "NOK", "p2": "JPY"}
+
+
+def test_currency_backfill_never_overwrites_scraper_value(db):
+    # A scraper-declared currency is authoritative — the location fallback must
+    # not clobber it even when it disagrees with the roaster's country.
+    _insert_roaster(db, "r1", "Oslo Roaster", "Oslo, Norway")
+    _insert_product(db, "p1", "r1", price=20.0, currency="EUR")
+
+    assert backfill_product_currency(conn=db) == 0
+    assert db.execute("SELECT currency FROM prod_products WHERE id='p1'").fetchone()[0] == "EUR"
+
+
+def test_currency_backfill_skips_unpriced_unknown_and_unlocated(db):
+    _insert_roaster(db, "r-no", "Oslo Roaster", "Oslo, Norway")
+    _insert_roaster(db, "r-none", "Nowhere Roaster")  # location NULL
+    _insert_roaster(db, "r-etla", "Andean Roaster", "Cusco, Peru")  # unmapped country
+    _insert_product(db, "p1", "r-no")  # no price → no currency to denominate
+    _insert_product(db, "p2", "r-none", price=15.0)
+    _insert_product(db, "p3", "r-etla", price=45.0)
+
+    assert backfill_product_currency(conn=db) == 0
+    currencies = [r[0] for r in db.execute("SELECT currency FROM prod_products").fetchall()]
+    assert currencies == [None, None, None]
+
+
+def test_currency_backfill_idempotent(db):
+    _insert_roaster(db, "r1", "Oslo Roaster", "Oslo, Norway")
+    _insert_product(db, "p1", "r1", price=189.0)
+
+    assert backfill_product_currency(conn=db) == 1
+    assert backfill_product_currency(conn=db) == 0  # second run touches nothing
+    assert db.execute("SELECT currency FROM prod_products WHERE id='p1'").fetchone()[0] == "NOK"

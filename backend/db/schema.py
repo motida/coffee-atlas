@@ -181,6 +181,7 @@ TABLES: list[str] = [
         process TEXT,
         is_blend BOOLEAN,
         price DOUBLE,
+        currency TEXT,
         net_weight_grams INTEGER,
         url TEXT,
         description TEXT,
@@ -372,9 +373,19 @@ TABLES: list[str] = [
 ]
 
 
+# Columns added after a table first shipped. CREATE TABLE IF NOT EXISTS skips
+# existing tables, so re-running this module on an existing DB would otherwise
+# never pick up new columns; these ALTERs are idempotent and close that gap.
+MIGRATIONS = [
+    "ALTER TABLE prod_products ADD COLUMN IF NOT EXISTS currency TEXT",
+]
+
+
 def create_tables(conn: duckdb.DuckDBPyConnection) -> None:
-    """Create all tables in the database."""
+    """Create all tables in the database (and add late-arriving columns)."""
     for ddl in TABLES:
+        conn.execute(ddl)
+    for ddl in MIGRATIONS:
         conn.execute(ddl)
 
 

@@ -22,6 +22,7 @@ from backend.ingest.shop_scrapers.product_scraper import (
     extract_woocommerce,
     is_blend,
     looks_like_coffee,
+    normalize_currency,
 )
 
 SITE = "https://www.blackwhiteroasters.com"
@@ -91,6 +92,26 @@ def test_placeholder_variant_does_not_pollute_price_or_weight(products: list[Scr
     assert wholesale[0].net_weight_grams == 113
 
 
+def test_shopify_currency_is_store_wide(payload: dict):
+    # /products.json never names its currency; the fetch layer passes the store's
+    # /cart.js currency down, and it lands only on priced products.
+    products = extract_shopify(payload, SITE, "NOK")
+    for p in products:
+        assert p.currency == ("NOK" if p.price is not None else None)
+    # Without a resolved store currency, nothing is guessed.
+    assert all(p.currency is None for p in extract_shopify(payload, SITE))
+
+
+def test_normalize_currency_units():
+    assert normalize_currency("USD") == "USD"
+    assert normalize_currency("nok") == "NOK"
+    assert normalize_currency(" jpy ") == "JPY"
+    assert normalize_currency("US") is None  # not a 3-letter code
+    assert normalize_currency("dollars") is None
+    assert normalize_currency(123) is None
+    assert normalize_currency(None) is None
+
+
 def test_dedupe_prefers_retail(products: list[ScrapedProduct]):
     deduped = dedupe_products(products)
     assert len(deduped) == 7  # El Burro retail + wholesale collapse to one
@@ -138,6 +159,7 @@ def test_jsonld_fallback():
     assert p.roaster == "Acme Roasters"
     assert p.process == "Washed"  # from free-text description
     assert p.price == 21.0
+    assert p.currency == "USD"  # from the offer's priceCurrency
     assert p.source == "jsonld"
 
 
@@ -153,6 +175,7 @@ def test_jsonld_graph_form():
     assert len(products) == 1
     assert products[0].roast_level == "dark"
     assert products[0].is_blend is True
+    assert products[0].currency is None  # offer names no priceCurrency
 
 
 def test_jsonld_prefers_specific_process():
@@ -218,6 +241,13 @@ def test_woo_price_from_minor_units(ritual, barrington):
     # Barrington has no price_range → falls back to prices.price.
     assert _by_title(barrington, "San Diego Anaerobic").price == 20.45
     assert _by_title(barrington, "Costa Rica Micro-lot").price == 37.0
+
+
+def test_woo_currency_from_store_api(ritual, barrington):
+    # The Store API declares currency_code per product; every priced product
+    # carries it.
+    for p in ritual + barrington:
+        assert p.currency == ("USD" if p.price is not None else None)
 
 
 def test_woo_weight_from_formatted_weight(ritual, barrington):

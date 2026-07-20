@@ -12,7 +12,7 @@ VARIETY_COLS = (
 )
 
 PRODUCT_COLS = (
-    "id, name, roaster_id, roast_level, process, is_blend, price, "
+    "id, name, roaster_id, roast_level, process, is_blend, price, currency, "
     "net_weight_grams, url, description, created_at, updated_at"
 )
 

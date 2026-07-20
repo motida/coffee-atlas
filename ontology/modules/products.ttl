@@ -75,6 +75,12 @@
     rdfs:domain :CoffeeProduct ;
     rdfs:range xsd:decimal .
 
+:priceCurrency a owl:DatatypeProperty ;
+    rdfs:label "price currency" ;
+    rdfs:comment "ISO 4217 code the price is denominated in (e.g. USD, NOK)." ;
+    rdfs:domain :CoffeeProduct ;
+    rdfs:range xsd:string .
+
 :netWeightGrams a owl:DatatypeProperty ;
     rdfs:label "net weight (grams)" ;
     rdfs:domain :CoffeeProduct ;

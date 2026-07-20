@@ -183,6 +183,7 @@ export interface Product extends Timestamped {
   process: string | null;
   is_blend: boolean | null;
   price: number | null;
+  currency: string | null;
   net_weight_grams: number | null;
   url: string | null;
   description: string | null;

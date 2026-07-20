@@ -93,6 +93,7 @@ export default function ShopPage({ params }: { params: { id: string } }) {
               roasterName={p.roaster_name}
               roasterId={p.roaster_id}
               price={p.price}
+              currency={p.currency}
             />
           ))}
         </CardGrid>
