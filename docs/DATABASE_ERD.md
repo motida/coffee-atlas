@@ -1,7 +1,7 @@
 # Coffee Atlas — Database ERD
 
 > Source of truth: [`backend/db/schema.py`](../backend/db/schema.py) (raw DuckDB DDL, no ORM).
-> 33 tables total: **14 entity tables**, **18 graph edge tables**, and **1 ontology triple store**.
+> 35 tables total: **14 entity tables**, **20 graph edge tables**, and **1 ontology triple store**.
 >
 > Conventions (apply to every table unless noted):
 > - `id TEXT PRIMARY KEY` holds a UUID string.
@@ -18,7 +18,7 @@ images are also committed alongside this file:
 
 ## Conceptual ERD (entities + relationships)
 
-The 18 `edges_*` tables are the join layer of the knowledge graph. To keep the
+The 20 `edges_*` tables are the join layer of the knowledge graph. To keep the
 map readable they are drawn here as **labeled many-to-many lines** rather than as
 boxes; each one is a real table whose columns are listed in the appendix.
 
@@ -57,6 +57,8 @@ erDiagram
     shop_shops      }o--o{ prod_products   : "edges_shop_product"
     roast_roasters  }o--o{ prod_products   : "edges_roaster_product"
     shop_shops      }o--o{ roast_roasters  : "edges_shop_roaster"
+    prod_products   }o--o{ org_farms       : "edges_product_farm"
+    shop_shops      }o--o{ org_farms       : "edges_shop_farm"
 
     %% ---------- entity tables ----------
     var_varieties {
@@ -260,6 +262,8 @@ payload column.
 | `edges_shop_product` | `shop_shops` → `prod_products` | — |
 | `edges_roaster_product` | `roast_roasters` → `prod_products` | — |
 | `edges_shop_roaster` | `shop_shops` → `roast_roasters` | — |
+| `edges_product_farm` | `prod_products` → `org_farms` | — |
+| `edges_shop_farm` | `shop_shops` → `org_farms` | — |
 
 > Note: `edges_country_region` and `edges_region_farm` duplicate the enforced
 > `org_*` FK hierarchy as explicit graph edges so traversal queries can walk

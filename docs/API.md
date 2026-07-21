@@ -47,7 +47,7 @@ the backend is running.
 | `GET /api/v1/products/{id}/origin` | Origin countries and regions named |
 | **Graph & Search** | |
 | `GET /api/v1/graph/traverse` | Graph traversal from a node |
-| `GET /api/v1/graph/path` | Shortest path between nodes |
+| `GET /api/v1/graph/path` | Shortest path between nodes (bidirectional BFS; optional `edge_types[]`) |
 | `GET /api/v1/search/semantic` | Semantic similarity search |
 | `GET /api/v1/search/text` | Full-text search |
 | **Recommendations** | |

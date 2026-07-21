@@ -199,6 +199,7 @@ Seed data: scraped roaster product catalogs (Shopify storefront JSON + embedded 
 - `CoffeeProduct → consistsOf → Variety`
 - `CoffeeProduct → hasFlavor → FlavorAttribute`
 - `CoffeeProduct → fromOrigin → Country | Region`
+- `CoffeeProduct → fromFarm → Farm` (farm named in the product text; grounds `CoffeeShop → sourcesFrom → Farm` via shop → product → farm)
 - `CoffeeProduct → hasRoastLevel → RoastProfile`
 - `Roaster → produces → CoffeeProduct`
 - `CoffeeShop → sells → CoffeeProduct` (resolved via shop ↔ roaster domain match)
@@ -321,7 +322,7 @@ GET  /api/v1/products/{id}/varieties     # Varieties a product consists of
 GET  /api/v1/products/{id}/flavors       # Flavor attributes in the tasting notes
 GET  /api/v1/products/{id}/origin        # Origin countries and regions named
 GET  /api/v1/graph/traverse              # Graph traversal (start_id, max_depth, edge_types)
-GET  /api/v1/graph/path                  # Shortest path between two entities
+GET  /api/v1/graph/path                  # Shortest path (bidirectional BFS; optional edge_types[])
 GET  /api/v1/search/semantic             # Semantic similarity search across all entities
 GET  /api/v1/search/text                 # Full-text search
 GET  /api/v1/recommend/{type}/{id}       # "You might also like" — similar same-type entities

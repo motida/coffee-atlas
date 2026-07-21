@@ -60,9 +60,9 @@ The project demonstrates how formal ontology design, graph databases, and vector
 │                    DuckDB (Single Process)                    │
 │  ┌─────────────┐  ┌─────┴──────┐  ┌─────────────────────┐   │
 │  │ Relational  │  │  DuckPGQ   │  │  DuckDB VSS         │   │
-│  │ Tables (31) │  │ Property   │  │  Cosine scan today  │   │
+│  │ Tables (33) │  │ Property   │  │  Cosine scan today  │   │
 │  │ 8 domains   │  │ Graph      │  │  3072-dim embeddings│   │
-│  │ 13 + 18 edge│  │ (parked)   │  │  (HNSW planned)     │   │
+│  │ 13 + 20 edge│  │ (parked)   │  │  (HNSW planned)     │   │
 │  └─────────────┘  └────────────┘  └─────────────────────┘   │
 │                           │                                   │
 │              Parquet (Hive-partitioned by domain)             │
@@ -163,12 +163,12 @@ CoffeeShop ──servesVariety──▶ Variety    ▼
      └──usesRoastProfile──▶ RoastProfile ──enhances/diminishes──▶ FlavorAttribute
 ```
 
-Eighteen edge tables materialize these relationships for graph traversal, built by a handful of loaders:
+Twenty edge tables materialize these relationships for graph traversal, built by a handful of loaders:
 
 - **Geographic hierarchy & semantics** (graph stage): `edges_country_region` and `edges_region_farm` from foreign keys; `edges_variety_flavor` from top-K embedding similarity.
 - **Cupping co-occurrence** (CQI loader): `edges_country_variety`, `edges_region_variety`, `edges_farm_variety`, and `edges_variety_processing`. Origin → Variety is split per origin level so each edge keeps a real foreign key (no polymorphic IDs).
 - **Curated seeds**: `edges_roast_variety` (roasting loader, from each profile's species/altitude suitability rule) and `edges_processing_flavor` (processing_flavor stage, from a hand-mapped table).
-- **Products domain** (graph stage, after the `products` and `shops` stages run): *content* edges match scraped product text against the loaded entities (`edges_product_variety`, `edges_product_flavor`, `edges_product_country`, `edges_product_region`, `edges_product_roast`); *structural* edges follow the website graph (`edges_roaster_product`, `edges_shop_roaster`, `edges_shop_product`). The last chain, shop → product → variety, finally populates the previously-empty `edges_shop_variety`.
+- **Products domain** (graph stage, after the `products` and `shops` stages run): *content* edges match scraped product text against the loaded entities (`edges_product_variety`, `edges_product_flavor`, `edges_product_country`, `edges_product_region`, `edges_product_farm`, `edges_product_roast`); *structural* edges follow the website graph (`edges_roaster_product`, `edges_shop_roaster`, `edges_shop_product`). The last chains populate the derived sourcing edges: shop → product → variety fills `edges_shop_variety`, and shop → product → farm fills `edges_shop_farm` — the provenance link that lets a path trace farm → product → roaster → shop instead of detouring through shared attributes.
 
 Because origin → variety and the product/shop chains bridge the geographic hierarchy to the variety/flavor/processing/roasting clusters, traversal spans a **single connected component** rather than disconnected islands.
 
@@ -192,6 +192,8 @@ Because origin → variety and the product/shop chains bridge the geographic hie
 | `edges_shop_product` | Shop | CoffeeProduct |
 | `edges_shop_roaster` | Shop | Roaster |
 | `edges_shop_variety` | Shop | Variety |
+| `edges_product_farm` | CoffeeProduct | Farm |
+| `edges_shop_farm` | Shop | Farm |
 
 ---
 
@@ -240,7 +242,7 @@ EDGE TABLES (
                             destination REFERENCES var_varieties),
     edges_farm_variety     (source REFERENCES org_farms,
                             destination REFERENCES var_varieties),
-    -- ... 14 more edge tables, including the products domain
+    -- ... 16 more edge tables, including the products domain
 );
 ```
 

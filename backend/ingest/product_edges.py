@@ -4,6 +4,9 @@ Two kinds of edge:
 
 Content edges — match scraped product text against the populated entity tables:
   product → country / region   (origin named in title or description)
+  product → farm               (CQI farm/producer named in title or description —
+                               the only *provenance* content edge: it grounds a
+                               real farm → product → roaster → shop chain)
   product → variety            (e.g. Gesha, Bourbon, Pacas)
   product → flavor             (tasting notes in the description)
   product → roast_profile      (shared roast level)
@@ -14,12 +17,14 @@ Derived edges — structural, from FKs and the website graph:
   shop → product               (shop → roaster → product)
   shop → variety               (shop → product → variety; finally fills the
                                 long-empty edges_shop_variety)
+  shop → farm                  (shop → product → farm; the sourcesFrom link the
+                                ontology promises)
 
 Matching is deliberately conservative — word-boundary, length-floored, and
 flavor restricted to non-root lexicon attributes (so generic category words
-like "Roasted" don't match roast prose). Origin/variety are matched in title +
-description (a blend legitimately names several origins); flavor only in the
-description. Match rates are returned so callers can see coverage.
+like "Roasted" don't match roast prose). Origin/variety/farm are matched in
+title + description (a blend legitimately names several origins); flavor only
+in the description. Match rates are returned so callers can see coverage.
 """
 
 from __future__ import annotations
@@ -34,6 +39,7 @@ _MIN_COUNTRY = 4
 _MIN_REGION = 4
 _MIN_VARIETY = 3
 _MIN_FLAVOR = 4
+_MIN_FARM = 6
 
 # Flavor leaf names that are generic English words and over-match marketing
 # prose ("fresh"/"bitter"/...) or collide with process vocabulary ("honey").
@@ -56,6 +62,29 @@ _FLAVOR_STOPWORDS = {
 # match non-variety mentions ("java" = coffee slang + Indonesian island).
 _VARIETY_STOPWORDS = {"java"}
 
+# CQI farm-name values that are placeholders or generic estate words, not
+# identifiable farms — matching them would fabricate provenance.
+_FARM_STOPWORDS = {
+    "various",
+    "varios",
+    "varias",
+    "several",
+    "several farms",
+    "many farms",
+    "unknown",
+    "not available",
+    "smallholders",
+    "smallholder farmers",
+    "various smallholders",
+    "various small farms",
+    "finca",
+    "fazenda",
+    "hacienda",
+    "estate",
+    "plantation",
+    "cooperative",
+}
+
 
 # SQL: a website column normalized to its bare registrable-ish domain. lower()
 # is applied INSIDE regexp_replace so the (lowercase) scheme/www pattern matches
@@ -72,6 +101,7 @@ def _domain_sql(col: str) -> str:
 class EdgeCounts:
     product_country: int
     product_region: int
+    product_farm: int
     product_variety: int
     product_flavor: int
     product_roast: int
@@ -79,6 +109,7 @@ class EdgeCounts:
     shop_roaster: int
     shop_product: int
     shop_variety: int
+    shop_farm: int
 
 
 def _compiled(pairs: list[tuple[str, str]], minlen: int, alias: bool = False):
@@ -105,7 +136,7 @@ def _replace(
 
 def _content_edges(
     conn: duckdb.DuckDBPyConnection,
-) -> tuple[int, int, int, int, int]:
+) -> tuple[int, int, int, int, int, int]:
     products = conn.execute(
         "SELECT id, lower(name), lower(COALESCE(description, '')) FROM prod_products"
     ).fetchall()
@@ -114,6 +145,14 @@ def _content_edges(
         conn.execute("SELECT id, name FROM org_countries").fetchall(), _MIN_COUNTRY
     )
     regions = _compiled(conn.execute("SELECT id, name FROM org_regions").fetchall(), _MIN_REGION)
+    farms = _compiled(
+        [
+            (i, n)
+            for i, n in conn.execute("SELECT id, name FROM org_farms").fetchall()
+            if n and n.lower() not in _FARM_STOPWORDS
+        ],
+        _MIN_FARM,
+    )
     varieties = _compiled(
         [
             (i, n)
@@ -134,7 +173,7 @@ def _content_edges(
         _MIN_FLAVOR,
     )
 
-    pc, pr, pv, pf = [], [], [], []
+    pc, pr, pfm, pv, pf = [], [], [], [], []
     for pid, name, desc in products:
         title_blob = f"{name} {desc}"
         for cid, rx in countries:
@@ -143,6 +182,9 @@ def _content_edges(
         for rid, rx in regions:
             if rx.search(title_blob):
                 pr.append((f"prg:{pid}:{rid}", pid, rid))
+        for fmid, rx in farms:
+            if rx.search(title_blob):
+                pfm.append((f"pfa:{pid}:{fmid}", pid, fmid))
         for vid, rx in varieties:
             if rx.search(title_blob):
                 pv.append((f"pv:{pid}:{vid}", pid, vid))
@@ -152,6 +194,7 @@ def _content_edges(
 
     _replace(conn, "edges_product_country", "country_id", pc)
     _replace(conn, "edges_product_region", "region_id", pr)
+    _replace(conn, "edges_product_farm", "farm_id", pfm)
     _replace(conn, "edges_product_variety", "variety_id", pv)
     _replace(conn, "edges_product_flavor", "flavor_id", pf)
 
@@ -167,7 +210,7 @@ def _content_edges(
         """
     )
     proast = _count(conn, "edges_product_roast")
-    return len(pc), len(pr), len(pv), len(pf), proast
+    return len(pc), len(pr), len(pfm), len(pv), len(pf), proast
 
 
 def _count(conn: duckdb.DuckDBPyConnection, table: str) -> int:
@@ -176,7 +219,7 @@ def _count(conn: duckdb.DuckDBPyConnection, table: str) -> int:
     return row[0]
 
 
-def _derived_edges(conn: duckdb.DuckDBPyConnection) -> tuple[int, int, int, int]:
+def _derived_edges(conn: duckdb.DuckDBPyConnection) -> tuple[int, int, int, int, int]:
     # roaster → product (from the FK).
     conn.execute("DELETE FROM edges_roaster_product")
     conn.execute(
@@ -226,21 +269,34 @@ def _derived_edges(conn: duckdb.DuckDBPyConnection) -> tuple[int, int, int, int]
         """
     )
 
+    # shop → farm (shop → product → farm) — the shop's actual sourcing chain.
+    conn.execute("DELETE FROM edges_shop_farm")
+    conn.execute(
+        """
+        INSERT INTO edges_shop_farm (id, shop_id, farm_id)
+        SELECT DISTINCT 'sf:' || sp.shop_id || ':' || pfa.farm_id, sp.shop_id, pfa.farm_id
+        FROM edges_shop_product sp
+        JOIN edges_product_farm pfa ON sp.product_id = pfa.product_id
+        """
+    )
+
     return (
         _count(conn, "edges_roaster_product"),
         _count(conn, "edges_shop_roaster"),
         _count(conn, "edges_shop_product"),
         _count(conn, "edges_shop_variety"),
+        _count(conn, "edges_shop_farm"),
     )
 
 
 def resolve_product_edges(conn: duckdb.DuckDBPyConnection) -> EdgeCounts:
     """Populate all product content + derived edges. Returns per-edge counts."""
-    pc, prg, pv, pf, pro = _content_edges(conn)
-    rp, sr, sp, sv = _derived_edges(conn)
+    pc, prg, pfa, pv, pf, pro = _content_edges(conn)
+    rp, sr, sp, sv, sf = _derived_edges(conn)
     return EdgeCounts(
         product_country=pc,
         product_region=prg,
+        product_farm=pfa,
         product_variety=pv,
         product_flavor=pf,
         product_roast=pro,
@@ -248,6 +304,7 @@ def resolve_product_edges(conn: duckdb.DuckDBPyConnection) -> EdgeCounts:
         shop_roaster=sr,
         shop_product=sp,
         shop_variety=sv,
+        shop_farm=sf,
     )
 
 

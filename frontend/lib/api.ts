@@ -195,8 +195,10 @@ export const graphTraverse = (
     { signal },
   );
 
-export const graphPath = (startId: string, endId: string) =>
-  fetchAPI(`/graph/path${qs({ start_id: startId, end_id: endId })}`);
+export const graphPath = (startId: string, endId: string, edgeTypes?: string[]) =>
+  fetchAPI(
+    `/graph/path${qs({ start_id: startId, end_id: endId, edge_types: edgeTypes })}`,
+  );
 
 // --- Search ---
 const searchUrl = (

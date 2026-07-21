@@ -169,8 +169,100 @@ def test_path_budget_exhausted_404(client, monkeypatch):
     assert "budget" in r.json()["detail"]
 
 
+def test_path_odd_length_meets_in_middle(client):
+    # Length-3 path: the two frontiers meet at unequal depths (2 + 1), which
+    # only bidirectional search exercises.
+    r = client.get("/api/v1/graph/path", params={"start_id": "c1", "end_id": "v1"})
+    assert r.status_code == 200
+    data = r.json()
+    assert [n["id"] for n in data["path"]] == ["c1", "r1", "f1", "v1"]
+    assert data["total_weight"] == 3.0
+
+
+def test_path_edge_types_filter(client):
+    # Restricted to geo edges only, the variety hop is unusable → no path.
+    r = client.get(
+        "/api/v1/graph/path",
+        params={
+            "start_id": "c1",
+            "end_id": "v1",
+            "edge_types": ["country_region", "region_farm"],
+        },
+    )
+    assert r.status_code == 404
+
+    # Allowing farm_variety as well restores the path.
+    r = client.get(
+        "/api/v1/graph/path",
+        params={
+            "start_id": "c1",
+            "end_id": "v1",
+            "edge_types": ["country_region", "region_farm", "farm_variety"],
+        },
+    )
+    assert r.status_code == 200
+    assert {e["edge_type"] for e in r.json()["edges"]} == {
+        "country_region",
+        "region_farm",
+        "farm_variety",
+    }
+
+
+def _seed_supply_chain(graph_db):
+    """Roaster/product/shop rows plus provenance edges naming farm f1."""
+    graph_db.execute("INSERT INTO roast_roasters (id, name) VALUES ('ro1', 'Verve')")
+    graph_db.execute(
+        "INSERT INTO prod_products (id, name, roaster_id) VALUES ('pr1', 'Konga Lot', 'ro1')"
+    )
+    graph_db.execute("INSERT INTO shop_shops (id, name) VALUES ('s1', 'Verve SF')")
+    graph_db.execute(
+        "INSERT INTO edges_product_farm (id, product_id, farm_id) VALUES ('ep1', 'pr1', 'f1')"
+    )
+    graph_db.execute(
+        "INSERT INTO edges_roaster_product (id, roaster_id, product_id) VALUES ('ep2', 'ro1', 'pr1')"
+    )
+    graph_db.execute(
+        "INSERT INTO edges_shop_roaster (id, shop_id, roaster_id) VALUES ('ep3', 's1', 'ro1')"
+    )
+
+
+def test_path_farm_to_shop_provenance(client, graph_db):
+    """The farmer-to-coffee-shop trace: farm → product → roaster → shop over
+    the provenance edges, without detouring through variety/flavor hubs."""
+    _seed_supply_chain(graph_db)
+    r = client.get(
+        "/api/v1/graph/path",
+        params={
+            "start_id": "f1",
+            "end_id": "s1",
+            "edge_types": ["product_farm", "roaster_product", "shop_roaster"],
+        },
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert [n["id"] for n in data["path"]] == ["f1", "pr1", "ro1", "s1"]
+    assert [e["edge_type"] for e in data["edges"]] == [
+        "product_farm",
+        "roaster_product",
+        "shop_roaster",
+    ]
+
+
+def test_path_prefers_direct_shop_farm_edge(client, graph_db):
+    """A derived shop → farm edge shortcuts the chain to a single hop."""
+    _seed_supply_chain(graph_db)
+    graph_db.execute(
+        "INSERT INTO edges_shop_farm (id, shop_id, farm_id) VALUES ('ep4', 's1', 'f1')"
+    )
+    r = client.get("/api/v1/graph/path", params={"start_id": "f1", "end_id": "s1"})
+    assert r.status_code == 200
+    data = r.json()
+    assert [n["id"] for n in data["path"]] == ["f1", "s1"]
+    assert [e["edge_type"] for e in data["edges"]] == ["shop_farm"]
+
+
 def test_traverse_crosses_processing_flavor(client, graph_db):
-    """edges_processing_flavor is one of the 18 edge tables and must be
+    """edges_processing_flavor is one of the 20 edge tables and must be
     traversable — it was previously missing from the router's EDGES list, so
     processing <-> flavor was invisible to /graph/traverse and /graph/path."""
     graph_db.execute(
