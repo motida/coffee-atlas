@@ -358,6 +358,24 @@ TABLES: list[str] = [
         updated_at TIMESTAMP DEFAULT current_timestamp
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_product_farm (
+        id TEXT PRIMARY KEY,
+        product_id TEXT REFERENCES prod_products(id),
+        farm_id TEXT REFERENCES org_farms(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS edges_shop_farm (
+        id TEXT PRIMARY KEY,
+        shop_id TEXT REFERENCES shop_shops(id),
+        farm_id TEXT REFERENCES org_farms(id),
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    )
+    """,
     # --- Ontology triples (populated by ontology/scripts/export_triples.py) ---
     """
     CREATE TABLE IF NOT EXISTS ontology_triples (

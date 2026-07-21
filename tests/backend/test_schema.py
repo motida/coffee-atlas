@@ -30,6 +30,8 @@ EXPECTED_TABLES = [
     "edges_shop_product",
     "edges_roaster_product",
     "edges_shop_roaster",
+    "edges_product_farm",
+    "edges_shop_farm",
     "ontology_triples",
 ]
 

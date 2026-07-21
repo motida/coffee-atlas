@@ -158,9 +158,11 @@ def test_reingest_preserves_other_stages_rows(db, fixture_csvs):
     )
     db.execute("INSERT INTO flav_attributes (id, name) VALUES ('f1', 'Floral')")
     db.execute("INSERT INTO prod_products (id, name) VALUES ('p1', 'Yirgacheffe Lot 1')")
+    db.execute("INSERT INTO shop_shops (id, name) VALUES ('s1', 'Cafe')")
     method_id = db.execute("SELECT id FROM proc_methods WHERE name = 'Washed / Wet'").fetchone()[0]
     country_id = db.execute("SELECT id FROM org_countries WHERE name = 'Ethiopia'").fetchone()[0]
     region_id = db.execute("SELECT id FROM org_regions WHERE name = 'Yirgacheffe'").fetchone()[0]
+    farm_id = db.execute("SELECT id FROM org_farms WHERE name = 'Kochere'").fetchone()[0]
     db.execute(
         "INSERT INTO edges_processing_flavor (id, method_id, flavor_id, effect) "
         "VALUES ('e1', ?, 'f1', 'enhances')",
@@ -173,6 +175,14 @@ def test_reingest_preserves_other_stages_rows(db, fixture_csvs):
     db.execute(
         "INSERT INTO edges_product_region (id, product_id, region_id) VALUES ('e3', 'p1', ?)",
         [region_id],
+    )
+    db.execute(
+        "INSERT INTO edges_product_farm (id, product_id, farm_id) VALUES ('e4', 'p1', ?)",
+        [farm_id],
+    )
+    db.execute(
+        "INSERT INTO edges_shop_farm (id, shop_id, farm_id) VALUES ('e5', 's1', ?)",
+        [farm_id],
     )
 
     load_cqi_data(conn=db, arabica_path=arabica, robusta_path=robusta)
@@ -189,6 +199,12 @@ def test_reingest_preserves_other_stages_rows(db, fixture_csvs):
     assert db.execute(
         "SELECT product_id, region_id FROM edges_product_region WHERE id = 'e3'"
     ).fetchone() == ("p1", region_id)
+    assert db.execute(
+        "SELECT product_id, farm_id FROM edges_product_farm WHERE id = 'e4'"
+    ).fetchone() == ("p1", farm_id)
+    assert db.execute(
+        "SELECT shop_id, farm_id FROM edges_shop_farm WHERE id = 'e5'"
+    ).fetchone() == ("s1", farm_id)
 
 
 def test_processing_method_categorized(db, fixture_csvs):

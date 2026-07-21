@@ -16,7 +16,9 @@ the geographic hierarchy to the variety/flavor/processing/roasting clusters.
 The products domain (see backend.ingest.product_edges, invoked here) brings
 shops and roasters into the graph and, via shop -> product -> variety, finally
 populates shop -> variety — which used to be blocked for lack of any link
-between shop data and varieties.
+between shop data and varieties. It also grounds provenance: product -> farm
+(farm named in the product text) and the derived shop -> farm give the
+farm-to-shop supply chain a factual path instead of a thematic one.
 
 A DuckPGQ PROPERTY GRAPH is defined for parity with the architecture
 spec, but the HTTP endpoints do not depend on it — they query the edge
@@ -179,7 +181,13 @@ CREATE PROPERTY GRAPH coffee_graph
       DESTINATION KEY (product_id) REFERENCES prod_products (id),
     edges_shop_variety
       SOURCE KEY (shop_id) REFERENCES shop_shops (id)
-      DESTINATION KEY (variety_id) REFERENCES var_varieties (id)
+      DESTINATION KEY (variety_id) REFERENCES var_varieties (id),
+    edges_product_farm
+      SOURCE KEY (product_id) REFERENCES prod_products (id)
+      DESTINATION KEY (farm_id) REFERENCES org_farms (id),
+    edges_shop_farm
+      SOURCE KEY (shop_id) REFERENCES shop_shops (id)
+      DESTINATION KEY (farm_id) REFERENCES org_farms (id)
   )
 """
 

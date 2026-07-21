@@ -19,6 +19,7 @@ def _seed_full(db):
     db.execute("INSERT INTO flav_attributes (id, name, parent_id) VALUES ('f', 'Jasmine', 'root')")
     db.execute("INSERT INTO org_countries (id, name) VALUES ('c', 'Ethiopia')")
     db.execute("INSERT INTO org_regions (id, name) VALUES ('rg', 'Guji')")
+    db.execute("INSERT INTO org_farms (id, name) VALUES ('fm', 'Konga')")
     db.execute("INSERT INTO shop_shops (id, name, website) VALUES ('s', 'S', 'https://r.com')")
     db.execute("INSERT INTO prod_products (id, name, roaster_id) VALUES ('p', 'P', 'ro')")
     db.execute(
@@ -31,6 +32,7 @@ def _seed_full(db):
         "INSERT INTO edges_product_country (id, product_id, country_id) VALUES ('e3','p','c')"
     )
     db.execute("INSERT INTO edges_product_flavor (id, product_id, flavor_id) VALUES ('e4','p','f')")
+    db.execute("INSERT INTO edges_product_farm (id, product_id, farm_id) VALUES ('e9','p','fm')")
     db.execute(
         "INSERT INTO edges_product_roast (id, product_id, profile_id) VALUES ('e5','p','rpf')"
     )
@@ -58,6 +60,7 @@ def test_clear_products_full_teardown_then_parents_deletable(db):
         ("flav_attributes", "edges_product_flavor"),
         ("org_regions", "edges_product_region"),
         ("org_countries", "edges_product_country"),
+        ("org_farms", "edges_product_farm"),
         ("roast_profiles", "edges_product_roast"),
     ],
 )

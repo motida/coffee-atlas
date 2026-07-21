@@ -2,7 +2,9 @@
 
 The traversal does a BFS in Python, querying the edge tables directly
 (rather than relying on DuckPGQ MATCH) so the API works regardless of
-whether the property graph definition succeeded.
+whether the property graph definition succeeded. /path searches
+bidirectionally — one frontier from each endpoint, meeting in the middle —
+so high-degree hub nodes don't blow the search budget.
 """
 
 from __future__ import annotations
@@ -187,6 +189,24 @@ EDGES: list[EdgeDef] = [
         dst_type="variety",
         dst_col="variety_id",
     ),
+    # Provenance edges (populated by backend.ingest.product_edges): a farm
+    # named in a product's text, and the derived shop -> farm sourcing chain.
+    EdgeDef(
+        table="edges_product_farm",
+        edge_type="product_farm",
+        src_type="product",
+        src_col="product_id",
+        dst_type="farm",
+        dst_col="farm_id",
+    ),
+    EdgeDef(
+        table="edges_shop_farm",
+        edge_type="shop_farm",
+        src_type="shop",
+        src_col="shop_id",
+        dst_type="farm",
+        dst_col="farm_id",
+    ),
 ]
 
 # Server-side work budget. Depth alone doesn't bound cost: the shop/product
@@ -300,13 +320,67 @@ def traverse_graph(
     return TraversalResult(nodes=list(visited.values()), edges=edges_out, truncated=truncated)
 
 
+@dataclass
+class _SearchSide:
+    """One frontier of the bidirectional path search."""
+
+    visited: dict[str, GraphNode]
+    depth_of: dict[str, int]
+    parents: dict[str, tuple[str, GraphEdge]]
+    frontier: list[GraphNode]
+    depth: int = 0
+
+
+def _expand_level(
+    conn: duckdb.DuckDBPyConnection,
+    side: _SearchSide,
+    other: _SearchSide,
+    edge_types: set[str] | None,
+) -> tuple[str | None, bool]:
+    """Advance `side` one full BFS level; returns (meeting node id, truncated).
+
+    The whole level is expanded before committing to a meeting node so that,
+    among the meets this level produced, the one closest to the other side
+    wins — keeping the joined path shortest.
+    """
+    next_frontier: list[GraphNode] = []
+    best_meet: str | None = None
+    for node in side.frontier:
+        for neighbor, edge in _neighbors(conn, node.id, node.entity_type, edge_types):
+            if neighbor.id in side.visited:
+                continue
+            if len(side.visited) + len(other.visited) >= MAX_PATH_VISITED:
+                return best_meet, True
+            side.visited[neighbor.id] = neighbor
+            side.depth_of[neighbor.id] = side.depth + 1
+            side.parents[neighbor.id] = (node.id, edge)
+            if neighbor.id in other.visited and (
+                best_meet is None or other.depth_of[neighbor.id] < other.depth_of[best_meet]
+            ):
+                best_meet = neighbor.id
+            next_frontier.append(neighbor)
+    side.frontier = next_frontier
+    side.depth += 1
+    return best_meet, False
+
+
 @router.get("/path", response_model=PathResult)
 def find_path(
     start_id: str = Query(...),
     end_id: str = Query(...),
     max_depth: int = Query(6, ge=1, le=10),
+    edge_types: list[str] = Query(default=[]),
     db: duckdb.DuckDBPyConnection = Depends(get_db),
 ) -> PathResult:
+    """Shortest path via bidirectional BFS.
+
+    Growing a frontier from each endpoint and meeting in the middle keeps the
+    search out of the super-hub explosion (country and flavor nodes fan out to
+    thousands of neighbors at depth 3+) that used to exhaust MAX_PATH_VISITED
+    on pairs that are actually connected. `edge_types` restricts which edge
+    tables the path may use — e.g. only supply-chain edges for a farm→shop
+    provenance trace.
+    """
     start = _lookup_node(db, start_id)
     if start is None:
         raise HTTPException(status_code=404, detail="start_id not found")
@@ -317,47 +391,54 @@ def find_path(
     if start_id == end_id:
         return PathResult(path=[start], edges=[], total_weight=0)
 
-    parents: dict[str, tuple[str, GraphEdge]] = {}
-    nodes_seen: dict[str, GraphNode] = {start.id: start}
-    frontier: deque[tuple[GraphNode, int]] = deque([(start, 0)])
+    filter_set = set(edge_types) if edge_types else None
+    fwd = _SearchSide(
+        visited={start.id: start}, depth_of={start.id: 0}, parents={}, frontier=[start]
+    )
+    bwd = _SearchSide(visited={end.id: end}, depth_of={end.id: 0}, parents={}, frontier=[end])
 
     truncated = False
-    while frontier and not truncated:
-        current, depth = frontier.popleft()
-        if depth >= max_depth:
-            continue
-        for neighbor, edge in _neighbors(db, current.id, current.entity_type, None):
-            if neighbor.id in nodes_seen:
-                continue
-            if len(nodes_seen) >= MAX_PATH_VISITED:
-                truncated = True
-                break
-            nodes_seen[neighbor.id] = neighbor
-            parents[neighbor.id] = (current.id, edge)
-            if neighbor.id == end_id:
-                return _reconstruct_path(start_id, end_id, parents, nodes_seen)
-            frontier.append((neighbor, depth + 1))
+    while fwd.frontier and bwd.frontier and fwd.depth + bwd.depth < max_depth:
+        # Expanding the smaller frontier keeps the visited sets balanced and
+        # the total work near the geometric minimum.
+        side, other = (fwd, bwd) if len(fwd.frontier) <= len(bwd.frontier) else (bwd, fwd)
+        meet, truncated = _expand_level(db, side, other, filter_set)
+        if meet is not None:
+            return _join_paths(start_id, end_id, meet, fwd, bwd)
+        if truncated:
+            break
 
     detail = "no path found within the search budget" if truncated else "no path found"
     raise HTTPException(status_code=404, detail=detail)
 
 
-def _reconstruct_path(
+def _join_paths(
     start_id: str,
     end_id: str,
-    parents: dict[str, tuple[str, GraphEdge]],
-    nodes_seen: dict[str, GraphNode],
+    meet_id: str,
+    fwd: _SearchSide,
+    bwd: _SearchSide,
 ) -> PathResult:
-    path_ids = [end_id]
+    """Stitch the two half-paths together at the meeting node."""
+    path_ids = [meet_id]
     edges: list[GraphEdge] = []
     while path_ids[-1] != start_id:
-        prev_id, edge = parents[path_ids[-1]]
+        prev_id, edge = fwd.parents[path_ids[-1]]
         edges.append(edge)
         path_ids.append(prev_id)
     path_ids.reverse()
     edges.reverse()
+
+    cur = meet_id
+    while cur != end_id:
+        prev_id, edge = bwd.parents[cur]
+        edges.append(edge)
+        path_ids.append(prev_id)
+        cur = prev_id
+
+    nodes = {**bwd.visited, **fwd.visited}
     return PathResult(
-        path=[nodes_seen[nid] for nid in path_ids],
+        path=[nodes[nid] for nid in path_ids],
         edges=edges,
         total_weight=float(len(edges)),
     )

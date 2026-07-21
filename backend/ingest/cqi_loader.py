@@ -183,6 +183,8 @@ _FOREIGN_EDGE_TABLES: dict[str, str] = {
     "edges_processing_flavor": "method_id IN (SELECT id FROM proc_methods)",
     "edges_product_region": "region_id IN (SELECT id FROM org_regions)",
     "edges_product_country": "country_id IN (SELECT id FROM org_countries)",
+    "edges_product_farm": "farm_id IN (SELECT id FROM org_farms)",
+    "edges_shop_farm": "farm_id IN (SELECT id FROM org_farms)",
 }
 
 
@@ -351,6 +353,8 @@ def load_cqi_data(
             "edges_processing_flavor",
             "edges_product_region",
             "edges_product_country",
+            "edges_product_farm",
+            "edges_shop_farm",
         ):
             conn.execute(f"DELETE FROM {table}")
         conn.execute("DELETE FROM org_farms")

@@ -175,6 +175,7 @@ PRODUCT_TABLES = (
     "edges_product_variety",
     "edges_product_region",
     "edges_product_country",
+    "edges_product_farm",
     "edges_product_flavor",
     "edges_product_roast",
     "edges_shop_product",
