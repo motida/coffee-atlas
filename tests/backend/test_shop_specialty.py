@@ -67,6 +67,17 @@ def test_israeli_and_global_chains_excluded():
     assert is_specialty_chain("Nahat Cafe נחת קפה")  # Hebrew suffix, Latin core matches
 
 
+def test_uk_chains_excluded():
+    # Oxford coverage surfaced UK chains the earlier GB city loads missed.
+    # "Wild Bean Cafe" must match Overture's accented "Wild Bean Café" spelling.
+    assert is_nonspecialty_chain("Black Sheep Coffee")
+    assert is_nonspecialty_chain("Wild Bean Café")
+    assert is_nonspecialty_chain("Chaiiwala")
+    # Independents that share a word with the chain cores aren't caught.
+    assert not is_nonspecialty_chain("The Missing Bean")
+    assert not is_nonspecialty_chain("Black Sheep Bakery")
+
+
 def test_nonspecialty_domain_catches_hebrew_named_chains():
     # The killer case for Israel: branches Overture names only in Hebrew fold to ""
     # and slip the name list, but every branch shares the chain's domain.

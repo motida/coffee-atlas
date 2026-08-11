@@ -65,6 +65,14 @@ _NONSPECIALTY_CHAIN_NAMES: tuple[str, ...] = (
     "Roladin",
     "Cafe Cafe",
     "Cafécafé",
+    # UK (Oxford coverage). Mass-market chains the earlier GB city loads didn't
+    # surface. Black Sheep Coffee markets itself as specialty but is a ~100-
+    # branch commercial chain (the Kaffebrenneriet call, applied to London);
+    # Wild Bean Café is BP's forecourt coffee brand; Chaiiwala is a fast-growing
+    # chai franchise.
+    "Black Sheep Coffee",
+    "Wild Bean Cafe",
+    "Chaiiwala",
     # Norway (Oslo coverage). Nordic mass-market coffee chains, kiosk brands
     # that sell coffee, and the large Oslo bakery-café chains (their meta
     # descriptions mention "bakery"/"coffee", which passes the description
@@ -146,6 +154,9 @@ _NONSPECIALTY_CHAIN_DOMAINS: tuple[str, ...] = (
     "gongcha.co.jp",  # bubble-tea chain
     "deandeluca.co.jp",
     "italiantomato.co.jp",
+    # UK — Oxford coverage. Branch POIs link the shared chain homepage.
+    "blacksheepcoffee.co.uk",
+    "chaiiwala.co.uk",
     # Norway — Oslo coverage. Latin names make the name list do most of the
     # work; the domains below catch branches whose POI name is a location
     # variant ("Espresso House Storo") linking the shared chain homepage.

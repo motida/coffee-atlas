@@ -116,6 +116,27 @@ Lysaker,NO
 Fornebu,NO
 Bekkestua,NO
 
+# Oxford & Oxfordshire — added 2026-08-11. Localities verified against the
+# Overture 2026-06-17.0 release (bbox -1.65,51.55,-1.05,51.95: 472 coffee
+# POIs, 197 in Oxford itself). Oxford sits inside the GB coverage the other
+# GB cities above came from; if these lines no-op at the next descriptions
+# run, re-load with OVERTURE_BBOX=-1.65,51.55,-1.05,51.95 first. Home of The
+# Missing Bean, Jericho Coffee Traders, New Ground, Colombia Coffee Roasters
+# and UE Coffee Roasters (Witney) — see the matching roaster_sites.txt batch.
+Oxford,GB
+Bicester,GB
+Witney,GB
+Abingdon,GB
+Didcot,GB
+Wallingford,GB
+Wantage,GB
+Chipping Norton,GB
+Kidlington,GB
+Burford,GB
+Faringdon,GB
+Carterton,GB
+Woodstock,GB
+
 # Awaiting Overture shops coverage — the ingest bbox doesn't yet include
 # Thailand (only ~5 TH shops loaded), so these are no-ops until the shops
 # stage is re-run with a TH bbox.

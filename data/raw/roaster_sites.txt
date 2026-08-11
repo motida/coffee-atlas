@@ -578,3 +578,15 @@ https://stockfleths.no
 https://hibikaffe.no
 https://lippe.no
 https://nordoslo.no
+
+# Batch — Oxford, added 2026-08-11. Sites taken from the roasters' own Overture
+# POIs in the Oxford bbox (roastery-named shops with high confidence). Catalogs
+# were NOT fetch-verified when added (session had no egress to these hosts) —
+# the products scraper auto-detects Shopify/Woo per site and records a no-catalog
+# status harmlessly, so any non-storefront entry is a safe no-op to prune later.
+# UE Coffee Roasters is in Witney, Oxfordshire; the rest are Oxford proper.
+https://www.themissingbean.co.uk
+https://www.jerichocoffeetraders.com
+https://www.newgroundcoffee.com
+https://www.colombiacoffeeroasters.co.uk
+https://www.uecoffeeroasters.com
