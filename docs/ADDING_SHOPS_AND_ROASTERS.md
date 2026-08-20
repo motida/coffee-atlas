@@ -97,7 +97,7 @@ release has aged out of S3. Check the
 [release history](https://docs.overturemaps.org/release/) and bump it:
 
 ```bash
-OVERTURE_RELEASE=2026-06-17.0 OVERTURE_BBOX=<box> just ingest shops
+OVERTURE_RELEASE=2026-07-22.0 OVERTURE_BBOX=<box> just ingest shops
 ```
 
 ### What you get
