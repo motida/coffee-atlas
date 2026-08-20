@@ -1,6 +1,6 @@
 [project]
 name = "coffee-atlas-backend"
-version = "0.2.0"
+version = "0.3.0"
 description = "Backend API for Coffee Atlas — a geospatial coffee knowledge graph platform"
 requires-python = ">=3.14"
 dependencies = [
