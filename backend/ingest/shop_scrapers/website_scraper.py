@@ -20,6 +20,7 @@ import hashlib
 import json
 import re
 import time
+import unicodedata
 from dataclasses import dataclass
 from html import unescape
 from pathlib import Path
@@ -97,6 +98,10 @@ class ScrapeResult:
 
 
 def _normalize_url(url: str) -> str | None:
+    # Overture website values occasionally embed invisible format/control
+    # characters (e.g. a trailing U+200E left-to-right mark) that httpx
+    # rejects as an invalid IDNA hostname.
+    url = "".join(ch for ch in url if unicodedata.category(ch) not in ("Cf", "Cc"))
     url = url.strip()
     if not url:
         return None
@@ -140,6 +145,18 @@ async def scrape_one(
     async with sem:
         try:
             r = await client.get(normalized, timeout=REQUEST_TIMEOUT, follow_redirects=True)
+        except httpx.InvalidURL as e:
+            # Malformed URL — permanent (terminal "skip"), and must never
+            # propagate: one bad URL would kill the whole run.
+            return ScrapeResult(
+                shop_id,
+                normalized,
+                "skip",
+                None,
+                None,
+                int((time.monotonic() - started) * 1000),
+                f"{type(e).__name__}: {e}"[:200],
+            )
         except (httpx.HTTPError, OSError) as e:
             return ScrapeResult(
                 shop_id,

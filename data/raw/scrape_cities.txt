@@ -37,6 +37,7 @@ Atlanta,US
 Phoenix,US
 Ottawa,CA
 Leeds,GB
+Oxford,GB
 # Israel. Overture stores Israeli localities in Hebrew (only ~40 shops carry a
 # romanized "Tel Aviv"), so the Hebrew strings below are what actually match
 # shop_shops.city — they unlock the ~3.5k IL shops already loaded. Use the exact
@@ -116,8 +117,30 @@ Lysaker,NO
 Fornebu,NO
 Bekkestua,NO
 
-# Awaiting Overture shops coverage — the ingest bbox doesn't yet include
-# Thailand (only ~5 TH shops loaded), so these are no-ops until the shops
-# stage is re-run with a TH bbox.
+# Thailand — loaded 2026-08-18 from Overture 2026-07-22.0 via two bboxes:
+# Bangkok metro (100.30,13.45,100.95,14.05) and Chiang Mai (98.85,18.65,99.10,18.90),
+# ~30.5k TH shops. Like Israel/Tokyo, Overture stores Thai localities in Thai
+# script (only ~40 shops each carry romanized "Bangkok"/"Chiang Mai" — kept
+# below since they do match). Romanized, in order: Bangkok, Chiang Mai,
+# Nonthaburi, Samut Prakan, Pak Kret, Pathum Thani, Lam Luk Ka, Bang Bua Thong,
+# Thanyaburi, Bang Yai, Saraphi, Bang Kruai, Khlong Luang, Phra Pradaeng,
+# Hang Dong, San Sai, San Kamphaeng.
 Bangkok,TH
 Chiang Mai,TH
+กรุงเทพมหานคร,TH
+เชียงใหม่,TH
+นนทบุรี,TH
+สมุทรปราการ,TH
+ปากเกร็ด,TH
+ปทุมธานี,TH
+ลําลูกกา,TH
+บางบัวทอง,TH
+ธัญบุรี,TH
+บางใหญ่,TH
+สารภี,TH
+บางกรวย,TH
+คลองหลวง,TH
+พระประแดง,TH
+หางดง,TH
+สันทราย,TH
+สันกําแพง,TH
